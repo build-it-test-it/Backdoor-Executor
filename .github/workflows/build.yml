@@ -1,10 +1,10 @@
 name: Build Lua Dynamic Library
 
 on:
-   push:
+  push:
     branches:
-      - main  # Trigger on push to main branch
-   workflow_dispatch:  # Manual trigger
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,43 +14,38 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Install Dependencies
+    - name: Install Lua and LuaRocks
       run: |
-        echo "Installing Lua, Lua-lfs and CMake..."
-        brew install lua cmake
-         brew install lua cmake luarocks
+        echo "Installing Lua and LuaRocks..."
+        brew install lua cmake luarocks
         luarocks install luafilesystem  # Install LuaFileSystem
-
-    - name: Create Build Directory
-      run: |
-        echo "Creating build directory..."
-        mkdir -p build
-
-    - name: Configure CMake
-      run: |
-        echo "Configuring CMake..."
-        cd build
-        cmake ..  # CMakeLists.txt is in the parent directory
 
     - name: Build Dynamic Library
       run: |
         echo "Building the dynamic library..."
+        mkdir -p build
         cd build
+        cmake .. -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
         cmake --build . --config Release
 
-    - name: Copy Built Library
+    - name: Check Build Output
       run: |
-        echo "Copying built library to output directory..."
-        mkdir -p output
-        cp build/libmylibrary.dylib output/  # Adjusted path for output
+        echo "Checking the build output..."
+        if [ -f build/libmylibrary.dylib ]; then
+          echo "libmylibrary.dylib exists."
+        else
+          echo "libmylibrary.dylib does not exist."
+          exit 1  # Exit with an error code if the library doesn't exist
+        fi
 
-    - name: Upload Library
-      uses: actions/upload-artifact@v3  # Using the latest stable version
+    - name: Archive built library
+      run: |
+        echo "Archiving the built library..."
+        mkdir -p output
+        cp build/libmylibrary.dylib output/
+
+    - name: Upload library
+      uses: actions/upload-artifact@v3
       with:
         name: mylibrary
         path: output/libmylibrary.dylib
-
-    - name: Clean Up
-      run: |
-        echo "Cleaning up..."
-        rm -rf build  # Optionally remove the build directory after the process

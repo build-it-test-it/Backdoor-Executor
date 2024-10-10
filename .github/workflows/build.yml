@@ -29,20 +29,21 @@ jobs:
         cmake .. -DCMAKE_OSX_ARCHITECTURES="arm64"
         cmake --build . --config Release
 
+    - name: Export Built Library
+      run: |
+        echo "Exporting the built library..."
+        mkdir -p output
+        cp build/libmylibrary.dylib output/  # Copy the library to output directory
+
     - name: Check Build Output
       run: |
         echo "Checking the build output..."
-        if [ -f libmylibrary.dylib ]; then
+        if [ -f output/libmylibrary.dylib ]; then
           echo "libmylibrary.dylib exists."
         else
           echo "libmylibrary.dylib does not exist."
+          exit 1  # Exit with error if the library does not exist
         fi
-
-    - name: Archive built library
-      run: |
-        echo "Archiving the built library..."
-        mkdir -p output
-        cp libmylibrary.dylib output/
 
     - name: Upload library
       uses: actions/upload-artifact@v3

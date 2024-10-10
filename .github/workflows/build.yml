@@ -18,7 +18,8 @@ jobs:
       run: |
         echo "Installing Lua, Lua-lfs and CMake..."
         brew install lua cmake
-        brew install lua-lfs
+         brew install lua cmake luarocks
+        luarocks install luafilesystem  # Install LuaFileSystem
 
     - name: Create Build Directory
       run: |

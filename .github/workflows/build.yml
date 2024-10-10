@@ -1,0 +1,34 @@
+name: Build Lua Dynamic Library
+
+on:
+  workflow_dispatch:  # Allows the workflow to be manually triggered
+
+jobs:
+  build:
+    runs-on: macos-latest  # Use a macOS environment to build the .dylib
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install Lua and CMake
+      run: |
+        brew install lua cmake
+
+    - name: Build Dynamic Library
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+        cmake --build . --config Release
+
+    - name: Archive built library
+      run: |
+        mkdir -p output
+        cp build/libmylibrary.dylib output/
+        
+    - name: Upload library
+      uses: actions/upload-artifact@v2
+      with:
+        name: mylibrary
+        path: output/libmylibrary.dylib

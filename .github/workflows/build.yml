@@ -35,7 +35,7 @@ jobs:
       run: |
         echo "Exporting the built library..."
         mkdir -p output
-        cp $OUTPUT_LIB_PATH output/  # Use the environment variable for the output path
+        cp /Users/runner/work/Aedaniss7s-script-executor-roblox/Aedaniss7s-script-executor-roblox/lib/libmylibrary.dylib output/  # Use the environment variable for the output path
 
     - name: Check Build Output
       run: |

@@ -28,7 +28,7 @@ jobs:
         cp libmylibrary.dylib output/  # Adjusted path for output
 
     - name: Upload library
-      uses: actions/upload-artifact@latest  # Updated to the latest version
+      uses: actions/upload-artifact@v2  # Updated to the latest version
       with:
         name: mylibrary
         path: output/libmylibrary.dylib

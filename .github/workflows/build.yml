@@ -20,16 +20,22 @@ jobs:
         brew install lua cmake luarocks
         luarocks install luafilesystem  # Install LuaFileSystem
 
-    - name: Build and Export Dynamic Library
+    - name: Build Dynamic Library
+      id: build
       run: |
         echo "Building the dynamic library..."
         mkdir -p build
         cmake -S . -B build -DCMAKE_OSX_ARCHITECTURES="arm64"  # Specify source and build directories
         cmake --build build --config Release  # Build without changing directories
+        
+        # Set the built library path as an output variable
+        echo "OUTPUT_LIB_PATH=build/libmylibrary.dylib" >> $GITHUB_ENV
 
+    - name: Export the built library
+      run: |
         echo "Exporting the built library..."
         mkdir -p output
-        cp build/libmylibrary.dylib output/  # Copy the library to the output directory
+        cp $OUTPUT_LIB_PATH output/  # Use the environment variable for the output path
 
     - name: Check Build Output
       run: |

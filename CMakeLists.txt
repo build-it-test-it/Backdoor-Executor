@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)  # Update the minimum version to avoid deprecation warnings
 
 # Project name
 project(MyLuaLibrary)
@@ -13,7 +13,7 @@ find_package(Lua REQUIRED)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 # Add source files
-set(SOURCES library.cpp)  # Include your C++ source file here
+set(SOURCES source/library.cpp)  # Include the path to your C++ source file here
 
 # Create the library
 add_library(mylibrary SHARED ${SOURCES})

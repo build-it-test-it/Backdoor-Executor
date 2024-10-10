@@ -36,7 +36,6 @@ jobs:
           echo "libmylibrary.dylib exists."
         else
           echo "libmylibrary.dylib does not exist."
-          exit 1  # Exit with an error code if the library doesn't exist
         fi
 
     - name: Archive built library

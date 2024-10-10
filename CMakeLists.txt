@@ -13,7 +13,7 @@ find_package(Lua REQUIRED)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 # Add source files
-file(GLOB SOURCES "source/*.lua")  # Specify the path to your main.lua
+set(SOURCES library.cpp)  # Include your C++ source file here
 
 # Create the library
 add_library(mylibrary SHARED ${SOURCES})
@@ -23,3 +23,6 @@ target_link_libraries(mylibrary ${LUA_LIBRARIES})
 
 # Include directories for Lua
 target_include_directories(mylibrary PRIVATE ${LUA_INCLUDE_DIR})
+
+# Link against LuaFileSystem
+target_link_libraries(mylibrary lfs)  # Assuming lfs is the name for LuaFileSystem

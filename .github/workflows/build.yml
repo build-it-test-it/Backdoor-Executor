@@ -13,8 +13,9 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        echo "Installing Lua and CMake..."
+        echo "Installing Lua, Lua-lfs and CMake..."
         brew install lua cmake
+        brew install lua-lfs
 
     - name: Create Build Directory
       run: |

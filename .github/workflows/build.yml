@@ -24,16 +24,14 @@ jobs:
       run: |
         echo "Building the dynamic library..."
         mkdir -p build
-        cd build
-        # Set the architecture to arm64 since the installed Lua is for arm64
-        cmake .. -DCMAKE_OSX_ARCHITECTURES="arm64"
-        cmake --build . --config Release
+        cmake -S . -B build -DCMAKE_OSX_ARCHITECTURES="arm64"  # Specify source and build directories
+        cmake --build build --config Release  # Build without changing directories
 
     - name: Export Built Library
       run: |
         echo "Exporting the built library..."
         mkdir -p output
-        cp build/libmylibrary.dylib output/  # Copy the library to output directory
+        cp build/libmylibrary.dylib output/  # Copy the library to the output directory
 
     - name: Check Build Output
       run: |

@@ -1,7 +1,7 @@
 name: Build Lua Dynamic Library
 
 on:
-  workflow_dispatch:  # Allows the workflow to be manually triggered
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   build:
@@ -19,14 +19,14 @@ jobs:
       run: |
         mkdir -p build
         cd build
-        cmake .. -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+        cmake ..  # CMakeLists.txt is in the parent directory
         cmake --build . --config Release
 
     - name: Archive built library
       run: |
         mkdir -p output
-        cp build/libmylibrary.dylib output/
-        
+        cp libmylibrary.dylib output/  # Adjusted path for output
+
     - name: Upload library
       uses: actions/upload-artifact@v2
       with:

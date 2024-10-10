@@ -11,24 +11,41 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Install Lua and CMake
+    - name: Install Dependencies
       run: |
+        echo "Installing Lua and CMake..."
         brew install lua cmake
+
+    - name: Create Build Directory
+      run: |
+        echo "Creating build directory..."
+        mkdir -p build
+
+    - name: Configure CMake
+      run: |
+        echo "Configuring CMake..."
+        cd build
+        cmake ..  # CMakeLists.txt is in the parent directory
 
     - name: Build Dynamic Library
       run: |
-        mkdir -p build
+        echo "Building the dynamic library..."
         cd build
-        cmake ..  # CMakeLists.txt is in the parent directory
         cmake --build . --config Release
 
-    - name: Archive built library
+    - name: Copy Built Library
       run: |
+        echo "Copying built library to output directory..."
         mkdir -p output
-        cp libmylibrary.dylib output/  # Adjusted path for output
+        cp build/libmylibrary.dylib output/  # Adjusted path for output
 
-    - name: Upload library
-      uses: actions/upload-artifact@v2  # Updated to the latest version
+    - name: Upload Library
+      uses: actions/upload-artifact@v3  # Using the latest stable version
       with:
         name: mylibrary
         path: output/libmylibrary.dylib
+
+    - name: Clean Up
+      run: |
+        echo "Cleaning up..."
+        rm -rf build  # Optionally remove the build directory after the process

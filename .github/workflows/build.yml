@@ -1,7 +1,10 @@
 name: Build Lua Dynamic Library
 
 on:
-  workflow_dispatch:  # Manual trigger
+   push:
+    branches:
+      - main  # Trigger on push to main branch
+   workflow_dispatch:  # Manual trigger
 
 jobs:
   build:

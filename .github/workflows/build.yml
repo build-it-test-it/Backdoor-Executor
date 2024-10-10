@@ -25,13 +25,13 @@ jobs:
         echo "Building the dynamic library..."
         mkdir -p build
         cd build
-        cmake .. -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+        cmake .. -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release
         cmake --build . --config Release
 
     - name: Check Build Output
       run: |
         echo "Checking the build output..."
-        if [ -f build/libmylibrary.dylib ]; then
+        if [ -f libmylibrary.dylib ]; then  # Corrected path to check for the library
           echo "libmylibrary.dylib exists."
         else
           echo "libmylibrary.dylib does not exist."
@@ -42,7 +42,7 @@ jobs:
       run: |
         echo "Archiving the built library..."
         mkdir -p output
-        cp build/libmylibrary.dylib output/
+        cp libmylibrary.dylib output/  # Corrected path to copy the library
 
     - name: Upload library
       uses: actions/upload-artifact@v3

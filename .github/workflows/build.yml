@@ -20,7 +20,7 @@ jobs:
         # Install Homebrew packages
         brew install lua cmake luarocks openssl sqlite3 pkg-config  # Install Lua, CMake, LuaRocks, OpenSSL, SQLite, and pkg-config
         brew install libzip json-c  # Install libzip and JSON-C libraries for ZIP and JSON handling
-        brew install aes  # Install AES encryption library, if available
+        # brew install aes  # Install AES encryption library, if available
 
         # Install LuaRocks libraries
         luarocks install luafilesystem  # Install LuaFileSystem

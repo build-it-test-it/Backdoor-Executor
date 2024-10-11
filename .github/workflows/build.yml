@@ -38,13 +38,11 @@ jobs:
         
         # Set the built library path as an output variable
         echo "OUTPUT_LIB_PATH=build/libmylibrary.dylib" >> $GITHUB_ENV
-
     - name: Export the built library
       run: |
         echo "Exporting the built library..."
         mkdir -p output
-        cp build/libmylibrary.dylib output/  # Use the environment variable for the output path
-
+        cp /Users/runner/work/Aedaniss7s-script-executor-roblox/Aedaniss7s-script-executor-roblox/lib/libmylibrary.dylib output/  # Use the environment variable for the output path
     - name: Check Build Output
       run: |
         echo "Checking the build output..."
@@ -54,7 +52,6 @@ jobs:
           echo "libmylibrary.dylib does not exist."
           exit 1  # Exit with error if the library does not exist
         fi
-
     - name: Upload library
       uses: actions/upload-artifact@v3
       with:

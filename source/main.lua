@@ -5,7 +5,7 @@ local Files = require("Files")
 
 -- Get the app name from the global variable set in C++
 -- The app name is available because we set it in library.cpp
-local appName = appName or "DefaultAppName"  -- Fallback if not set
+local appName = "Test"  -- Fallback if not set
 
 -- Initialize the Workspace directory
 if not Files.initializeWorkspace(appName) then

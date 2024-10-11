@@ -24,7 +24,6 @@ jobs:
 
         # Install LuaRocks libraries
         luarocks install luafilesystem  # Install LuaFileSystem
-        luarocks install luajson         # Install LuaJSON for handling JSON
         luarocks install lua-sql         # Install LuaSQL for SQL database access
 
         # Add any other LuaRocks packages you need here

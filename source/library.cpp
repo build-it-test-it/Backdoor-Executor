@@ -2,7 +2,6 @@
 #include <lauxlib.h>      // Lua auxiliary functions
 #include <lualib.h>       // Lua standard libraries
 #include <lfs.h>          // LuaFileSystem for file handling
-#include <ssl.h>          // SSL library for encryption
 
 extern "C" int luaopen_mylibrary(lua_State *L) {
     // Load LuaFileSystem

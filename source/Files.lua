@@ -23,9 +23,11 @@ end
 
 -- Function to initialize the Workspace directory
 local function initializeWorkspace(appName)
-    local path = "/var/mobile/Containers/Data/Application/" .. appName .. "/Documents/Workspace"
+    -- Get the app’s sandboxed Documents directory
+    local path = os.getenv("HOME") .. "/Documents/Workspace"
     return createDirectory(path)
 end
+
 
 -- Return the functions to be used by other modules
 return {

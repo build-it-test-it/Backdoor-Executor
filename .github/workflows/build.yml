@@ -14,11 +14,23 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Install Lua and LuaRocks
+    - name: Install dependencies
       run: |
-        echo "Installing Lua and LuaRocks..."
-        brew install lua cmake luarocks
+        echo "Installing dependencies..."
+        # Install Homebrew packages
+        brew install lua cmake luarocks openssl sqlite3 pkg-config  # Install Lua, CMake, LuaRocks, OpenSSL, SQLite, and pkg-config
+        brew install libzip json-c  # Install libzip and JSON-C libraries for ZIP and JSON handling
+        brew install aes  # Install AES encryption library, if available
+
+        # Install LuaRocks libraries
         luarocks install luafilesystem  # Install LuaFileSystem
+        luarocks install luajson         # Install LuaJSON for handling JSON
+        luarocks install lua-zip         # Install LuaZip for ZIP functionality
+        luarocks install lua-sql         # Install LuaSQL for SQL database access
+
+        # Add any other LuaRocks packages you need here
+        # luarocks install <other-package-name>
+
     - name: Build Dynamic Library
       id: build
       run: |
@@ -29,11 +41,13 @@ jobs:
         
         # Set the built library path as an output variable
         echo "OUTPUT_LIB_PATH=build/libmylibrary.dylib" >> $GITHUB_ENV
+
     - name: Export the built library
       run: |
         echo "Exporting the built library..."
         mkdir -p output
-        cp /Users/runner/work/Aedaniss7s-script-executor-roblox/Aedaniss7s-script-executor-roblox/lib/libmylibrary.dylib output/  # Use the environment variable for the output path
+        cp build/libmylibrary.dylib output/  # Use the environment variable for the output path
+
     - name: Check Build Output
       run: |
         echo "Checking the build output..."
@@ -43,6 +57,7 @@ jobs:
           echo "libmylibrary.dylib does not exist."
           exit 1  # Exit with error if the library does not exist
         fi
+
     - name: Upload library
       uses: actions/upload-artifact@v3
       with:

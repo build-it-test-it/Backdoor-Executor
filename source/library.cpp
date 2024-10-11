@@ -3,7 +3,6 @@
 #include <lualib.h>
 #include "lfs.h"        // LuaFileSystem for file handling
 #include <sqlite3.h>    // SQLite for database operations
-#include <openssl/ssl.h> // OpenSSL for encryption
 #include <json/json.h>  // JSON parsing
 #include <zip.h>        // LibZip for compressed files handling
 

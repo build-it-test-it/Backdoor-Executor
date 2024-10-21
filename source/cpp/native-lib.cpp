@@ -8,7 +8,7 @@
 
 void mainfunc(){
     // Only start when roblox is loaded
-    while (!isLibraryLoaded("libroblox.so")) sleep(1);
+    while (!isLibraryLoaded("RobloxLib.framework")) sleep(1);
 
     // Init our function pointers
     initfuncs();

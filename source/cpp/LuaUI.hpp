@@ -18,7 +18,7 @@ local Execute = Instance.new('TextButton')
 --Properties:
 
 MobileBlox.Name = "MobileBlox"
-MobileBlox.Parent = game:WaitForChild('CoreGui')
+MobileBlox.Parent = game:GetService('CoreGui')
 
 Main.Name = "Main"
 Main.Parent = MobileBlox

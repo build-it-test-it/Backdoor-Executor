@@ -1,104 +1,74 @@
-# FindLua.cmake
-# This module finds Lua libraries and includes needed for our project
-# This is used if the standard FindLua provided by CMake doesn't work
+# FindLua.cmake for Homebrew Luau
+# This module finds Luau libraries and includes installed via Homebrew
 
 # Variables this module defines:
-# LUA_FOUND - True if Lua was found
-# LUA_INCLUDE_DIR - Directory containing Lua headers
-# LUA_LIBRARIES - Libraries needed to use Lua
+# LUA_FOUND - True if Luau was found
+# LUA_INCLUDE_DIR - Directory containing Luau headers
+# LUA_LIBRARIES - Libraries needed to use Luau
 
-# Try to find Lua in standard locations
-find_path(LUA_INCLUDE_DIR lua.h
-  PATHS
-  /usr/include
-  /usr/local/include
-  /opt/local/include
-  /opt/homebrew/include
-  /usr/local/opt/lua/include
-  /usr/local/Cellar/lua/*/include
-  /opt/homebrew/Cellar/lua/*/include
-  PATH_SUFFIXES
-  lua
-  lua5.4
-  lua5.3
-  lua5.2
-  lua5.1
-  include/lua
-  include/lua5.4
-  include/lua5.3
-  include/lua5.2
-  include/lua5.1
-)
-
-# Try to find the lua library
-find_library(LUA_LIBRARIES
-  NAMES
-  lua
-  liblua
-  lua5.4
-  liblua5.4
-  lua-5.4
-  lua5.3
-  liblua5.3
-  lua-5.3
-  lua5.2
-  liblua5.2
-  lua-5.2
-  lua5.1
-  liblua5.1
-  lua-5.1
-  PATHS
-  /usr/lib
-  /usr/local/lib
-  /opt/local/lib
-  /opt/homebrew/lib
-  /usr/local/opt/lua/lib
-  /usr/local/Cellar/lua/*/lib
-  /opt/homebrew/Cellar/lua/*/lib
-)
-
-# Handle Homebrew on macOS
-if(APPLE)
+# Try to get from environment variables first
+if(DEFINED ENV{LUAU_INCLUDE_DIR} AND DEFINED ENV{LUA_LIBRARIES})
+  set(LUA_INCLUDE_DIR $ENV{LUAU_INCLUDE_DIR})
+  set(LUA_LIBRARIES $ENV{LUA_LIBRARIES})
+  set(LUA_FOUND TRUE)
+  message(STATUS "Using Luau from environment variables")
+  message(STATUS "Luau include dir: ${LUA_INCLUDE_DIR}")
+  message(STATUS "Luau libraries: ${LUA_LIBRARIES}")
+else()
+  # Try to find using Homebrew
+  message(STATUS "Looking for Homebrew Luau installation")
+  
   execute_process(
-    COMMAND brew --prefix lua
-    OUTPUT_VARIABLE BREW_LUA_PREFIX
+    COMMAND brew --prefix luau
+    OUTPUT_VARIABLE LUAU_PREFIX
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
   )
   
-  if(BREW_LUA_PREFIX)
-    message(STATUS "Found Homebrew Lua at: ${BREW_LUA_PREFIX}")
+  if(LUAU_PREFIX)
+    message(STATUS "Found Homebrew Luau at: ${LUAU_PREFIX}")
     
-    if(NOT LUA_INCLUDE_DIR)
-      set(LUA_INCLUDE_DIR "${BREW_LUA_PREFIX}/include")
-    endif()
+    # Set include directory
+    set(LUA_INCLUDE_DIR "${LUAU_PREFIX}/include")
     
+    # Find the library - try multiple variations of names
+    find_library(LUA_LIBRARIES
+      NAMES luau lua liblua libluau
+      PATHS "${LUAU_PREFIX}/lib"
+      NO_DEFAULT_PATH
+    )
+    
+    # If library not found directly, try with the default name or search for any .dylib
     if(NOT LUA_LIBRARIES)
-      find_library(LUA_LIBRARIES NAMES lua lua54 lua5.4 lua-5.4 liblua
-                  PATHS "${BREW_LUA_PREFIX}/lib" NO_DEFAULT_PATH)
+      file(GLOB LUAU_LIBS "${LUAU_PREFIX}/lib/*.dylib")
+      if(LUAU_LIBS)
+        list(GET LUAU_LIBS 0 FIRST_LIB)
+        set(LUA_LIBRARIES "${FIRST_LIB}")
+        message(STATUS "Using found Luau library: ${LUA_LIBRARIES}")
+      else()
+        file(GLOB LUAU_STATIC_LIBS "${LUAU_PREFIX}/lib/*.a")
+        if(LUAU_STATIC_LIBS)
+          list(GET LUAU_STATIC_LIBS 0 FIRST_STATIC_LIB)
+          set(LUA_LIBRARIES "${FIRST_STATIC_LIB}")
+          message(STATUS "Using found Luau static library: ${LUA_LIBRARIES}")
+        else()
+          # Default fallback options
+          if(EXISTS "${LUAU_PREFIX}/lib/liblua.dylib")
+            set(LUA_LIBRARIES "${LUAU_PREFIX}/lib/liblua.dylib")
+          elseif(EXISTS "${LUAU_PREFIX}/lib/libluau.dylib")
+            set(LUA_LIBRARIES "${LUAU_PREFIX}/lib/libluau.dylib")
+          else()
+            message(WARNING "Could not find any Luau library in ${LUAU_PREFIX}/lib")
+          endif()
+          message(STATUS "Using hardcoded Luau library path: ${LUA_LIBRARIES}")
+        endif()
+      endif()
     endif()
-  endif()
-endif()
-
-# For iOS cross-compilation
-if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-  # Check if lua was built for iOS (custom build is usually needed)
-  # Try the standard Homebrew prefix as lua might be there
-  execute_process(
-    COMMAND brew --prefix
-    OUTPUT_VARIABLE BREW_PREFIX
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET
-  )
-  
-  if(BREW_PREFIX)
-    set(IOS_LUA_INCLUDE_DIR "${BREW_PREFIX}/include")
-    set(IOS_LUA_LIBRARY "${BREW_PREFIX}/lib/liblua.a")
     
-    if(EXISTS "${IOS_LUA_INCLUDE_DIR}/lua.h" AND EXISTS "${IOS_LUA_LIBRARY}")
-      set(LUA_INCLUDE_DIR "${IOS_LUA_INCLUDE_DIR}")
-      set(LUA_LIBRARIES "${IOS_LUA_LIBRARY}")
-    endif()
+    set(LUA_FOUND TRUE)
+  else()
+    message(WARNING "Homebrew Luau not found. Please install with: brew install luau")
+    set(LUA_FOUND FALSE)
   endif()
 endif()
 

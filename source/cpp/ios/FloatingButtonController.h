@@ -44,6 +44,13 @@ namespace iOS {
         void LoadPosition();
         
     public:
+        // Public method to trigger the tap callback
+        void performTapAction() {
+            if (m_tapCallback) {
+                m_tapCallback();
+            }
+        }
+        
         /**
          * @brief Constructor
          * @param initialPosition Initial button position

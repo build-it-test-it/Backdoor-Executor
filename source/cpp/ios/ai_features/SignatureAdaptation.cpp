@@ -3,23 +3,12 @@
 
 namespace iOS {
     namespace AIFeatures {
+        // Define the SignatureAdaptation namespace and its contents
         namespace SignatureAdaptation {
             // Define the actual struct that's expected
             struct DetectionEvent {
                 std::string name;
                 std::vector<unsigned char> bytes;
-            };
-            
-            // Add class implementation for SignatureAdaptation itself (as a class, not just a namespace)
-            class SignatureAdaptation {
-            public:
-                SignatureAdaptation() {
-                    // Constructor implementation
-                }
-                
-                ~SignatureAdaptation() {
-                    // Destructor implementation
-                }
             };
             
             // Implement the required methods directly with proper namespaces
@@ -40,5 +29,18 @@ namespace iOS {
                 PruneDetectionHistory(); // Call the function that's being referenced
             }
         }
+        
+        // Define the SignatureAdaptation class directly in the AIFeatures namespace
+        // This is what the code is actually looking for
+        class SignatureAdaptation {
+        public:
+            SignatureAdaptation() {
+                // Constructor implementation
+            }
+            
+            ~SignatureAdaptation() {
+                // Destructor implementation
+            }
+        };
     }
 }

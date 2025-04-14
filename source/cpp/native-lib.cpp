@@ -8,7 +8,10 @@
 
 // Include Dobby only if available (controlled by CMake)
 #ifndef NO_DOBBY_HOOKS
-  #include <dobby.h>
+  // Skip including dobby.h for iOS builds as it's not available
+  #if !defined(IOS_TARGET) && !defined(__APPLE__)
+    #include <dobby.h>
+  #endif
   #define HOOKING_AVAILABLE 1
 #else
   #define HOOKING_AVAILABLE 0

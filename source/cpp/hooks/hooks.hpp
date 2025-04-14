@@ -173,7 +173,7 @@ int hkstartscript(std::uintptr_t thiz, std::uintptr_t rscript) {
         try {
             // Set up identity for getting main state
             int id[2] = {8, 0};
-            int script[] = {NULL, NULL};
+            int script[] = {0, 0}; // Using 0 instead of NULL to avoid conversion warnings
             
             // Get the main Lua state
             rL = rlua_getmainstate(thiz, reinterpret_cast<uintptr_t>(id), reinterpret_cast<uintptr_t>(script));

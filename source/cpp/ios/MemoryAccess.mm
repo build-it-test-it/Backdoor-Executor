@@ -93,18 +93,20 @@ namespace iOS {
         kern_return_t kr = KERN_SUCCESS;
         
         while (true) {
+            mach_vm_size_t regionSize; // Store size for later use
+            
             #if defined(IOS_TARGET) || defined(__APPLE__)
             // On iOS we use vm_region_64 instead of mach_vm_region which is unavailable
             kr = vm_region_64(
                 m_targetTask,
                 (vm_address_t*)&address,  // Cast to match vm_region_64 signature
-                (vm_size_t*)&size,        // Cast to match vm_region_64 signature
+                (vm_size_t*)&regionSize,  // Cast to match vm_region_64 signature and capture size
                 VM_REGION_BASIC_INFO_64,
                 (vm_region_info_t)&info, 
                 &infoCount, 
                 &objectName);
             #else
-            kr = mach_vm_region(m_targetTask, &address, &size, 
+            kr = mach_vm_region(m_targetTask, &address, &regionSize, 
                            VM_REGION_BASIC_INFO_64,
                            (vm_region_info_t)&info, 
                            &infoCount, 
@@ -118,8 +120,11 @@ namespace iOS {
                 break;
             }
             
+            // Store the size with the region for later use
+            info.protection |= (regionSize & 0xFFFFFFFF) << 32; // Store size in unused upper bits of protection
+            
             regions.push_back(info);
-            address += size;
+            address += regionSize;
         }
         
         return !regions.empty();
@@ -245,10 +250,8 @@ namespace iOS {
             // Scan this region
             mach_vm_size_t regionSize;
             #if defined(IOS_TARGET) || defined(__APPLE__)
-            // On iOS, use the size value obtained from vm_region_64 call
-            // Store this value before we use it since it's modified during iteration
-            mach_vm_size_t currentRegionSize = size;
-            regionSize = currentRegionSize;
+            // On iOS, we stored the size in the upper bits of the protection field during GetMemoryRegions
+            regionSize = (region.protection >> 32) & 0xFFFFFFFF; // Extract the size we stored
             #else
             regionSize = region.virtual_size;
             #endif

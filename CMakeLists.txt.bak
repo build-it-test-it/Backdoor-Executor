@@ -1,6 +1,3 @@
-# Add build directory to include path for CI builds
-include_directories(${CMAKE_BINARY_DIR})
-
 cmake_minimum_required(VERSION 3.13)  # Updated for better iOS support
 
 # Project name

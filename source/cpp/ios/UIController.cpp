@@ -337,11 +337,3 @@ namespace iOS {
     }
     
 } // namespace iOS
-                                                                        containerView.bounds.size.width, 49)];
-            tabBar.tag = 1000;
-            tabBar.delegate = nil; // We'll use tags to identify tabs
-            
-            // Add tabs
-            UITabBarItem* editorTab = [[UITabBarItem alloc] initWithTitle:@"Editor" image:nil tag:0];
-            UITabBarItem* scriptsTab = [[UITabBarItem alloc] initWithTitle:@"Scripts" image:nil tag:1];
-            UITabBarItem* consoleTab = [[UITabBarItem alloc] initWithTitle:@"Console" image:nil tag:2];

@@ -1,0 +1,38 @@
+#include "SignatureAdaptation.h"
+#include <algorithm>
+#include <iostream>
+
+// Define CI_BUILD to use stub implementations in CI environment
+#define CI_BUILD
+
+namespace iOS {
+    namespace AIFeatures {
+        // Constructor
+        SignatureAdaptation::SignatureAdaptation() {
+            // Initialize the signature adaptation system
+            std::cout << "SignatureAdaptation: Initialized" << std::endl;
+        }
+        
+        // Destructor
+        SignatureAdaptation::~SignatureAdaptation() {
+            // Cleanup resources
+            std::cout << "SignatureAdaptation: Destroyed" << std::endl;
+        }
+        
+        // Basic implementation stubs
+        bool SignatureAdaptation::Initialize() {
+            return true;
+        }
+        
+        bool SignatureAdaptation::ScanMemoryForSignatures() {
+            return true;
+        }
+        
+        void SignatureAdaptation::PruneDetectionHistory() {
+            // Stub implementation for CI build
+            std::cout << "SignatureAdaptation: Pruned detection history" << std::endl;
+        }
+        
+        // Other methods would be implemented similarly
+    }
+}

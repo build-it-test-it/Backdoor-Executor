@@ -29,50 +29,24 @@ jobs:
         brew install llvm
         brew install libomp
         
-        # Install Lua with development headers and ensure availability
-        brew install lua
-        brew install luarocks
+        # Note: We're using the internal Luau headers, not external Lua
+        echo "Using internal Luau headers - no need to install external Lua"
         
-        # Find the Homebrew prefix (could be /usr/local or /opt/homebrew depending on architecture)
-        BREW_PREFIX=$(brew --prefix)
-        echo "Homebrew prefix: $BREW_PREFIX"
-        
-        # Check Lua installation
-        echo "Lua installation details:"
-        brew info lua
-        
-        # Find Lua headers and libraries using brew --prefix
-        LUA_PREFIX=$(brew --prefix lua)
-        echo "Lua prefix: $LUA_PREFIX"
-        echo "Lua headers location:"
-        find "$LUA_PREFIX" -name "lua.h" || echo "lua.h not found in $LUA_PREFIX"
-        echo "Lua library location:"
-        find "$LUA_PREFIX" -name "liblua*.dylib" -o -name "liblua*.a" || echo "liblua not found in $LUA_PREFIX"
-        
-        # Create build directories if they don't exist
+        # Create directories for project resources
+        mkdir -p Resources/AIData/LocalModels
+        mkdir -p Resources/AIData/Vulnerabilities
+        mkdir -p lib
         mkdir -p cmake
-        mkdir -p /tmp/lua_include
-        mkdir -p /tmp/lua_lib
         
-        # Copy Lua headers and libraries to our own directories
-        cp -f "$LUA_PREFIX/include/lua"*.h /tmp/lua_include/ || echo "Failed to copy lua headers"
-        cp -f "$LUA_PREFIX/lib/liblua".* /tmp/lua_lib/ || echo "Failed to copy lua libraries"
+        # Copy any CMake modules directly
+        if [ -f "$GITHUB_WORKSPACE/cmake/FindLuaFileSystem.cmake" ]; then
+            cp -f $GITHUB_WORKSPACE/cmake/FindLuaFileSystem.cmake cmake/ 
+            echo "Copied FindLuaFileSystem.cmake to cmake/"
+        fi
         
-        # Make sure FindLua.cmake is copied to the right place
-        cp -f $GITHUB_WORKSPACE/cmake/FindLua.cmake cmake/ || echo "No FindLua.cmake to copy yet"
-        
-        # Create symlinks if possible (try without sudo first)
-        mkdir -p $HOME/.local/include $HOME/.local/lib
-        ln -sf "$LUA_PREFIX/include/lua"*.h $HOME/.local/include/ || echo "Failed to create user lua.h symlink"
-        ln -sf "$LUA_PREFIX/lib/liblua".* $HOME/.local/lib/ || echo "Failed to create user liblua symlink"
-        
-        # Set environment variables to help CMake find Lua
-        echo "LUA_DIR=$LUA_PREFIX" >> $GITHUB_ENV
-        echo "LUA_INCLUDE_DIR=$LUA_PREFIX/include" >> $GITHUB_ENV
-        echo "LUA_LIBRARIES=$LUA_PREFIX/lib/liblua.dylib" >> $GITHUB_ENV
-        
-        # Install LuaRocks and necessary libraries
-        luarocks install luafilesystem || echo "Failed to install luafilesystem"
+        # For debugging only - show the existing Luau headers
+        echo "Available Luau headers:"
+        find $GITHUB_WORKSPACE/source/cpp/luau -name "*.h" | sort
         
         # Create directories for project resources
         mkdir -p Resources/AIData/LocalModels

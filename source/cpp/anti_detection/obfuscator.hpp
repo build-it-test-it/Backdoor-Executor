@@ -60,7 +60,7 @@ namespace AntiDetection {
             std::string hexEncrypted;
             char hexBuf[3];
             for (char c : encrypted) {
-                sprintf(hexBuf, "%02X", static_cast<unsigned char>(c));
+                snprintf(hexBuf, sizeof(hexBuf), "%02X", static_cast<unsigned char>(c));
                 hexEncrypted += hexBuf;
             }
             

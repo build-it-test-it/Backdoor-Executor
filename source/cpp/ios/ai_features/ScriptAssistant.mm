@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <regex>
+#include <thread>
 #import <Foundation/Foundation.h>
 #include "local_models/ScriptGenerationModel.h"
 
@@ -841,10 +842,9 @@ print("Script completed")
         output += "Line 4: Script running!\n";
         
         // Simulate a delay
-        std::thread([callback, success, output]() {
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(500 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
             callback(success, output);
-        }).detach();
+        });
     }
     
     // Analyze the current game
@@ -1236,18 +1236,21 @@ print("Script completed")
         // In a real implementation, this would run on a separate thread
         // For this prototype, we'll simulate async generation
         
-        std::thread([this, description, callback]() {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             // Sleep to simulate processing
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            
-            // Generate script
-            std::string script = GenerateScript(description);
-            
-            // Call callback
-            if (callback) {
-                callback(script);
-            }
-        }).detach();
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(500 * NSEC_PER_MSEC)), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                
+                // Generate script
+                std::string script = this->GenerateScript(description);
+                
+                // Call callback on main queue
+                if (callback) {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        callback(script);
+                    });
+                }
+            });
+        });
     }
 
 } // namespace AIFeatures

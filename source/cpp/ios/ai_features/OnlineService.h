@@ -85,6 +85,9 @@ private:
     void CleanCache();
     void* CreateNSURLRequest(const Request& request);
     Response ParseNSURLResponse(void* urlResponse, void* data, void* error);
+    std::string EscapeJSON(const std::string& input);
+    std::string UnescapeJSON(const std::string& input);
+    std::string URLEncode(const std::string& input);
     
 public:
     /**

@@ -22,7 +22,7 @@ static DWORD getLibBase(const char *library) {
     FILE *fp = NULL;
     DWORD address = 0;
 
-    sprintf(filename, "/proc/self/maps");
+    snprintf(filename, sizeof(filename), "/proc/self/maps");
 
     fp = fopen(filename,"rt");
     if (fp == NULL) {

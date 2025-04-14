@@ -370,7 +370,7 @@ namespace AdvancedBypass {
     }
     
     // Normalize URL for caching
-    std::string HttpClient::NormalizeUrl(const std::string& url) {
+    std::string HttpClient::NormalizeUrl(const std::string& url) const {
         @autoreleasepool {
             NSURL* nsUrl = [NSURL URLWithString:[NSString stringWithUTF8String:url.c_str()]];
             if (!nsUrl) {

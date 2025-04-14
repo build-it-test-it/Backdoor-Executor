@@ -36,7 +36,7 @@ namespace AdvancedBypass {
                 function _httpGet(url, cache)
                     -- This function will be replaced by the C++ implementation
                     -- Placeholder implementation for testing
-                    return "HTTP GET: " .. url .. " (cache: " .. tostring(cache) .. ")"
+                    return "HTTP GET: " .. url .. " (cache: " .. tostring(cache) .. ")";
                 end
                 
                 -- Define native HTTP GET async function for Lua
@@ -64,7 +64,8 @@ namespace AdvancedBypass {
             )";
             
             // Inject HTTP functions into Lua environment
-            ExecutionIntegration::ExecutionResult result = executionIntegration->Execute(httpGetCode + "\n" + httpFunctionsCode);
+            ExecutionIntegration::ExecutionResult result;
+            result = executionIntegration->Execute(httpGetCode + "\n" + httpFunctionsCode);
             if (!result.m_success) {
                 std::cerr << "HttpIntegration: Failed to inject HTTP functions: " << result.m_error << std::endl;
                 return false;

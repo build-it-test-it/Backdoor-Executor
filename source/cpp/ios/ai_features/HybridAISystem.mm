@@ -9,6 +9,7 @@
 #include <cctype>
 #include <regex>
 #include <random>
+#include <set>
 #import <Foundation/Foundation.h>
 
 namespace iOS {
@@ -78,7 +79,7 @@ bool HybridAISystem::Initialize(const std::string& modelPath,
         
         if (scriptGenInitialized) {
             m_scriptGeneratorModel = scriptGenerator.get();
-            m_modelCache["script_generator"] = scriptGenerator;
+            m_modelCache["script_generator"] = static_cast<void*>(scriptGenerator.get());
             m_loadedModelNames.push_back("script_generator");
         } else {
             std::cerr << "HybridAISystem: Failed to initialize script generator model" << std::endl;
@@ -92,7 +93,7 @@ bool HybridAISystem::Initialize(const std::string& modelPath,
         
         if (vulnerabilityInitialized) {
             m_patternRecognitionModel = vulnerabilityDetector.get();
-            m_modelCache["vulnerability_detector"] = vulnerabilityDetector;
+            m_modelCache["vulnerability_detector"] = static_cast<void*>(vulnerabilityDetector.get());
             m_loadedModelNames.push_back("vulnerability_detector");
         } else {
             std::cerr << "HybridAISystem: Failed to initialize vulnerability detector" << std::endl;
@@ -805,7 +806,7 @@ bool HybridAISystem::IsModelLoaded(const std::string& modelName) const {
 void* HybridAISystem::GetModel(const std::string& modelName) const {
     auto it = m_modelCache.find(modelName);
     if (it != m_modelCache.end()) {
-        return it->second.get();
+        return it->second;
     }
     return nullptr;
 }

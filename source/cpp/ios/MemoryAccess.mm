@@ -238,7 +238,7 @@ namespace iOS {
             }
             
             // Extract region size from the upper bits of protection where we stored it
-            mach_vm_size_t regionSize = (region.protection >> 32) & 0xFFFFFFFF;
+            mach_vm_size_t regionSize = (region.protection >> 16) & 0xFFFF;
             
             // Use a reasonable default if size wasn't properly stored
             if (regionSize == 0) {

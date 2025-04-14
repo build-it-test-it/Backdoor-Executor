@@ -535,9 +535,8 @@ namespace iOS {
                                               }
                                               completion:^(BOOL finished) {
                                                   // Call the tap callback
-                                                  // Cast to id to avoid the warning about non-id receiver
                                                   if (self.controller) {
-                                                      [(id)self.controller performTapAction];
+                                                      self.controller->performTapAction();
                                                   }
                                               }];
                          }];

@@ -6,6 +6,7 @@
 #include <sstream>
 #include <thread>
 #include <regex>
+#include <set>
 #import <Foundation/Foundation.h>
 
 namespace iOS {
@@ -878,14 +879,7 @@ std::unordered_map<std::string, std::string> OfflineAISystem::GetScriptTemplates
     return m_scriptTemplates;
 }
 
-// Load script templates
-void OfflineAISystem::LoadScriptTemplates() {
-    // This would load templates from files
-    // For now, just populate with some built-in templates
-    m_scriptTemplates["esp"] = "-- Basic ESP Script\nlocal esp = {}\n\n-- Implementation goes here\n\nreturn esp";
-    m_scriptTemplates["aimbot"] = "-- Basic Aimbot\nlocal aimbot = {}\n\n-- Implementation goes here\n\nreturn aimbot";
-    m_scriptTemplates["speed"] = "-- Speed Hack\nlocal speed = {}\n\n-- Implementation goes here\n\nreturn speed";
-}
+// Note: Primary LoadScriptTemplates implementation is already defined above
 
 // Get template cache
 std::unordered_map<std::string, std::string> OfflineAISystem::GetTemplateCache() const {

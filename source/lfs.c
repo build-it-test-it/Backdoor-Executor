@@ -86,10 +86,46 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #else
-// Always use quotes for includes since paths might be non-standard
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
+// Use the Luau headers directly from the project
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
+
+// Define a compatibility layer for Luau
+#define luaL_register(L, libname, l) luau_register(L, libname, l)
+
+// Function to simulate lua_pushcfunction for Luau
+static void lua_pushcfunction_compat(lua_State* L, lua_CFunction f) {
+    lua_pushcclosurek(L, f, "lfs_func", 0, NULL);
+}
+#undef lua_pushcfunction
+#define lua_pushcfunction(L, f) lua_pushcfunction_compat(L, f)
+
+// Forward declaration of our custom luaL_register implementation
+static void luau_register(lua_State* L, const char* libname, const struct luaL_Reg* l);
+
+// Implementation of luaL_register for Luau
+static void luau_register(lua_State* L, const char* libname, const struct luaL_Reg* l) {
+    if (libname) {
+        lua_getglobal(L, libname);  // get table
+        if (lua_type(L, -1) != LUA_TTABLE) {  // check if exists
+            lua_pop(L, 1);  // remove previous result
+            lua_newtable(L);  // create a new table
+            lua_pushvalue(L, -1);  // copy table
+            lua_setglobal(L, libname);  // set global variable
+        }
+    } else {
+        lua_pushglobaltable(L);  // Use global table 
+    }
+    
+    // Register all functions
+    for (; l->name; l++) {
+        lua_pushcclosurek(L, l->func, l->name, 0, NULL);
+        lua_setfield(L, -2, l->name);
+    }
+    
+    if (libname)
+        lua_pop(L, 1);  // remove table from stack
+}
 #endif
 
 #include "lfs.h"

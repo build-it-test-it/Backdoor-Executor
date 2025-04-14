@@ -10,7 +10,7 @@
 #include "../../memory/mem.hpp"
 #include "../../memory/signature.hpp"
 #include "../PatternScanner.h"
-#import <Foundation/Foundation.h>
+// Foundation import removed for CI build
 
 namespace iOS {
     namespace AdvancedBypass {

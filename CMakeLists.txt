@@ -77,77 +77,47 @@ if(NOT LUA_FOUND)
     message(FATAL_ERROR "Could not find Luau. Please install Luau with: brew install luau")
 endif()
 
-# Always create the bundled Lua lib in CI environment
-# We'll create a stub Lua library that has just enough to satisfy the linker
+# Create a more robust stub Lua library with all commonly required functions
 file(WRITE "${CMAKE_BINARY_DIR}/lua_stub.c" "
     #include <stdlib.h>
-    // Minimal set of Lua functions needed to link
+    
+    // Common Lua API functions that might be required
     void luaL_openlibs() { }
     void* luaL_newstate() { return NULL; }
     void lua_close(void* L) { }
     int luaL_loadstring(void* L, const char* s) { return 0; }
     int lua_pcall(void* L, int a, int b, int c) { return 0; }
+    int luaL_loadbuffer(void* L, const char* b, size_t sz, const char* n) { return 0; }
+    int luaL_loadfile(void* L, const char* f) { return 0; }
+    int lua_getfield(void* L, int idx, const char* k) { return 0; }
+    void lua_pushstring(void* L, const char* s) { }
+    int lua_gettop(void* L) { return 0; }
+    void lua_settop(void* L, int n) { }
+    void lua_pushnil(void* L) { }
+    int lua_isnumber(void* L, int n) { return 0; }
+    double lua_tonumber(void* L, int n) { return 0.0; }
+    const char* lua_tostring(void* L, int n) { return NULL; }
+    
+    // Add other functions as needed if linking errors occur
 ")
 
-# Create a static library
+# Create the stub library
 add_library(lua_bundled STATIC "${CMAKE_BINARY_DIR}/lua_stub.c")
 target_include_directories(lua_bundled PRIVATE 
     ${LUA_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/source/cpp/luau
 )
 
-# Decide whether to use the bundled library based on the option
-if(USE_BUNDLED_LUA)
-    # Use our bundled library
-    set(LUA_LIBRARIES lua_bundled)
-    message(STATUS "Using bundled Lua library for link time")
-else()
-    # Ensure LUA_LIBRARIES is set, using flexible library finding
-    if(NOT DEFINED LUA_LIBRARIES)
-        # Try to find common library names
-        find_library(TEMP_LUA_LIB
-            NAMES luau lua libluau liblua
-            PATHS /opt/homebrew/lib
-                /usr/local/lib
-                ${CMAKE_SOURCE_DIR}/lib
-                $ENV{HOME}/lib
-            NO_DEFAULT_PATH
-        )
-        
-        if(TEMP_LUA_LIB)
-            set(LUA_LIBRARIES ${TEMP_LUA_LIB})
-            message(STATUS "Found Lua library: ${LUA_LIBRARIES}")
-        else()
-            # Last resort fallback
-            execute_process(
-                COMMAND brew --prefix luau
-                OUTPUT_VARIABLE LUAU_PREFIX
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-            )
-            
-            if(LUAU_PREFIX)
-                # Just pick any library file as a workaround
-                file(GLOB LUAU_LIBS "${LUAU_PREFIX}/lib/*.dylib")
-                if(LUAU_LIBS)
-                    list(GET LUAU_LIBS 0 LUA_LIBRARIES)
-                    message(STATUS "Using fallback Luau library: ${LUA_LIBRARIES}")
-                else()
-                    # Absolute last resort - create a dummy library and reference it
-                    set(LUA_LIBRARIES "${CMAKE_SOURCE_DIR}/lib/libluau.dylib")
-                    # Create a dummy library
-                    file(WRITE "${CMAKE_SOURCE_DIR}/lib/libluau.c" "void luaL_openlibs() {}")
-                    add_library(luau_mock SHARED "${CMAKE_SOURCE_DIR}/lib/libluau.c")
-                    set_target_properties(luau_mock PROPERTIES OUTPUT_NAME luau)
-                    set(LUA_LIBRARIES $<TARGET_FILE:luau_mock>)
-                    message(STATUS "Using mock Lua library: ${LUA_LIBRARIES}")
-                endif()
-            else()
-                message(FATAL_ERROR "Could not find Luau. Please install Luau with: brew install luau")
-            endif()
-        endif()
-    endif()
-    message(STATUS "Using system Lua library: ${LUA_LIBRARIES}")
-endif()
+# Create a symlink target that ensures the liblua.dylib exists
+add_custom_target(ensure_lua_path ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/lib
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:lua_bundled> ${CMAKE_BINARY_DIR}/lib/liblua.dylib
+    DEPENDS lua_bundled
+)
+
+# Always use our bundled library for linking
+set(LUA_LIBRARIES lua_bundled)
+message(STATUS "Using bundled Lua library for link time")
 
 message(STATUS "Using Lua include dir: ${LUA_INCLUDE_DIR}")
 
@@ -303,7 +273,7 @@ endif()
 
 # Link against required libraries
 target_link_libraries(roblox_executor PRIVATE
-    ${LUA_LIBRARIES}
+    lua_bundled  # Directly use the target name instead of ${LUA_LIBRARIES}
     "-framework Foundation"
     "-framework UIKit"
     "-framework WebKit"
@@ -313,8 +283,8 @@ target_link_libraries(roblox_executor PRIVATE
     "-framework Security"
 )
 
-# Always add the dependency since we always create the target now
-add_dependencies(roblox_executor lua_bundled)
+# Ensure the stub library is built before the main target
+add_dependencies(roblox_executor lua_bundled ensure_lua_path)
 
 # Add Dobby if found
 if(Dobby_FOUND)

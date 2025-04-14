@@ -88,10 +88,10 @@ namespace iOS {
             
             // Execute script based on available methods
             
-            // Variables to build the execution result
-            std::string resultOutput;
-            bool resultSuccess = false;
-            std::string resultError;
+            // Variables to build the execution result - using __block to allow modification in blocks
+            __block std::string resultOutput;
+            __block bool resultSuccess = false;
+            __block std::string resultError;
             
             // Non-jailbroken approach - use UIWebView JavaScript bridge
             // This works on non-jailbroken devices but has limitations
@@ -209,8 +209,8 @@ namespace iOS {
                     dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, timeoutNs);
                     
                     if (dispatch_group_wait(group, timeout) != 0) {
-                        error = "Script execution timed out";
-                        success = false;
+                        resultError = "Script execution timed out";
+                        resultSuccess = false;
                     }
                 }
             } else {
@@ -248,7 +248,7 @@ namespace iOS {
             m_isExecuting = false;
             
             // Handle auto-retry if enabled and execution failed
-            if (!success && executionContext.m_autoRetry && m_retryCount < executionContext.m_maxRetries) {
+            if (!resultSuccess && executionContext.m_autoRetry && m_retryCount < executionContext.m_maxRetries) {
                 m_retryCount++;
                 std::cout << "ExecutionEngine: Auto-retrying script execution (attempt " << m_retryCount 
                           << " of " << executionContext.m_maxRetries << ")" << std::endl;

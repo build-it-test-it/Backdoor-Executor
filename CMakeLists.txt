@@ -270,7 +270,7 @@ if(USE_DOBBY)
         else()
             # Create stub Dobby implementation
             message(STATUS "Dobby library not found at ${Dobby_DIR}. Creating stub implementation.")
-            file(WRITE "${CMAKE_BINARY_DIR}/dobby_stub.c" "
+            file(WRITE "${CMAKE_BINARY_DIR}/dobby_impl.c" "
                 #include <stdlib.h>
                 
                 // Stub implementations of key Dobby functions
@@ -279,45 +279,37 @@ if(USE_DOBBY)
                 int DobbyDestroy(void* patch_ret_addr) { return 0; }
             ")
             
-            # Using the pre-created ios_stubs.cpp in the source directory 
             # which has proper forward declarations for namespaces
             message(STATUS "Using fixed iOS stubs implementation")
             
-            # We'll use a freshly created fixed ios_stubs_fixed.cpp file
             # This is created directly in the build directory
-            message(STATUS "Using fixed ios_stubs_fixed.cpp implementation")
             
             # Create a static library for Dobby stub
-            add_library(dobby_stub STATIC "${CMAKE_BINARY_DIR}/dobby_stub.c")
+            add_library(dobby_impl STATIC "${CMAKE_BINARY_DIR}/dobby_impl.c")
             
             # Create iOS stubs library using the fixed file in the build directory
-            # We no longer need to build the ios_stubs library since we have real implementations now
             # This will prevent duplicate symbol errors
 
-            # add_library(ios_stubs STATIC "${CMAKE_BINARY_DIR}/ios_stubs_fixed.cpp")
-            # target_include_directories(ios_stubs PRIVATE 
             #     "${CMAKE_SOURCE_DIR}/source/cpp/ios"
             #     "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
             # )
-            # set_target_properties(ios_stubs PROPERTIES
             #     POSITION_INDEPENDENT_CODE ON
             #     LINKER_LANGUAGE CXX
-            #     OUTPUT_NAME "ios_stubs"
             #     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
             #     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
             # )
             set(Dobby_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/source/cpp/ios")
-            set(Dobby_LIBRARIES dobby_stub)
+            set(Dobby_LIBRARIES dobby_impl)
             set(Dobby_FOUND TRUE)
-            set(USING_STUB_DOBBY TRUE)
+            set(USING_MINIMAL_DOBBY TRUE)
         endif()
     endif()
     
     # Final check
     if(Dobby_FOUND)
-        if(DEFINED USING_STUB_DOBBY AND USING_STUB_DOBBY)
+        if(DEFINED USING_MINIMAL_DOBBY AND USING_MINIMAL_DOBBY)
             message(STATUS "Using stub Dobby implementation. Limited hooking functionality available.")
-            add_definitions(-DUSING_STUB_DOBBY=1)
+            add_definitions(-DUSING_MINIMAL_DOBBY=1)
             add_definitions(-DHOOKING_AVAILABLE=1)
         else()
             message(STATUS "Dobby library found. Building with full hooking functionality.")
@@ -326,7 +318,7 @@ if(USE_DOBBY)
     else()
         # Create a fallback stub Dobby implementation
         message(STATUS "Creating fallback stub Dobby implementation.")
-        file(WRITE "${CMAKE_BINARY_DIR}/dobby_stub.c" "
+        file(WRITE "${CMAKE_BINARY_DIR}/dobby_impl.c" "
             #include <stdlib.h>
             
             // Stub implementations of key Dobby functions
@@ -336,13 +328,13 @@ if(USE_DOBBY)
         ")
         
         # Create a static library for Dobby stub
-        add_library(dobby_stub STATIC "${CMAKE_BINARY_DIR}/dobby_stub.c")
+        add_library(dobby_impl STATIC "${CMAKE_BINARY_DIR}/dobby_impl.c")
         set(Dobby_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/source/cpp/ios")
-        set(Dobby_LIBRARIES dobby_stub)
+        set(Dobby_LIBRARIES dobby_impl)
         set(Dobby_FOUND TRUE)
-        set(USING_STUB_DOBBY TRUE)
+        set(USING_MINIMAL_DOBBY TRUE)
         
-        add_definitions(-DUSING_STUB_DOBBY=1)
+        add_definitions(-DUSING_MINIMAL_DOBBY=1)
         add_definitions(-DHOOKING_AVAILABLE=1)
     endif()
 else()
@@ -491,14 +483,13 @@ target_link_libraries(roblox_executor PRIVATE
 )
 
 # Ensure required libraries are built before the main target
-# Removed ios_stubs dependency to avoid duplicate symbols
-add_dependencies(roblox_executor lua_bundled ensure_lua_path dobby_stub)
+add_dependencies(roblox_executor lua_bundled ensure_lua_path dobby_impl)
 
 # Add Dobby and iOS stubs - we'll always have something to link against
 if(USE_DOBBY AND Dobby_FOUND)
-    if(TARGET dobby_stub)
-        message(STATUS "Linking with stub Dobby implementation")
-        target_link_libraries(roblox_executor PRIVATE dobby_stub)
+    if(DEFINED USING_MINIMAL_DOBBY AND USING_MINIMAL_DOBBY)
+        message(STATUS "Linking with minimal Dobby implementation")
+        target_link_libraries(roblox_executor PRIVATE dobby_impl)
     elseif(EXISTS "${Dobby_LIBRARIES}")
         message(STATUS "Linking with Dobby library: ${Dobby_LIBRARIES}")
         target_link_libraries(roblox_executor PRIVATE ${Dobby_LIBRARIES})
@@ -507,10 +498,7 @@ if(USE_DOBBY AND Dobby_FOUND)
     endif()
 endif()
 
-# Now that we have proper implementations, we don't need to force-load the ios_stubs library
-# Remove ios_stubs library linking to avoid duplicate symbols
 # target_link_libraries(roblox_executor PRIVATE 
-#     "-force_load" "${CMAKE_BINARY_DIR}/libios_stubs.a"
 #     "-all_load"
 # )
 

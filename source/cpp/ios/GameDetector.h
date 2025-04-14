@@ -6,6 +6,8 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <vector>
+#include <utility>
 
 namespace iOS {
     /**
@@ -15,6 +17,12 @@ namespace iOS {
      * This class monitors the Roblox memory and objects to determine when
      * a player has fully joined a game. It provides callbacks for game join
      * and exit events, allowing the executor to appear only when in-game.
+     * 
+     * Features:
+     * - Dynamic memory pattern scanning for reliable detection
+     * - Accurate state transitions including loading states
+     * - Performance optimization with caching and throttling
+     * - Detailed game information extraction
      */
     class GameDetector {
     public:
@@ -37,7 +45,7 @@ namespace iOS {
         std::atomic<bool> m_running;
         std::thread m_detectionThread;
         std::mutex m_callbackMutex;
-        std::vector<StateChangeCallback> m_callbacks;
+        std::vector<std::pair<size_t, StateChangeCallback>> m_callbacks;
         std::atomic<uint64_t> m_lastChecked;
         std::atomic<uint64_t> m_lastGameJoinTime;
         std::string m_currentGameName;
@@ -53,14 +61,19 @@ namespace iOS {
         void UpdateGameInfo();
         void UpdateState(GameState newState);
         
+        // New private methods
+        void UpdateRobloxOffsets();
+        bool DetectLoadingState();
+        bool ValidatePointer(mach_vm_address_t ptr);
+        
     public:
         /**
-         * @brief Constructor
+         * @brief Constructor with enhanced initialization
          */
         GameDetector();
         
         /**
-         * @brief Destructor
+         * @brief Destructor with enhanced cleanup
          */
         ~GameDetector();
         
@@ -79,6 +92,9 @@ namespace iOS {
          * @brief Register a callback for state changes
          * @param callback Function to call when game state changes
          * @return Unique ID for the callback (can be used to remove it)
+         * 
+         * Enhanced with secure random ID generation to prevent ID collisions
+         * and more robust callback storage.
          */
         size_t RegisterCallback(const StateChangeCallback& callback);
         
@@ -103,13 +119,13 @@ namespace iOS {
         
         /**
          * @brief Get current game name
-         * @return Name of the current game, or empty string if not in a game
+         * @return Name of the current game, or "Unknown Game" if not in a game or name couldn't be determined
          */
         std::string GetGameName() const;
         
         /**
          * @brief Get current place ID
-         * @return Place ID of the current game, or empty string if not in a game
+         * @return Place ID of the current game, or "0" if not in a game or ID couldn't be determined
          */
         std::string GetPlaceId() const;
         
@@ -122,6 +138,8 @@ namespace iOS {
         /**
          * @brief Force a state update check
          * @return Current state after check
+         * 
+         * Enhanced with more reliable detection and automatic offset updating
          */
         GameState ForceCheck();
     };

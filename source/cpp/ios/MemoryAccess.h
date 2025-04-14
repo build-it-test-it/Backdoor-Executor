@@ -18,6 +18,9 @@
 #include <string>
 #include <cstdint>
 #include <sys/types.h>
+#include <mutex>
+#include <atomic>
+#include <unordered_map>
 
 // Define iOS-compatible replacements for mach_vm functions
 #if defined(IOS_TARGET) || defined(__APPLE__)
@@ -48,12 +51,44 @@ namespace iOS {
      * This class handles all memory-related operations for iOS, including reading/writing
      * process memory, finding modules, and scanning for patterns. It uses Mach kernel APIs
      * for all operations to ensure compatibility with iOS devices.
+     * 
+     * Thread-safe implementation with caching for improved performance.
      */
     class MemoryAccess {
     private:
         // Private member variables with consistent m_ prefix
         static mach_port_t m_targetTask;
-        static bool m_initialized;
+        static std::atomic<bool> m_initialized;
+        static std::mutex m_accessMutex;   // Mutex for memory operations
+        static std::mutex m_cacheMutex;    // Mutex for cache access
+        
+        // Caches for improved performance
+        static std::unordered_map<std::string, mach_vm_address_t> m_patternCache;
+        static std::unordered_map<std::string, mach_vm_address_t> m_moduleBaseCache;
+        static std::unordered_map<mach_vm_address_t, size_t> m_moduleSizeCache;
+        
+        // Cached memory regions for faster scanning
+        static std::vector<std::pair<mach_vm_address_t, mach_vm_address_t>> m_cachedReadableRegions;
+        static uint64_t m_regionsLastUpdated;
+        
+        /**
+         * @brief Refresh the cached memory regions
+         */
+        static void RefreshMemoryRegions();
+        
+        /**
+         * @brief Get current timestamp in milliseconds
+         * @return Current timestamp
+         */
+        static uint64_t GetCurrentTimestamp();
+        
+        /**
+         * @brief Check if address is valid and readable
+         * @param address Address to check
+         * @param size Size of memory region to validate
+         * @return True if address is valid, false otherwise
+         */
+        static bool IsAddressValid(mach_vm_address_t address, size_t size);
         
     public:
         /**
@@ -130,8 +165,53 @@ namespace iOS {
         static mach_vm_address_t ScanForPattern(const std::string& pattern, const std::string& mask);
         
         /**
+         * @brief Clear all memory caches
+         */
+        static void ClearCache();
+        
+        /**
          * @brief Clean up resources used by memory access
          */
         static void Cleanup();
+        
+        /**
+         * @brief Read a value of type T from memory
+         * @tparam T Type of value to read
+         * @param address Address to read from
+         * @return Value read from memory, default-constructed T if read fails
+         */
+        template<typename T>
+        static T ReadValue(mach_vm_address_t address) {
+            T value = T();
+            ReadMemory(address, &value, sizeof(T));
+            return value;
+        }
+        
+        /**
+         * @brief Write a value of type T to memory
+         * @tparam T Type of value to write
+         * @param address Address to write to
+         * @param value Value to write
+         * @return True if write succeeded, false otherwise
+         */
+        template<typename T>
+        static bool WriteValue(mach_vm_address_t address, const T& value) {
+            return WriteMemory(address, &value, sizeof(T));
+        }
+        
+        /**
+         * @brief Force a refresh of the memory region cache
+         */
+        static void ForceRegionRefresh() {
+            RefreshMemoryRegions();
+        }
+        
+        /**
+         * @brief Check if an address is part of a specified memory region with certain protection
+         * @param address Address to check
+         * @param requiredProtection Protection flags to check for
+         * @return True if address is in a region with the specified protection, false otherwise
+         */
+        static bool IsAddressInRegionWithProtection(mach_vm_address_t address, vm_prot_t requiredProtection);
     };
 }

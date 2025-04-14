@@ -16,8 +16,60 @@ enable_language(OBJCXX)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum iOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for iOS")
 
-# Find Lua
-find_package(Lua REQUIRED)
+# Find Lua - try multiple approaches
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+
+# Handle Lua finding on macOS
+if(APPLE)
+    # Check Homebrew Lua location (common on macOS)
+    execute_process(
+        COMMAND brew --prefix lua
+        OUTPUT_VARIABLE BREW_LUA_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    
+    if(BREW_LUA_PREFIX)
+        message(STATUS "Found Homebrew Lua at: ${BREW_LUA_PREFIX}")
+        set(LUA_INCLUDE_DIR "${BREW_LUA_PREFIX}/include")
+        find_library(LUA_LIBRARIES NAMES lua lua54 lua5.4 lua-5.4 liblua liblua5.4
+                    PATHS "${BREW_LUA_PREFIX}/lib" NO_DEFAULT_PATH)
+    endif()
+endif()
+
+# Try standard find_package
+find_package(Lua QUIET)
+
+# If not found, try FindLua51 or FindLua (both come with CMake)
+if(NOT LUA_FOUND)
+    find_package(Lua51 QUIET)
+    if(LUA51_FOUND)
+        set(LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR})
+        set(LUA_LIBRARIES ${LUA_LIBRARIES})
+        set(LUA_FOUND TRUE)
+    endif()
+endif()
+
+# Last attempt - look for lua manually
+if(NOT LUA_FOUND AND NOT DEFINED LUA_LIBRARIES)
+    # Try to find the libraries manually
+    find_library(LUA_LIBRARIES NAMES lua lua54 lua5.4 lua53 lua5.3 liblua)
+    find_path(LUA_INCLUDE_DIR NAMES lua.h 
+              PATH_SUFFIXES lua lua5.4 lua5.3 include/lua)
+              
+    if(LUA_LIBRARIES AND LUA_INCLUDE_DIR)
+        message(STATUS "Found Lua manually: ${LUA_LIBRARIES}")
+        set(LUA_FOUND TRUE)
+    endif()
+endif()
+
+# Check if Lua was found
+if(NOT LUA_FOUND OR NOT DEFINED LUA_LIBRARIES)
+    message(FATAL_ERROR "Could not find Lua. Please install Lua and its development files.")
+endif()
+
+message(STATUS "Using Lua include dir: ${LUA_INCLUDE_DIR}")
+message(STATUS "Using Lua libraries: ${LUA_LIBRARIES}")
 
 # Find required frameworks
 find_library(FOUNDATION_LIBRARY Foundation REQUIRED)

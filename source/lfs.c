@@ -91,32 +91,21 @@
 #include "cpp/luau/lua.h"
 #include "cpp/luau/lualib.h"
 
-// Define missing structure for luaL_Reg if needed
-#ifndef LUAAPI
-typedef struct luaL_Reg {
-    const char* name;
-    lua_CFunction func;
-} luaL_Reg;
-#endif
+// Note: luaL_Reg is already defined in Luau's lualib.h
+// We use that definition instead of redefining it
 
 #include "lfs.h"
 
 #define LFS_VERSION "1.8.0"
 #define LFS_LIBNAME "lfs"
 
-#if LUA_VERSION_NUM >= 503      /* Lua 5.3+ */
-
+/* For Luau compatibility we'll always use these definitions */
 #ifndef luaL_optlong
 #define luaL_optlong luaL_optinteger
 #endif
 
-#endif
-
-#if LUA_VERSION_NUM >= 502
-#define new_lib(L, l) (luaL_newlib(L, l))
-#else
+/* Luau uses the newer library creation style, similar to Lua 5.2+ */
 #define new_lib(L, l) (lua_newtable(L), luaL_register(L, NULL, l))
-#endif
 
 /* Define 'strerror' for systems that do not implement it */
 #ifdef NO_STRERROR
@@ -388,7 +377,8 @@ static int _file_lock(lua_State * L, FILE * fh, const char *mode,
     lkmode = LK_UNLCK;
     break;
   default:
-    return luaL_error(L, "%s: invalid mode", funcname);
+    luaL_error(L, "%s: invalid mode", funcname);
+    return 0; /* This will never be reached due to luaL_error, but prevents compiler warnings */
   }
   if (!len) {
     fseek(fh, 0L, SEEK_END);
@@ -413,7 +403,8 @@ static int _file_lock(lua_State * L, FILE * fh, const char *mode,
     f.l_type = F_UNLCK;
     break;
   default:
-    return luaL_error(L, "%s: invalid mode", funcname);
+    luaL_error(L, "%s: invalid mode", funcname);
+    return 0; /* This will never be reached due to luaL_error, but prevents compiler warnings */
   }
   f.l_whence = SEEK_SET;
   f.l_start = (off_t) start;
@@ -723,7 +714,7 @@ static int dir_iter_factory(lua_State * L)
 {
   const char *path = luaL_checkstring(L, 1);
   dir_data *d;
-  lua_pushcfunction(L, dir_iter);
+  lua_pushcfunction(L, dir_iter, "dir_iter");
   d = (dir_data *) lua_newuserdata(L, sizeof(dir_data));
   luaL_getmetatable(L, DIR_METATABLE);
   lua_setmetatable(L, -2);
@@ -732,20 +723,17 @@ static int dir_iter_factory(lua_State * L)
   d->hFile = 0L;
   if (strlen(path) > MAX_PATH - 2)
     luaL_error(L, "path too long: %s", path);
+    return 0; /* This will never be reached due to luaL_error, but prevents compiler warnings */
   else
     sprintf(d->pattern, "%s/*", path);
 #else
   d->dir = opendir(path);
   if (d->dir == NULL)
     luaL_error(L, "cannot open %s: %s", path, strerror(errno));
+    return 0; /* This will never be reached due to luaL_error, but prevents compiler warnings */
 #endif
-#if LUA_VERSION_NUM >= 504
-  lua_pushnil(L);
-  lua_pushvalue(L, -2);
-  return 4;
-#else
+  /* For Luau compatibility */
   return 2;
-#endif
 }
 
 
@@ -758,20 +746,17 @@ static int dir_create_meta(lua_State * L)
 
   /* Method table */
   lua_newtable(L);
-  lua_pushcfunction(L, dir_iter);
+  lua_pushcfunction(L, dir_iter, "dir_iter");
   lua_setfield(L, -2, "next");
-  lua_pushcfunction(L, dir_close);
+  lua_pushcfunction(L, dir_close, "dir_close");
   lua_setfield(L, -2, "close");
 
   /* Metamethods */
   lua_setfield(L, -2, "__index");
-  lua_pushcfunction(L, dir_close);
+  lua_pushcfunction(L, dir_close, "dir_close_gc");
   lua_setfield(L, -2, "__gc");
 
-#if LUA_VERSION_NUM >= 504
-  lua_pushcfunction(L, dir_close);
-  lua_setfield(L, -2, "__close");
-#endif
+  /* Removed Lua 5.4 specific code for Luau compatibility */
   return 1;
 }
 
@@ -785,12 +770,12 @@ static int lock_create_meta(lua_State * L)
 
   /* Method table */
   lua_newtable(L);
-  lua_pushcfunction(L, lfs_unlock_dir);
+  lua_pushcfunction(L, lfs_unlock_dir, "lfs_unlock_dir");
   lua_setfield(L, -2, "free");
 
   /* Metamethods */
   lua_setfield(L, -2, "__index");
-  lua_pushcfunction(L, lfs_unlock_dir);
+  lua_pushcfunction(L, lfs_unlock_dir, "lfs_unlock_dir_gc");
   lua_setfield(L, -2, "__gc");
   return 1;
 }
@@ -1044,8 +1029,9 @@ static int _file_info_(lua_State * L,
         return 1;
       }
     }
-    /* member not found */
-    return luaL_error(L, "invalid attribute name '%s'", member);
+    /* member not found - use luaL_error but handle the void return type in Luau */
+    luaL_error(L, "invalid attribute name '%s'", member);
+    return 0; /* This will never be reached due to luaL_error, but prevents compiler warnings */
   }
   /* creates a table if none is given, removes extra arguments */
   lua_settop(L, 2);

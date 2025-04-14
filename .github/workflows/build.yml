@@ -33,20 +33,26 @@ jobs:
         if [ -d "/opt/homebrew/opt/llvm/bin" ]; then
             echo "Using Homebrew LLVM"
             export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-            export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
-            export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+            
+            # Store individual paths for CMake to use directly
+            LLVM_LIB_PATH="/opt/homebrew/opt/llvm/lib"
+            LLVM_INCLUDE_PATH="/opt/homebrew/opt/llvm/include"
             
             # Also add libomp paths if available
             if [ -d "/opt/homebrew/opt/libomp" ]; then
                 echo "Adding libomp paths to environment"
-                export LDFLAGS="$LDFLAGS -L/opt/homebrew/opt/libomp/lib"
-                export CPPFLAGS="$CPPFLAGS -I/opt/homebrew/opt/libomp/include"
+                LIBOMP_LIB_PATH="/opt/homebrew/opt/libomp/lib"
+                LIBOMP_INCLUDE_PATH="/opt/homebrew/opt/libomp/include"
             fi
             
             # Make these environment variables available to subsequent steps
             echo "PATH=$PATH" >> $GITHUB_ENV
-            echo "LDFLAGS=$LDFLAGS" >> $GITHUB_ENV
-            echo "CPPFLAGS=$CPPFLAGS" >> $GITHUB_ENV
+            echo "LLVM_LIB_PATH=$LLVM_LIB_PATH" >> $GITHUB_ENV
+            echo "LLVM_INCLUDE_PATH=$LLVM_INCLUDE_PATH" >> $GITHUB_ENV
+            if [ -n "$LIBOMP_LIB_PATH" ]; then
+                echo "LIBOMP_LIB_PATH=$LIBOMP_LIB_PATH" >> $GITHUB_ENV
+                echo "LIBOMP_INCLUDE_PATH=$LIBOMP_INCLUDE_PATH" >> $GITHUB_ENV
+            fi
         fi
         
         # Note: We're using the internal Luau headers, not external Lua
@@ -185,15 +191,52 @@ jobs:
         echo "Using internal Luau headers from source/cpp/luau"
         EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_MODULE_PATH=$PWD/cmake"
         
-        # Apply any extra flags that may have been set for LLVM or libomp
-        if [ -n "$LDFLAGS" ]; then
-          echo "Using LDFLAGS from environment: $LDFLAGS"
-          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_EXE_LINKER_FLAGS=\"$LDFLAGS\" -DCMAKE_SHARED_LINKER_FLAGS=\"$LDFLAGS\""
+        # Apply compiler and linker flags by constructing complete flags once
+        echo "Setting up compiler and linker flags for LLVM and libomp"
+        
+        # Initialize empty flags
+        LINKER_FLAGS=""
+        CXX_FLAGS=""
+        C_FLAGS=""
+        
+        # Build up the flags with all necessary paths
+        if [ -n "$LLVM_LIB_PATH" ]; then
+          echo "Adding LLVM lib path: $LLVM_LIB_PATH"
+          LINKER_FLAGS="$LINKER_FLAGS -L$LLVM_LIB_PATH"
         fi
         
-        if [ -n "$CPPFLAGS" ]; then
-          echo "Using CPPFLAGS from environment: $CPPFLAGS"
-          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_CXX_FLAGS=\"$CPPFLAGS\" -DCMAKE_C_FLAGS=\"$CPPFLAGS\""
+        if [ -n "$LLVM_INCLUDE_PATH" ]; then
+          echo "Adding LLVM include path: $LLVM_INCLUDE_PATH"
+          CXX_FLAGS="$CXX_FLAGS -I$LLVM_INCLUDE_PATH"
+          C_FLAGS="$C_FLAGS -I$LLVM_INCLUDE_PATH"
+        fi
+        
+        if [ -n "$LIBOMP_LIB_PATH" ]; then
+          echo "Adding libomp lib path: $LIBOMP_LIB_PATH"
+          LINKER_FLAGS="$LINKER_FLAGS -L$LIBOMP_LIB_PATH"
+        fi
+        
+        if [ -n "$LIBOMP_INCLUDE_PATH" ]; then
+          echo "Adding libomp include path: $LIBOMP_INCLUDE_PATH"
+          CXX_FLAGS="$CXX_FLAGS -I$LIBOMP_INCLUDE_PATH"
+          C_FLAGS="$C_FLAGS -I$LIBOMP_INCLUDE_PATH"
+        fi
+        
+        # Add the flags to cmake args (only if they're not empty)
+        if [ -n "$LINKER_FLAGS" ]; then
+          echo "Using linker flags: $LINKER_FLAGS"
+          # Use single quotes to pass the entire string as one argument
+          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_EXE_LINKER_FLAGS='$LINKER_FLAGS' -DCMAKE_SHARED_LINKER_FLAGS='$LINKER_FLAGS'"
+        fi
+        
+        if [ -n "$CXX_FLAGS" ]; then
+          echo "Using C++ flags: $CXX_FLAGS"
+          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_CXX_FLAGS='$CXX_FLAGS'"
+        fi
+        
+        if [ -n "$C_FLAGS" ]; then
+          echo "Using C flags: $C_FLAGS"
+          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_C_FLAGS='$C_FLAGS'"
         fi
         
         # Configure CMake for iOS build with all options

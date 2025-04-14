@@ -88,10 +88,10 @@ namespace iOS {
             
             // Execute script based on available methods
             
-            // Set up execution result
-            std::string output;
-            bool success = false;
-            std::string error;
+            // Variables to build the execution result
+            std::string resultOutput;
+            bool resultSuccess = false;
+            std::string resultError;
             
             // Non-jailbroken approach - use UIWebView JavaScript bridge
             // This works on non-jailbroken devices but has limitations
@@ -182,37 +182,23 @@ namespace iOS {
                                 timedOut = YES;
                             }
                         
-                            // Create local copies of the results from the block
-                            std::string localOutput;
-                            std::string localError;
-                            bool localSuccess = capturedSuccess;
-                            
+                            // Capture results from the block
                             if (capturedOutput) {
-                                localOutput = [capturedOutput UTF8String];
+                                resultOutput = [capturedOutput UTF8String];
                             }
                             
                             if (capturedError) {
-                                localError = [capturedError UTF8String];
+                                resultError = [capturedError UTF8String];
                             }
                             
-                            // Assign local values back using a mutable ExecutionResult
-                            ExecutionResult result(localSuccess, localError, 0, localOutput);
-                            output = result.m_output;
-                            error = result.m_error;
-                            success = result.m_success;
+                            resultSuccess = capturedSuccess;
                         
                             // Remove web view
                             [webView removeFromSuperview];
                         } else {
-                            // Handle missing key window with a local result first
-                            std::string localError = "Failed to find key window for execution";
-                            bool localSuccess = false;
-                            
-                            // Create a result object and then copy its values
-                            ExecutionResult result(localSuccess, localError);
-                            output = result.m_output;  // Empty in this case
-                            error = result.m_error;
-                            success = result.m_success;
+                            // Handle missing key window
+                            resultError = "Failed to find key window for execution";
+                            resultSuccess = false;
                         }
                         
                         dispatch_group_leave(group);
@@ -232,15 +218,15 @@ namespace iOS {
                 // In a real implementation, we'd use Cycript/Frida/etc.
                 
                 // Simulate successful execution for demonstration purposes
-                success = true;
-                output = "Script executed successfully in jailbroken mode";
+                resultSuccess = true;
+                resultOutput = "Script executed successfully in jailbroken mode";
                 
                 // TODO: Implement actual jailbroken execution
             }
             
             // Process output
-            if (m_outputCallback && !output.empty()) {
-                m_outputCallback(output);
+            if (m_outputCallback && !resultOutput.empty()) {
+                m_outputCallback(resultOutput);
             }
             
             // Calculate execution time
@@ -248,7 +234,7 @@ namespace iOS {
             uint64_t executionTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
             
             // Create result
-            ExecutionResult result(success, error, executionTime, output);
+            ExecutionResult result(resultSuccess, resultError, executionTime, resultOutput);
             
             // Call after-execute callbacks
             for (const auto& callback : m_afterCallbacks) {

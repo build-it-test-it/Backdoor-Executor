@@ -81,127 +81,14 @@
 
 #endif
 
-#ifdef LFS_USE_INCLUDE_QUOTES
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
-#else
-// Use standard C headers first
+// Use standard C headers
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stddef.h>
-#include <stdarg.h>
 
-// Define LUA_VERSION_NUM before including any Lua headers
-#define LUA_VERSION_NUM 501  // Pretend we're using Lua 5.1
-
-// Use the Luau headers directly from the project
-#include "cpp/luau/lua.h"
-#include "cpp/luau/lualib.h"
-
-// Define missing structure for luaL_Reg
-typedef struct luaL_Reg {
-    const char* name;
-    lua_CFunction func;
-} luaL_Reg;
-
-// We need to handle luaL_error which returns void in Luau but int in standard Lua
-static int luaL_error_compat(lua_State* L, const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    const char* msg = lua_pushvfstring(L, fmt, args);
-    va_end(args);
-    lua_error(L);
-    return 0;  // Unreachable, just to satisfy the compiler
-}
-#define luaL_error luaL_error_compat
-
-// Function to simulate lua_pushcfunction for Luau
-static void lua_pushcfunction_compat(lua_State* L, lua_CFunction f) {
-    lua_pushcclosurek(L, f, "lfs_func", 0, NULL);
-}
-#define lua_pushcfunction(L,f) lua_pushcclosurek(L, (f), "lfs_func", 0, NULL)
-
-// Custom implementation of lua_pushglobaltable for Luau
-static void lua_pushglobaltable_compat(lua_State* L) {
-    lua_pushvalue(L, LUA_GLOBALSINDEX);
-}
-#define lua_pushglobaltable(L) lua_pushvalue(L, LUA_GLOBALSINDEX)
-
-// Implementation of luaL_register for Luau
-static void luaL_register_compat(lua_State* L, const char* libname, const luaL_Reg* l) {
-    if (libname) {
-        lua_getglobal(L, libname);  // get table
-        if (lua_type(L, -1) != LUA_TTABLE) {  // check if exists
-            lua_pop(L, 1);  // remove previous result
-            lua_newtable(L);  // create a new table
-            lua_pushvalue(L, -1);  // copy table
-            lua_setglobal(L, libname);  // set global variable
-        }
-    } else {
-        lua_pushvalue(L, LUA_GLOBALSINDEX);  // Use global table directly
-    }
-    
-    // Register all functions
-    if (l) {
-        for (; l->name; l++) {
-            lua_pushcclosurek(L, l->func, l->name, 0, NULL);
-            lua_setfield(L, -2, l->name);
-        }
-    }
-    
-    if (libname)
-        lua_pop(L, 1);  // remove table from stack
-}
-#define luaL_register luaL_register_compat
-
-// Define some other functions that might be needed
-#ifndef luaL_checktype
-#define luaL_checktype(L,n,t) \
-  ((lua_type(L, n) == t) || (lua_error(L), 0))
-#endif
-
-// Define compatibility macros for version checking in the code
-#define LUA_VERSION "Lua 5.1"
-#define LUA_RELEASE "Lua 5.1.5"
-
-// Forward declarations for any missing functions
-static void* luaL_checkudata_compat(lua_State* L, int ud, const char* tname) {
-    void* p = lua_touserdata(L, ud);
-    if (p != NULL) {
-        if (lua_getmetatable(L, ud)) {
-            lua_getfield(L, LUA_REGISTRYINDEX, tname);
-            if (lua_rawequal(L, -1, -2)) {
-                lua_pop(L, 2);
-                return p;
-            }
-            lua_pop(L, 2);
-        }
-    }
-    luaL_error(L, "%s expected", tname);
-    return NULL;  // unreachable
-}
-#define luaL_checkudata luaL_checkudata_compat
-
-// Define any other missing functions for compatability with lfs.c
-#ifndef luaL_getmetafield
-#define luaL_getmetafield(L,obj,e) \
-  (lua_getmetatable(L, obj) ? ((lua_getfield(L, -1, e), lua_type(L, -1) != LUA_TNIL) ? 1 : (lua_pop(L, 2), 0)) : 0)
-#endif
-
-#ifndef luaL_callmeta
-#define luaL_callmeta(L,obj,e) \
-  (luaL_getmetafield(L, obj, e) ? (lua_pushvalue(L, obj), lua_call(L, 1, 1), 1) : 0)
-#endif
-
-#ifndef luaL_newmetatable
-#define luaL_newmetatable(L,tname) \
-  (lua_getfield(L, LUA_REGISTRYINDEX, tname) ? 0 : (lua_pop(L, 1), lua_newtable(L), lua_pushvalue(L, -1), lua_setfield(L, LUA_REGISTRYINDEX, tname), 1))
-#endif
-
-// End of compatibility layer
-#endif
+// Include Luau headers from Homebrew
+#include <luau.h>
+#include <lualib.h>
 
 #include "lfs.h"
 

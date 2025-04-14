@@ -19,76 +19,53 @@ set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for iOS")
 # Find Lua - try multiple approaches
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-# Handle Lua finding on macOS
+# Handle Luau finding on macOS
 if(APPLE)
     # First check for environment variables set by the workflow
-    if(DEFINED ENV{LUA_DIR} AND DEFINED ENV{LUA_INCLUDE_DIR} AND DEFINED ENV{LUA_LIBRARIES})
-        message(STATUS "Using Lua from environment variables")
-        set(LUA_INCLUDE_DIR "$ENV{LUA_INCLUDE_DIR}")
+    if(DEFINED ENV{LUAU_INCLUDE_DIR} AND DEFINED ENV{LUA_LIBRARIES})
+        message(STATUS "Using Luau from environment variables")
+        set(LUA_INCLUDE_DIR "$ENV{LUAU_INCLUDE_DIR}")
         set(LUA_LIBRARIES "$ENV{LUA_LIBRARIES}")
         set(LUA_FOUND TRUE)
     else()
-        # Check Homebrew Lua location as fallback
+        # Check Homebrew Luau location
         execute_process(
-            COMMAND brew --prefix lua
-            OUTPUT_VARIABLE BREW_LUA_PREFIX
+            COMMAND brew --prefix luau
+            OUTPUT_VARIABLE BREW_LUAU_PREFIX
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
         )
         
-        if(BREW_LUA_PREFIX)
-            message(STATUS "Found Homebrew Lua at: ${BREW_LUA_PREFIX}")
-            set(LUA_INCLUDE_DIR "${BREW_LUA_PREFIX}/include")
+        if(BREW_LUAU_PREFIX)
+            message(STATUS "Found Homebrew Luau at: ${BREW_LUAU_PREFIX}")
+            set(LUA_INCLUDE_DIR "${BREW_LUAU_PREFIX}/include")
             
-            # Look for the lua library file
+            # Look for the luau library file
             find_library(LUA_LIBRARIES 
-                        NAMES lua lua5.4 lua5.3 liblua liblua5.4 liblua5.3
-                        PATHS "${BREW_LUA_PREFIX}/lib" NO_DEFAULT_PATH)
+                        NAMES luau libluau
+                        PATHS "${BREW_LUAU_PREFIX}/lib" NO_DEFAULT_PATH)
             
             if(LUA_LIBRARIES)
-                message(STATUS "Found Lua library: ${LUA_LIBRARIES}")
+                message(STATUS "Found Luau library: ${LUA_LIBRARIES}")
                 set(LUA_FOUND TRUE)
             else()
                 # Hardcode as a last resort
-                set(LUA_LIBRARIES "${BREW_LUA_PREFIX}/lib/liblua.dylib")
-                message(STATUS "Using hardcoded Lua library path: ${LUA_LIBRARIES}")
+                set(LUA_LIBRARIES "${BREW_LUAU_PREFIX}/lib/libluau.dylib")
+                message(STATUS "Using hardcoded Luau library path: ${LUA_LIBRARIES}")
                 set(LUA_FOUND TRUE)
             endif()
         else()
-            message(STATUS "Homebrew Lua not found via brew --prefix lua")
+            message(STATUS "Homebrew Luau not found. Please install with: brew install luau")
         endif()
     endif()
 endif()
 
-# Try standard find_package
+# Try standard find_package with our custom finder module
 find_package(Lua QUIET)
 
-# If not found, try FindLua51 or FindLua (both come with CMake)
-if(NOT LUA_FOUND)
-    find_package(Lua51 QUIET)
-    if(LUA51_FOUND)
-        set(LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR})
-        set(LUA_LIBRARIES ${LUA_LIBRARIES})
-        set(LUA_FOUND TRUE)
-    endif()
-endif()
-
-# Last attempt - look for lua manually
-if(NOT LUA_FOUND AND NOT DEFINED LUA_LIBRARIES)
-    # Try to find the libraries manually
-    find_library(LUA_LIBRARIES NAMES lua lua54 lua5.4 lua53 lua5.3 liblua)
-    find_path(LUA_INCLUDE_DIR NAMES lua.h 
-              PATH_SUFFIXES lua lua5.4 lua5.3 include/lua)
-              
-    if(LUA_LIBRARIES AND LUA_INCLUDE_DIR)
-        message(STATUS "Found Lua manually: ${LUA_LIBRARIES}")
-        set(LUA_FOUND TRUE)
-    endif()
-endif()
-
-# Check if Lua was found
+# Check if Luau was found
 if(NOT LUA_FOUND OR NOT DEFINED LUA_LIBRARIES)
-    message(FATAL_ERROR "Could not find Lua. Please install Lua and its development files.")
+    message(FATAL_ERROR "Could not find Luau. Please install Luau with: brew install luau")
 endif()
 
 message(STATUS "Using Lua include dir: ${LUA_INCLUDE_DIR}")

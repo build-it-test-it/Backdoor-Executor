@@ -25,6 +25,9 @@ jobs:
         brew install openssl sqlite3
         brew install libzip json-c
         
+        # Install Luau via Homebrew
+        brew install luau
+        
         # Install iOS development dependencies
         brew install llvm || true
         brew install libomp || true
@@ -55,19 +58,19 @@ jobs:
             fi
         fi
         
-        # Note: Using Luau headers that are already in the project
-        echo "Using Luau headers from source/cpp/luau"
+        # Set up Luau paths
+        LUAU_PREFIX=$(brew --prefix luau)
+        echo "Using Homebrew Luau from $LUAU_PREFIX"
         
-        # No need to install Lua or create custom headers
-        # The compatibility layer is added directly in source/lfs.c
+        # Set environment variables for Luau
+        echo "LUAU_INCLUDE_DIR=$LUAU_PREFIX/include" >> $GITHUB_ENV
+        echo "LUAU_LIB_DIR=$LUAU_PREFIX/lib" >> $GITHUB_ENV
+        echo "LUA_INCLUDE_DIR=$LUAU_PREFIX/include" >> $GITHUB_ENV
+        echo "LUA_LIBRARIES=$LUAU_PREFIX/lib/libluau.dylib" >> $GITHUB_ENV
         
-        # Create directories for compiler to find headers
-        mkdir -p build/include
-        
-        # Set environment variables to use internal Luau headers
-        echo "LUA_INCLUDE_DIR=$GITHUB_WORKSPACE/source/cpp/luau" >> $GITHUB_ENV
-        echo "CFLAGS=-I$GITHUB_WORKSPACE/source/cpp/luau -I$GITHUB_WORKSPACE/source" >> $GITHUB_ENV
-        echo "CXXFLAGS=-I$GITHUB_WORKSPACE/source/cpp/luau -I$GITHUB_WORKSPACE/source" >> $GITHUB_ENV
+        # Set compiler flags to include Luau headers
+        echo "CFLAGS=-I$LUAU_PREFIX/include" >> $GITHUB_ENV
+        echo "CXXFLAGS=-I$LUAU_PREFIX/include" >> $GITHUB_ENV
         
         # Create directories for project resources (only once)
         mkdir -p Resources/AIData/LocalModels
@@ -83,46 +86,71 @@ jobs:
         
         # Create simplified Find*.cmake files for building
         # First, create FindLuaFileSystem.cmake
-        echo "# FindLuaFileSystem.cmake - Using internal Luau headers" > cmake/FindLuaFileSystem.cmake
+        echo "# FindLuaFileSystem.cmake - Using Homebrew Luau" > cmake/FindLuaFileSystem.cmake
         echo "# Create a target for lfs.c that ensures it can find the Luau headers" >> cmake/FindLuaFileSystem.cmake
         echo "function(add_lfs_target)" >> cmake/FindLuaFileSystem.cmake
         echo "    if(TARGET lfs_obj)" >> cmake/FindLuaFileSystem.cmake
         echo "        return()" >> cmake/FindLuaFileSystem.cmake
         echo "    endif()" >> cmake/FindLuaFileSystem.cmake
         echo "" >> cmake/FindLuaFileSystem.cmake
-        echo "    message(STATUS \"Setting up LuaFileSystem with native Luau headers\")" >> cmake/FindLuaFileSystem.cmake
+        echo "    message(STATUS \"Setting up LuaFileSystem with Homebrew Luau headers\")" >> cmake/FindLuaFileSystem.cmake
         echo "" >> cmake/FindLuaFileSystem.cmake
         echo "    add_library(lfs_obj OBJECT \${CMAKE_SOURCE_DIR}/source/lfs.c)" >> cmake/FindLuaFileSystem.cmake
         echo "" >> cmake/FindLuaFileSystem.cmake
+        echo "    # Get Luau include directory from environment or find it" >> cmake/FindLuaFileSystem.cmake
+        echo "    if(DEFINED ENV{LUAU_INCLUDE_DIR})" >> cmake/FindLuaFileSystem.cmake
+        echo "        set(LUAU_INCLUDE_DIR \$ENV{LUAU_INCLUDE_DIR})" >> cmake/FindLuaFileSystem.cmake
+        echo "    else()" >> cmake/FindLuaFileSystem.cmake
+        echo "        # Try to find it using brew" >> cmake/FindLuaFileSystem.cmake
+        echo "        execute_process(" >> cmake/FindLuaFileSystem.cmake
+        echo "            COMMAND brew --prefix luau" >> cmake/FindLuaFileSystem.cmake
+        echo "            OUTPUT_VARIABLE LUAU_PREFIX" >> cmake/FindLuaFileSystem.cmake
+        echo "            OUTPUT_STRIP_TRAILING_WHITESPACE" >> cmake/FindLuaFileSystem.cmake
+        echo "        )" >> cmake/FindLuaFileSystem.cmake
+        echo "        set(LUAU_INCLUDE_DIR \"\${LUAU_PREFIX}/include\")" >> cmake/FindLuaFileSystem.cmake
+        echo "    endif()" >> cmake/FindLuaFileSystem.cmake
+        echo "" >> cmake/FindLuaFileSystem.cmake
         echo "    target_include_directories(lfs_obj PRIVATE" >> cmake/FindLuaFileSystem.cmake
+        echo "        \${LUAU_INCLUDE_DIR}" >> cmake/FindLuaFileSystem.cmake
         echo "        \${CMAKE_SOURCE_DIR}/source" >> cmake/FindLuaFileSystem.cmake
-        echo "        \${CMAKE_SOURCE_DIR}/source/cpp" >> cmake/FindLuaFileSystem.cmake
-        echo "        \${CMAKE_SOURCE_DIR}/source/cpp/luau" >> cmake/FindLuaFileSystem.cmake
-        echo "        \${CMAKE_SOURCE_DIR}" >> cmake/FindLuaFileSystem.cmake
         echo "    )" >> cmake/FindLuaFileSystem.cmake
         echo "" >> cmake/FindLuaFileSystem.cmake
-        echo "    target_compile_definitions(lfs_obj PRIVATE " >> cmake/FindLuaFileSystem.cmake
-        echo "        LFS_USE_INTERNAL_LUAU=1" >> cmake/FindLuaFileSystem.cmake
-        echo "        LUAU_FASTFLAG_LUAERROR=1" >> cmake/FindLuaFileSystem.cmake
-        echo "    )" >> cmake/FindLuaFileSystem.cmake
+        echo "    # No need for special compile definitions with Homebrew Luau" >> cmake/FindLuaFileSystem.cmake
         echo "" >> cmake/FindLuaFileSystem.cmake
         echo "    set_target_properties(lfs_obj PROPERTIES" >> cmake/FindLuaFileSystem.cmake
         echo "        C_STANDARD 99" >> cmake/FindLuaFileSystem.cmake
         echo "        POSITION_INDEPENDENT_CODE ON" >> cmake/FindLuaFileSystem.cmake
         echo "    )" >> cmake/FindLuaFileSystem.cmake
         echo "" >> cmake/FindLuaFileSystem.cmake
-        echo "    message(STATUS \"Using internal Luau headers from \${CMAKE_SOURCE_DIR}/source/cpp/luau\")" >> cmake/FindLuaFileSystem.cmake
+        echo "    message(STATUS \"Using Homebrew Luau headers from \${LUAU_INCLUDE_DIR}\")" >> cmake/FindLuaFileSystem.cmake
         echo "endfunction()" >> cmake/FindLuaFileSystem.cmake
         
         # Then create FindLua.cmake
-        echo "# FindLua.cmake - Using internal Luau headers" > cmake/FindLua.cmake
-        echo "# This is a minimal finder that points to internal Luau headers" >> cmake/FindLua.cmake
+        echo "# FindLua.cmake - Using Homebrew Luau" > cmake/FindLua.cmake
+        echo "# This is a minimal finder that points to Homebrew Luau" >> cmake/FindLua.cmake
         echo "" >> cmake/FindLua.cmake
-        echo "set(LUA_INCLUDE_DIR \"\${CMAKE_SOURCE_DIR}/source/cpp/luau\")" >> cmake/FindLua.cmake
-        echo "set(LUA_LIBRARIES \"\")" >> cmake/FindLua.cmake
-        echo "set(LUA_FOUND TRUE)" >> cmake/FindLua.cmake
+        echo "# Try to get from environment first" >> cmake/FindLua.cmake
+        echo "if(DEFINED ENV{LUAU_INCLUDE_DIR} AND DEFINED ENV{LUA_LIBRARIES})" >> cmake/FindLua.cmake
+        echo "    set(LUA_INCLUDE_DIR \$ENV{LUAU_INCLUDE_DIR})" >> cmake/FindLua.cmake
+        echo "    set(LUA_LIBRARIES \$ENV{LUA_LIBRARIES})" >> cmake/FindLua.cmake
+        echo "    set(LUA_FOUND TRUE)" >> cmake/FindLua.cmake
+        echo "else()" >> cmake/FindLua.cmake
+        echo "    # Try to find it using brew" >> cmake/FindLua.cmake
+        echo "    execute_process(" >> cmake/FindLua.cmake
+        echo "        COMMAND brew --prefix luau" >> cmake/FindLua.cmake
+        echo "        OUTPUT_VARIABLE LUAU_PREFIX" >> cmake/FindLua.cmake
+        echo "        OUTPUT_STRIP_TRAILING_WHITESPACE" >> cmake/FindLua.cmake
+        echo "    )" >> cmake/FindLua.cmake
         echo "" >> cmake/FindLua.cmake
-        echo "message(STATUS \"Using internal Luau headers from \${LUA_INCLUDE_DIR}\")" >> cmake/FindLua.cmake
+        echo "    if(LUAU_PREFIX)" >> cmake/FindLua.cmake
+        echo "        set(LUA_INCLUDE_DIR \"\${LUAU_PREFIX}/include\")" >> cmake/FindLua.cmake
+        echo "        set(LUA_LIBRARIES \"\${LUAU_PREFIX}/lib/libluau.dylib\")" >> cmake/FindLua.cmake
+        echo "        set(LUA_FOUND TRUE)" >> cmake/FindLua.cmake
+        echo "    endif()" >> cmake/FindLua.cmake
+        echo "endif()" >> cmake/FindLua.cmake
+        echo "" >> cmake/FindLua.cmake
+        echo "message(STATUS \"Using Homebrew Luau headers from \${LUA_INCLUDE_DIR}\")" >> cmake/FindLua.cmake
+        echo "message(STATUS \"Using Homebrew Luau libraries: \${LUA_LIBRARIES}\")" >> cmake/FindLua.cmake
         
         echo "Created CMake module files"
         
@@ -130,12 +158,11 @@ jobs:
         echo "CMake directory contents:"
         ls -la cmake/
         
-        # Show current environment for debugging
-        echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
-        echo "Lua location in PATH (may not exist, that's okay):"
-        which lua || echo "Lua not found in PATH (this is expected)"
-        echo "Lua version (may not exist, that's okay):"
-        lua -v || echo "Lua version command failed (this is expected)"
+        # Show Luau version and paths
+        echo "Luau location in PATH:"
+        which luau || echo "Luau not found in PATH (this is unexpected)"
+        echo "Luau include directory: $LUAU_INCLUDE_DIR"
+        echo "Luau library directory: $LUAU_LIB_DIR"
 
     - name: Install Dobby (Optional)
       id: install-dobby

@@ -140,7 +140,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 option(USE_BUNDLED_LUA "Use bundled Lua library instead of system library" ON)
 
 # Check for Dobby dependency (optional)
-option(USE_DOBBY "Use Dobby for function hooking" ON)
+option(USE_DOBBY "Use Dobby for function hooking" OFF) # Set default to OFF for CI
 
 if(USE_DOBBY)
     # Check if Dobby_DIR is set (from the workflow)
@@ -154,10 +154,16 @@ if(USE_DOBBY)
     
     # If not found through find_package but DOBBY_DIR is set, set up manually
     if(NOT Dobby_FOUND AND DEFINED Dobby_DIR)
-        message(STATUS "Setting up Dobby manually from ${Dobby_DIR}")
-        set(Dobby_INCLUDE_DIRS "${Dobby_DIR}/include")
-        set(Dobby_LIBRARIES "${Dobby_DIR}/lib/libdobby.a")
-        set(Dobby_FOUND TRUE)
+        # Extra validation to ensure the directory and library exist
+        if(EXISTS "${Dobby_DIR}" AND EXISTS "${Dobby_DIR}/lib/libdobby.a")
+            message(STATUS "Setting up Dobby manually from ${Dobby_DIR}")
+            set(Dobby_INCLUDE_DIRS "${Dobby_DIR}/include")
+            set(Dobby_LIBRARIES "${Dobby_DIR}/lib/libdobby.a")
+            set(Dobby_FOUND TRUE)
+        else()
+            message(STATUS "Dobby directory or library not found at ${Dobby_DIR}. Disabling Dobby.")
+            set(USE_DOBBY OFF)
+        endif()
     endif()
     
     # Final check
@@ -166,6 +172,7 @@ if(USE_DOBBY)
         add_definitions(-DHOOKING_AVAILABLE=1)
     else()
         message(STATUS "Dobby library not found. Building without hooking functionality.")
+        set(USE_DOBBY OFF)
         add_definitions(-DNO_DOBBY_HOOKS)
         add_definitions(-DHOOKING_AVAILABLE=0)
     endif()
@@ -286,9 +293,15 @@ target_link_libraries(roblox_executor PRIVATE
 # Ensure the stub library is built before the main target
 add_dependencies(roblox_executor lua_bundled ensure_lua_path)
 
-# Add Dobby if found
-if(Dobby_FOUND)
-    target_link_libraries(roblox_executor PRIVATE ${Dobby_LIBRARIES})
+# Add Dobby if found and enabled
+if(USE_DOBBY AND Dobby_FOUND)
+    # Additional safety check before linking
+    if(EXISTS "${Dobby_LIBRARIES}")
+        message(STATUS "Linking with Dobby library: ${Dobby_LIBRARIES}")
+        target_link_libraries(roblox_executor PRIVATE ${Dobby_LIBRARIES})
+    else()
+        message(WARNING "Dobby library file not found: ${Dobby_LIBRARIES}. Skipping linking.")
+    endif()
 endif()
 
 # Create required directories for AI data

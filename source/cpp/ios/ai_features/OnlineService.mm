@@ -78,6 +78,20 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     return NO;
 }
 
+- (void)stopMonitoring {
+    if (self.reachabilityRef) {
+        SCNetworkReachabilityUnscheduleFromRunLoop(self.reachabilityRef, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+    }
+}
+
+- (SCNetworkReachabilityFlags)currentReachabilityFlags {
+    SCNetworkReachabilityFlags flags = 0;
+    if (self.reachabilityRef) {
+        SCNetworkReachabilityGetFlags(self.reachabilityRef, &flags);
+    }
+    return flags;
+}
+
 @end
 
 // Start the C++ namespace after all Objective-C code

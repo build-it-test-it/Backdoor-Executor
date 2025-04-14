@@ -4,7 +4,8 @@
 #include <memory>
 
 // Attributes to ensure symbols are exported and not optimized away
-#define EXPORT __attribute__((visibility("default"), used, externally_visible))
+// Remove externally_visible which isn't supported in this compiler
+#define EXPORT __attribute__((visibility("default"), used))
 
 // Add SystemConfiguration stubs
 extern "C" {
@@ -136,13 +137,15 @@ namespace iOS {
                 }
                 
                 __attribute__((visibility("default"), used))
-                void _ZN3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_19SignatureAdaptation13DetectionEventE() {
+                int _ZN3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_19SignatureAdaptation13DetectionEventE() {
                     // ReportDetection with full namespace qualification for DetectionEvent
+                    return 0;
                 }
                 
                 __attribute__((visibility("default"), used))
-                void _ZNK3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_13DetectionEventE() {
+                int _ZNK3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_13DetectionEventE() {
                     // ReportDetection (const method variant)
+                    return 0;
                 }
                 
                 // Multiple variants of PruneDetectionHistory
@@ -152,13 +155,15 @@ namespace iOS {
                 }
                 
                 __attribute__((visibility("default"), used))
-                void _ZN3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
+                int _ZN3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
                     // PruneDetectionHistory with void return type
+                    return 0;
                 }
                 
                 __attribute__((visibility("default"), used))
-                void _ZNK3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
+                int _ZNK3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
                     // PruneDetectionHistory (const method variant)
+                    return 0;
                 }
             }
         }

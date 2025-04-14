@@ -3,6 +3,7 @@
 #include <sstream>
 #include <random>
 #include <ctime>
+#include <iomanip>  // For std::setw and std::setfill
 #import <Foundation/Foundation.h>
 
 namespace iOS {

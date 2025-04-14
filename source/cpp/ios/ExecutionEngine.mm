@@ -5,6 +5,7 @@
 #include <sstream>
 #include <algorithm>
 #include <random>
+#include <iomanip>  // For std::setw and std::setfill
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
@@ -99,10 +100,11 @@ namespace iOS {
                     
                     // Execute on main thread since UIKit requires it
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        // Create a hidden web view for JavaScript execution
-                        UIWebView* webView = [[UIWebView alloc] initWithFrame:CGRectZero];
+                        // Create a hidden WKWebView for JavaScript execution (replacing deprecated UIWebView)
+                        @import WebKit;
+                        WKWebView* webView = [[WKWebView alloc] initWithFrame:CGRectZero];
                         webView.hidden = YES;
-                        
+                    
                         // Add to view hierarchy temporarily
                         UIWindow* keyWindow = nil;
                         if (@available(iOS 13.0, *)) {
@@ -115,10 +117,18 @@ namespace iOS {
                         } else {
                             keyWindow = [[UIApplication sharedApplication] keyWindow];
                         }
-                        
+                    
                         if (keyWindow) {
                             [keyWindow addSubview:webView];
-                            
+                        
+                            // Define completion block that captures output and error by reference
+                            __block std::string& blockOutput = output;
+                            __block std::string& blockError = error;
+                            __block bool& blockSuccess = success;
+                        
+                            // Create a dispatch semaphore to wait for async execution to complete
+                            dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+                        
                             // Set up console.log capture
                             NSString* logCaptureJS = @"var originalLog = console.log;"
                                                     "var logOutput = '';"
@@ -127,24 +137,44 @@ namespace iOS {
                                                     "    originalLog.apply(console, args);"
                                                     "    logOutput += args.join(' ') + '\\n';"
                                                     "};";
-                            [webView stringByEvaluatingJavaScriptFromString:logCaptureJS];
-                            
-                            // Execute the script
-                            NSString* nsScript = [NSString stringWithUTF8String:preparedScript.c_str()];
-                            NSString* result = [webView stringByEvaluatingJavaScriptFromString:nsScript];
-                            
-                            // Get console output
-                            NSString* consoleOutput = [webView stringByEvaluatingJavaScriptFromString:@"logOutput"];
-                            
-                            // Check result
-                            success = (result != nil && ![result isEqualToString:@"undefined"]);
-                            output = [consoleOutput UTF8String];
-                            
-                            // Process output
-                            if (output.empty() && !success) {
-                                error = "Script execution failed with no output";
+                        
+                            [webView evaluateJavaScript:logCaptureJS completionHandler:^(id _Nullable result, NSError * _Nullable error) {
+                                // Now that console.log is set up, evaluate the actual script
+                                NSString* nsScript = [NSString stringWithUTF8String:preparedScript.c_str()];
+                                [webView evaluateJavaScript:nsScript completionHandler:^(id _Nullable result, NSError * _Nullable scriptError) {
+                                    // Get console output
+                                    [webView evaluateJavaScript:@"logOutput" completionHandler:^(id _Nullable consoleOutput, NSError * _Nullable outputError) {
+                                        // Handle results
+                                        blockSuccess = (result != nil && ![result isEqual:[NSNull null]]);
+                                    
+                                        if (consoleOutput && [consoleOutput isKindOfClass:[NSString class]]) {
+                                            blockOutput = [(NSString*)consoleOutput UTF8String];
+                                        }
+                                    
+                                        if (scriptError) {
+                                            blockError = [[scriptError localizedDescription] UTF8String];
+                                            blockSuccess = false;
+                                        }
+                                    
+                                        // Process output
+                                        if (blockOutput.empty() && !blockSuccess) {
+                                            blockError = "Script execution failed with no output";
+                                        }
+                                    
+                                        // Signal completion
+                                        dispatch_semaphore_signal(semaphore);
+                                    }];
+                                }];
+                            }];
+                        
+                            // Wait for the script execution to complete with timeout
+                            uint64_t timeoutNs = executionContext.m_timeout * 1000000ULL;
+                            dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, timeoutNs);
+                            if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+                                error = "Script execution timed out";
+                                success = false;
                             }
-                            
+                        
                             // Remove web view
                             [webView removeFromSuperview];
                         } else {
@@ -448,9 +478,9 @@ namespace iOS {
         
         // Write to log file if FileSystem is available
         if (!FileSystem::GetLogPath().empty()) {
-            std::string logPath = FileSystem::CombinePaths(
-                FileSystem::GetLogPath(),
-                "execution_" + std::to_string(time(nullptr)) + ".log");
+            // Use direct path construction instead of private CombinePaths method
+            std::string logPath = FileSystem::GetLogPath() + 
+                                  "/execution_" + std::to_string(time(nullptr)) + ".log";
             
             FileSystem::WriteFile(logPath, logEntry.str());
         }

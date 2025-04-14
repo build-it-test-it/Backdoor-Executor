@@ -5,6 +5,9 @@
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
+#include <mutex>
+#include <atomic>
 
 // Include platform-specific headers
 #if defined(__APPLE__) || defined(IOS_TARGET)
@@ -15,26 +18,111 @@
 namespace iOS {
     /**
      * @class JailbreakBypass
-     * @brief Bypasses jailbreak detection mechanisms in Roblox iOS
+     * @brief Advanced jailbreak detection avoidance system for iOS applications
      * 
-     * This class implements various techniques to prevent Roblox from detecting
-     * that it's running on a jailbroken device. It hooks file access, process
-     * listing, and other APIs that could be used for jailbreak detection.
+     * This class implements a comprehensive set of techniques to prevent applications
+     * from detecting that they're running on a jailbroken device. It provides multi-layered
+     * protection using function hooks, memory patches, and dynamic API behavior modification.
+     * 
+     * Features:
+     * - Function hooking for file system operations (stat, access, fopen)
+     * - Process list filtering to hide jailbreak processes
+     * - Environment variable sanitization
+     * - File path redirection and sanitization
+     * - Dynamic dylib loading prevention
+     * - Memory pattern scanning for jailbreak detection code
+     * - Security hardening against detection of the bypass itself
      */
     class JailbreakBypass {
+    public:
+        /**
+         * @enum BypassLevel
+         * @brief Different bypass levels with varying degrees of security vs. performance
+         */
+        enum class BypassLevel {
+            Minimal,   // Basic file and process hiding
+            Standard,  // Default level with comprehensive protection
+            Aggressive // Maximum protection with potential performance impact
+        };
+        
+        /**
+         * @struct BypassStatistics
+         * @brief Statistics about bypass operations for monitoring
+         */
+        struct BypassStatistics {
+            std::atomic<uint64_t> filesAccessed{0};     // Number of file access operations intercepted
+            std::atomic<uint64_t> filesHidden{0};       // Number of jailbreak files hidden
+            std::atomic<uint64_t> processesHidden{0};   // Number of processes hidden
+            std::atomic<uint64_t> envVarRequests{0};    // Number of environment variable requests intercepted
+            std::atomic<uint64_t> memoryPatchesApplied{0}; // Number of memory patches applied
+            std::atomic<uint64_t> dynamicChecksBlocked{0}; // Number of dynamic checks blocked
+            
+            void Reset() {
+                filesAccessed = 0;
+                filesHidden = 0;
+                processesHidden = 0;
+                envVarRequests = 0;
+                memoryPatchesApplied = 0;
+                dynamicChecksBlocked = 0;
+            }
+        };
+        
     private:
-        // Member variables with consistent m_ prefix
-        static bool m_initialized;
+        // Thread safety
+        static std::mutex m_mutex;
+        
+        // Configuration
+        static std::atomic<bool> m_initialized;
+        static std::atomic<BypassLevel> m_bypassLevel;
+        static BypassStatistics m_statistics;
+        
+        // Path and process hiding
         static std::unordered_set<std::string> m_jailbreakPaths;
         static std::unordered_set<std::string> m_jailbreakProcesses;
         static std::unordered_map<std::string, std::string> m_fileRedirects;
         
-        // Private methods
+        // Environment variables
+        static std::unordered_set<std::string> m_sensitiveDylibs;
+        static std::unordered_set<std::string> m_sensitiveEnvVars;
+        
+        // Advanced bypass features
+        static std::unordered_map<void*, void*> m_hookedFunctions;
+        static std::vector<std::pair<uintptr_t, std::vector<uint8_t>>> m_memoryPatches;
+        static std::atomic<bool> m_dynamicProtectionActive;
+        
+        // Original function pointers
+        typedef int (*stat_func_t)(const char*, struct stat*);
+        typedef int (*access_func_t)(const char*, int);
+        typedef FILE* (*fopen_func_t)(const char*, const char*);
+        typedef char* (*getenv_func_t)(const char*);
+        typedef int (*system_func_t)(const char*);
+        typedef int (*fork_func_t)(void);
+        typedef int (*execve_func_t)(const char*, char* const[], char* const[]);
+        typedef void* (*dlopen_func_t)(const char*, int);
+        
+        static stat_func_t m_originalStat;
+        static access_func_t m_originalAccess;
+        static fopen_func_t m_originalFopen;
+        static getenv_func_t m_originalGetenv;
+        static system_func_t m_originalSystem;
+        static fork_func_t m_originalFork;
+        static execve_func_t m_originalExecve;
+        static dlopen_func_t m_originalDlopen;
+        
+        // Private initialization methods
         static void InitializeTables();
         static void InstallHooks();
         static void PatchMemoryChecks();
+        static void InstallDynamicProtection();
+        static void SecurityHardenBypass();
         
-        // Hook handler declarations
+        // Advanced sanitization methods
+        static bool SanitizePath(const std::string& path);
+        static bool SanitizeProcessList(const std::vector<std::string>& processList);
+        static bool SanitizeEnvironment();
+        static void ObfuscateBypassFunctions();
+        
+        // Hook handlers with enhanced protection
         static int HookStatHandler(const char* path, struct stat* buf);
         static int HookAccessHandler(const char* path, int mode);
         static FILE* HookFopenHandler(const char* path, const char* mode);
@@ -42,13 +130,36 @@ namespace iOS {
         static int HookSystemHandler(const char* command);
         static int HookForkHandler(void);
         static int HookExecveHandler(const char* path, char* const argv[], char* const envp[]);
+        static void* HookDlopenHandler(const char* path, int mode);
+        
+        // Dynamically generated function patterns
+        static std::vector<uint8_t> GenerateStatPattern();
+        static std::vector<uint8_t> GenerateAccessPattern();
+        
+        // Memory scanning and patching
+        static bool FindAndPatchMemoryPattern(const std::vector<uint8_t>& pattern, const std::vector<uint8_t>& patch);
+        static bool RestoreMemoryPatches();
         
     public:
         /**
          * @brief Initialize the jailbreak bypass system
+         * @param level The desired bypass level
          * @return True if initialization succeeded, false otherwise
          */
-        static bool Initialize();
+        static bool Initialize(BypassLevel level = BypassLevel::Standard);
+        
+        /**
+         * @brief Set the bypass level during runtime
+         * @param level New bypass level
+         * @return True if level was changed, false otherwise
+         */
+        static bool SetBypassLevel(BypassLevel level);
+        
+        /**
+         * @brief Get the current bypass level
+         * @return Current bypass level
+         */
+        static BypassLevel GetBypassLevel();
         
         /**
          * @brief Add a path to be hidden from jailbreak detection
@@ -68,6 +179,18 @@ namespace iOS {
          * @param redirectPath The path to redirect to
          */
         static void AddFileRedirect(const std::string& originalPath, const std::string& redirectPath);
+        
+        /**
+         * @brief Add a sensitive dylib to be hidden
+         * @param dylibName The dylib name to hide
+         */
+        static void AddSensitiveDylib(const std::string& dylibName);
+        
+        /**
+         * @brief Add a sensitive environment variable to sanitize
+         * @param envVarName The environment variable name
+         */
+        static void AddSensitiveEnvVar(const std::string& envVarName);
         
         /**
          * @brief Check if a path is a known jailbreak-related path
@@ -91,8 +214,51 @@ namespace iOS {
         static std::string GetRedirectedPath(const std::string& originalPath);
         
         /**
-         * @brief Disable jailbreak detection bypass
+         * @brief Check if bypass is fully operational
+         * @return True if all bypass features are active
          */
-        static void Cleanup();
+        static bool IsFullyOperational();
+        
+        /**
+         * @brief Get current bypass statistics
+         * @return Structure with current bypass statistics
+         */
+        static BypassStatistics GetStatistics();
+        
+        /**
+         * @brief Reset bypass statistics counters
+         */
+        static void ResetStatistics();
+        
+        /**
+         * @brief Force a refresh of all bypass mechanisms
+         * @return True if refresh succeeded
+         */
+        static bool RefreshBypass();
+        
+        /**
+         * @brief Temporarily disable bypass for trusted operations
+         * @param callback Function to execute with bypass disabled
+         * @return Return value from the callback
+         */
+        template<typename ReturnType>
+        static ReturnType WithBypassDisabled(std::function<ReturnType()> callback) {
+            // Store current state
+            bool wasActive = m_dynamicProtectionActive.exchange(false);
+            
+            // Execute callback
+            ReturnType result = callback();
+            
+            // Restore state
+            m_dynamicProtectionActive.store(wasActive);
+            
+            return result;
+        }
+        
+        /**
+         * @brief Disable jailbreak detection bypass and clean up resources
+         * @return True if cleanup succeeded
+         */
+        static bool Cleanup();
     };
 }

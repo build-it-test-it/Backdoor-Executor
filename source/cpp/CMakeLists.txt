@@ -8,10 +8,25 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/source/cpp/luau
 )
 
-# Only include a minimal set of source files for CI build
-file(GLOB_RECURSE COMMON_SOURCES
-    "memory/*.cpp"
+# We need at least one source file - use our stub if memory dir is empty
+set(STUB_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/stubs/empty_stub.cpp"
 )
+
+# Check for memory/*.cpp files
+file(GLOB MEMORY_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.c"
+)
+
+# Use glob for all valid sources, but make sure we have at least the stub
+if(MEMORY_SOURCES)
+    set(COMMON_SOURCES ${MEMORY_SOURCES})
+    message(STATUS "Found memory sources: ${MEMORY_SOURCES}")
+else()
+    set(COMMON_SOURCES ${STUB_SOURCES})
+    message(STATUS "No memory sources found, using stub: ${STUB_SOURCES}")
+endif()
 
 # Create the static library
 add_library(roblox_execution STATIC ${COMMON_SOURCES})

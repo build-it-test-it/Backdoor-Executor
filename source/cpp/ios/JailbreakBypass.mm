@@ -37,7 +37,7 @@ namespace iOS {
     // We'll redefine the "original_*" names to be actual functions
     // This avoids undefined identifiers in the other methods
     static int original_stat(const char* path, struct stat* buf) { 
-        return ::stat(path, buf); // Direct call, no hook on iOS - use global scope
+        return ::stat(path, (::stat*)buf); // Direct call, no hook on iOS - explicitly cast to global stat
     }
     
     static int original_access(const char* path, int mode) {

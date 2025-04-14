@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2025-04-14T02:58:42Z",
+  "settings": {
+    "enableLocalTraining": true,
+    "enableVulnerabilityDetection": true,
+    "operationMode": "standard"
+  }
+}

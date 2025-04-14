@@ -22,6 +22,26 @@
 
 @end
 
+// Define stubs for NetworkReachability in case SystemConfiguration framework is not available
+#if defined(SCNetworkReachabilityCreateWithAddress_STUB)
+static void* SCNetworkReachabilityCreateWithAddress_STUB(void* allocator, const struct sockaddr* address) {
+    return NULL;
+}
+static bool SCNetworkReachabilityGetFlags_STUB(void* target, unsigned int* flags) {
+    if (flags) *flags = 0;
+    return true;
+}
+static bool SCNetworkReachabilitySetCallback_STUB(void* target, void* callback, void* context) {
+    return true;
+}
+static bool SCNetworkReachabilityScheduleWithRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
+    return true;
+}
+static bool SCNetworkReachabilityUnscheduleFromRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
+    return true;
+}
+#endif
+
 @implementation NetworkReachability
 
 + (instancetype)sharedInstance {

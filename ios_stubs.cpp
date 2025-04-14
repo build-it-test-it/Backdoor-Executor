@@ -2,32 +2,6 @@
 #include <vector>
 #include <functional>
 #include <memory>
-#include <SystemConfiguration/SystemConfiguration.h>
-
-// Helper functions for SystemConfiguration framework
-extern "C" {
-    // Stub implementations for SystemConfiguration framework
-    void* SCNetworkReachabilityCreateWithAddress(CFAllocatorRef allocator, const struct sockaddr* addr) {
-        return NULL;
-    }
-    
-    bool SCNetworkReachabilityGetFlags(void* target, uint32_t* flags) {
-        if (flags) *flags = 0;
-        return true;
-    }
-    
-    bool SCNetworkReachabilitySetCallback(void* target, void* callback, void* context) {
-        return true;
-    }
-    
-    bool SCNetworkReachabilityScheduleWithRunLoop(void* target, CFRunLoopRef runLoop, CFStringRef runLoopMode) {
-        return true;
-    }
-    
-    bool SCNetworkReachabilityUnscheduleFromRunLoop(void* target, CFRunLoopRef runLoop, CFStringRef runLoopMode) {
-        return true;
-    }
-}
 
 // Forward declarations for iOS namespaces
 namespace iOS {

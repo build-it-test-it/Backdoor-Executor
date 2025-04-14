@@ -401,6 +401,12 @@ target_compile_definitions(roblox_executor PRIVATE
     EXECUTOR_VERSION="1.0.0"
     IOS_TARGET=1
     _DARWIN_C_SOURCE=1
+    # Define stubs for missing SystemConfiguration symbols
+    SCNetworkReachabilityCreateWithAddress=SCNetworkReachabilityCreateWithAddress_STUB
+    SCNetworkReachabilityGetFlags=SCNetworkReachabilityGetFlags_STUB
+    SCNetworkReachabilitySetCallback=SCNetworkReachabilitySetCallback_STUB
+    SCNetworkReachabilityScheduleWithRunLoop=SCNetworkReachabilityScheduleWithRunLoop_STUB
+    SCNetworkReachabilityUnscheduleFromRunLoop=SCNetworkReachabilityUnscheduleFromRunLoop_STUB
 )
 
 # Add AI-specific definitions
@@ -442,7 +448,7 @@ target_link_libraries(roblox_executor PRIVATE
     "-framework CoreFoundation"
     "-framework JavaScriptCore"
     "-framework Security"
-    "-framework SystemConfiguration"
+    "-weak_framework SystemConfiguration"  # Use weak linking for SystemConfiguration
 )
 
 # Ensure the stub library is built before the main target

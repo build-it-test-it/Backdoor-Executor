@@ -100,13 +100,13 @@ namespace iOS {
                     
                     // Execute on main thread since UIKit requires it
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        // Create a hidden WKWebView for JavaScript execution (replacing deprecated UIWebView)
-                        @import WebKit;
+                        // Create a hidden web view for JavaScript execution
+                        #import <WebKit/WebKit.h>
                         WKWebView* webView = [[WKWebView alloc] initWithFrame:CGRectZero];
                         webView.hidden = YES;
                     
                         // Add to view hierarchy temporarily
-                        UIWindow* keyWindow = nil;
+                        __block UIWindow* keyWindow = nil;
                         if (@available(iOS 13.0, *)) {
                             for (UIWindowScene* scene in [[UIApplication sharedApplication] connectedScenes]) {
                                 if (scene.activationState == UISceneActivationStateForegroundActive) {
@@ -115,16 +115,19 @@ namespace iOS {
                                 }
                             }
                         } else {
+                            #pragma clang diagnostic push
+                            #pragma clang diagnostic ignored "-Wdeprecated-declarations"
                             keyWindow = [[UIApplication sharedApplication] keyWindow];
+                            #pragma clang diagnostic pop
                         }
                     
                         if (keyWindow) {
                             [keyWindow addSubview:webView];
                         
-                            // Define completion block that captures output and error by reference
-                            __block std::string& blockOutput = output;
-                            __block std::string& blockError = error;
-                            __block bool& blockSuccess = success;
+                            // Declare local mutable variables to store results
+                            __block NSString* capturedOutput = nil;
+                            __block NSString* capturedError = nil;
+                            __block BOOL capturedSuccess = NO;
                         
                             // Create a dispatch semaphore to wait for async execution to complete
                             dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
@@ -138,27 +141,27 @@ namespace iOS {
                                                     "    logOutput += args.join(' ') + '\\n';"
                                                     "};";
                         
-                            [webView evaluateJavaScript:logCaptureJS completionHandler:^(id _Nullable result, NSError * _Nullable error) {
+                            [webView evaluateJavaScript:logCaptureJS completionHandler:^(id _Nullable logResult, NSError* _Nullable logError) {
                                 // Now that console.log is set up, evaluate the actual script
                                 NSString* nsScript = [NSString stringWithUTF8String:preparedScript.c_str()];
-                                [webView evaluateJavaScript:nsScript completionHandler:^(id _Nullable result, NSError * _Nullable scriptError) {
+                                [webView evaluateJavaScript:nsScript completionHandler:^(id _Nullable scriptResult, NSError* _Nullable scriptError) {
                                     // Get console output
-                                    [webView evaluateJavaScript:@"logOutput" completionHandler:^(id _Nullable consoleOutput, NSError * _Nullable outputError) {
+                                    [webView evaluateJavaScript:@"logOutput" completionHandler:^(id _Nullable consoleOutput, NSError* _Nullable outputError) {
                                         // Handle results
-                                        blockSuccess = (result != nil && ![result isEqual:[NSNull null]]);
+                                        capturedSuccess = (scriptResult != nil && ![scriptResult isEqual:[NSNull null]]);
                                     
                                         if (consoleOutput && [consoleOutput isKindOfClass:[NSString class]]) {
-                                            blockOutput = [(NSString*)consoleOutput UTF8String];
+                                            capturedOutput = (NSString*)consoleOutput;
                                         }
                                     
                                         if (scriptError) {
-                                            blockError = [[scriptError localizedDescription] UTF8String];
-                                            blockSuccess = false;
+                                            capturedError = [scriptError localizedDescription];
+                                            capturedSuccess = NO;
                                         }
                                     
                                         // Process output
-                                        if (blockOutput.empty() && !blockSuccess) {
-                                            blockError = "Script execution failed with no output";
+                                        if ((capturedOutput.length == 0) && !capturedSuccess) {
+                                            capturedError = @"Script execution failed with no output";
                                         }
                                     
                                         // Signal completion
@@ -168,17 +171,32 @@ namespace iOS {
                             }];
                         
                             // Wait for the script execution to complete with timeout
+                            __block BOOL timedOut = NO;
                             uint64_t timeoutNs = executionContext.m_timeout * 1000000ULL;
                             dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, timeoutNs);
                             if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
-                                error = "Script execution timed out";
-                                success = false;
+                                capturedError = @"Script execution timed out";
+                                capturedSuccess = NO;
+                                timedOut = YES;
                             }
+                        
+                            // Copy results to output variables after all async operations
+                            if (capturedOutput) {
+                                output = [capturedOutput UTF8String];
+                            }
+                        
+                            if (capturedError) {
+                                error = [capturedError UTF8String];
+                            }
+                        
+                            success = capturedSuccess;
                         
                             // Remove web view
                             [webView removeFromSuperview];
                         } else {
-                            error = "Failed to find key window for execution";
+                            // Handle missing key window by setting the error and success locally
+                            std::string localError = "Failed to find key window for execution";
+                            error = localError;
                             success = false;
                         }
                         

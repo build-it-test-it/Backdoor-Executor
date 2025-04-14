@@ -44,12 +44,8 @@ namespace iOS {
         void LoadPosition();
         
     public:
-        // Public method to trigger the tap callback
-        void performTapAction() {
-            if (m_tapCallback) {
-                m_tapCallback();
-            }
-        }
+        // Public method to trigger the tap callback - declared here, defined in mm file
+        void performTapAction();
         
         /**
          * @brief Constructor

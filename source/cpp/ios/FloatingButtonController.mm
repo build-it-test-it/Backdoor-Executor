@@ -462,6 +462,13 @@ namespace iOS {
     }
     
     // Get opacity
+    // Implementation of performTapAction
+    void FloatingButtonController::performTapAction() {
+        if (m_tapCallback) {
+            m_tapCallback();
+        }
+    }
+    
     float FloatingButtonController::GetOpacity() const {
         return m_opacity;
     }

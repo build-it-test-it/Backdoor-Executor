@@ -1,12 +1,37 @@
 #pragma once
 
 #include <mach/mach.h>
+// mach_vm.h is not supported on iOS, use alternative headers
+#if !defined(IOS_TARGET) && !defined(__APPLE__)
 #include <mach/mach_vm.h>
+#endif
 #include <mach/vm_map.h>
 #include <mach-o/dyld.h>
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <sys/types.h>
+
+// Define iOS-compatible replacements for mach_vm functions
+#if defined(IOS_TARGET) || defined(__APPLE__)
+// Use vm_read/write instead of mach_vm functions on iOS
+inline kern_return_t ios_vm_read(vm_map_t target_task, vm_address_t address, vm_size_t size, vm_offset_t *data, mach_msg_type_number_t *dataCnt) {
+    return vm_read(target_task, address, size, data, dataCnt);
+}
+
+inline kern_return_t ios_vm_write(vm_map_t target_task, vm_address_t address, vm_offset_t data, mach_msg_type_number_t dataCnt) {
+    return vm_write(target_task, address, data, dataCnt);
+}
+
+inline kern_return_t ios_vm_protect(vm_map_t target_task, vm_address_t address, vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection) {
+    return vm_protect(target_task, address, size, set_maximum, new_protection);
+}
+
+// Define compatibility macros to replace mach_vm functions
+#define mach_vm_read ios_vm_read
+#define mach_vm_write ios_vm_write
+#define mach_vm_protect ios_vm_protect
+#endif
 
 namespace iOS {
     /**

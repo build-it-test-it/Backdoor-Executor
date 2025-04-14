@@ -6,7 +6,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
+// substrate.h is not available in standard iOS builds, conditionally include it
+#if !defined(IOS_TARGET) && !defined(__APPLE__)
 #include <substrate.h>
+#endif
 #include <Foundation/Foundation.h>
 #include <mach-o/dyld.h>
 #include <sys/sysctl.h>

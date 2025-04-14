@@ -55,9 +55,13 @@ namespace iOS {
         
         // Private methods
         static bool CreateDirectoryInternal(const std::string& path);
-        static bool EnsureDirectoryExists(const std::string& path);
+        // Methods moved to public
         static std::string SanitizePath(const std::string& path);
         static std::string GetFileName(const std::string& path);
+        
+    public:
+        // Made public to allow access from other classes
+        static bool EnsureDirectoryExists(const std::string& path);
         static std::string CombinePaths(const std::string& path1, const std::string& path2);
         
     public:

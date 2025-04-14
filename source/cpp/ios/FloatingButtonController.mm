@@ -179,7 +179,8 @@ namespace iOS {
         // Get the key window
         UIWindow* keyWindow = nil;
         if (@available(iOS 13.0, *)) {
-            NSArray<UIScene *> *scenes = [[UIApplication sharedApplication] connectedScenes];
+            NSSet<UIScene *> *connectedScenes = [[UIApplication sharedApplication] connectedScenes];
+            NSArray<UIScene *> *scenes = [connectedScenes allObjects];
             for (UIScene *scene in scenes) {
                 if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
                     UIWindowScene *windowScene = (UIWindowScene *)scene;
@@ -461,6 +462,13 @@ namespace iOS {
     }
     
     // Get opacity
+    // Implementation of performTapAction
+    void FloatingButtonController::performTapAction() {
+        if (m_tapCallback) {
+            m_tapCallback();
+        }
+    }
+    
     float FloatingButtonController::GetOpacity() const {
         return m_opacity;
     }
@@ -525,8 +533,9 @@ namespace iOS {
                                               }
                                               completion:^(BOOL finished) {
                                                   // Call the tap callback
-                                                  if (self.controller->m_tapCallback) {
-                                                      self.controller->m_tapCallback();
+                                                  // Access tap callback through a public method instead
+                                                  if (self.controller) {
+                                                      [self.controller performTapAction];
                                                   }
                                               }];
                          }];

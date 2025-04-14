@@ -5,8 +5,12 @@
 #include <sstream>
 #include <algorithm>
 #include <random>
+#include <iomanip>  // For std::setw and std::setfill
+
+// Objective-C frameworks need to be imported at the top level
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import <WebKit/WebKit.h>
 
 namespace iOS {
     // Constructor
@@ -84,10 +88,10 @@ namespace iOS {
             
             // Execute script based on available methods
             
-            // Set up execution result
-            std::string output;
-            bool success = false;
-            std::string error;
+            // Variables to build the execution result - using __block to allow modification in blocks
+            __block std::string resultOutput;
+            __block bool resultSuccess = false;
+            __block std::string resultError;
             
             // Non-jailbroken approach - use UIWebView JavaScript bridge
             // This works on non-jailbroken devices but has limitations
@@ -100,11 +104,11 @@ namespace iOS {
                     // Execute on main thread since UIKit requires it
                     dispatch_async(dispatch_get_main_queue(), ^{
                         // Create a hidden web view for JavaScript execution
-                        UIWebView* webView = [[UIWebView alloc] initWithFrame:CGRectZero];
+                        WKWebView* webView = [[WKWebView alloc] initWithFrame:CGRectZero];
                         webView.hidden = YES;
-                        
+                    
                         // Add to view hierarchy temporarily
-                        UIWindow* keyWindow = nil;
+                        __block UIWindow* keyWindow = nil;
                         if (@available(iOS 13.0, *)) {
                             for (UIWindowScene* scene in [[UIApplication sharedApplication] connectedScenes]) {
                                 if (scene.activationState == UISceneActivationStateForegroundActive) {
@@ -113,12 +117,23 @@ namespace iOS {
                                 }
                             }
                         } else {
+                            #pragma clang diagnostic push
+                            #pragma clang diagnostic ignored "-Wdeprecated-declarations"
                             keyWindow = [[UIApplication sharedApplication] keyWindow];
+                            #pragma clang diagnostic pop
                         }
-                        
+                    
                         if (keyWindow) {
                             [keyWindow addSubview:webView];
-                            
+                        
+                            // Declare local mutable variables to store results
+                            __block NSString* capturedOutput = nil;
+                            __block NSString* capturedError = nil;
+                            __block BOOL capturedSuccess = NO;
+                        
+                            // Create a dispatch semaphore to wait for async execution to complete
+                            dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+                        
                             // Set up console.log capture
                             NSString* logCaptureJS = @"var originalLog = console.log;"
                                                     "var logOutput = '';"
@@ -127,29 +142,63 @@ namespace iOS {
                                                     "    originalLog.apply(console, args);"
                                                     "    logOutput += args.join(' ') + '\\n';"
                                                     "};";
-                            [webView stringByEvaluatingJavaScriptFromString:logCaptureJS];
-                            
-                            // Execute the script
-                            NSString* nsScript = [NSString stringWithUTF8String:preparedScript.c_str()];
-                            NSString* result = [webView stringByEvaluatingJavaScriptFromString:nsScript];
-                            
-                            // Get console output
-                            NSString* consoleOutput = [webView stringByEvaluatingJavaScriptFromString:@"logOutput"];
-                            
-                            // Check result
-                            success = (result != nil && ![result isEqualToString:@"undefined"]);
-                            output = [consoleOutput UTF8String];
-                            
-                            // Process output
-                            if (output.empty() && !success) {
-                                error = "Script execution failed with no output";
+                        
+                            [webView evaluateJavaScript:logCaptureJS completionHandler:^(id _Nullable logResult, NSError* _Nullable logError) {
+                                // Now that console.log is set up, evaluate the actual script
+                                NSString* nsScript = [NSString stringWithUTF8String:preparedScript.c_str()];
+                                [webView evaluateJavaScript:nsScript completionHandler:^(id _Nullable scriptResult, NSError* _Nullable scriptError) {
+                                    // Get console output
+                                    [webView evaluateJavaScript:@"logOutput" completionHandler:^(id _Nullable consoleOutput, NSError* _Nullable outputError) {
+                                        // Handle results
+                                        capturedSuccess = (scriptResult != nil && ![scriptResult isEqual:[NSNull null]]);
+                                    
+                                        if (consoleOutput && [consoleOutput isKindOfClass:[NSString class]]) {
+                                            capturedOutput = (NSString*)consoleOutput;
+                                        }
+                                    
+                                        if (scriptError) {
+                                            capturedError = [scriptError localizedDescription];
+                                            capturedSuccess = NO;
+                                        }
+                                    
+                                        // Process output
+                                        if ((capturedOutput.length == 0) && !capturedSuccess) {
+                                            capturedError = @"Script execution failed with no output";
+                                        }
+                                    
+                                        // Signal completion
+                                        dispatch_semaphore_signal(semaphore);
+                                    }];
+                                }];
+                            }];
+                        
+                            // Wait for the script execution to complete with timeout
+                            __block BOOL timedOut = NO;
+                            uint64_t timeoutNs = executionContext.m_timeout * 1000000ULL;
+                            dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, timeoutNs);
+                            if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+                                capturedError = @"Script execution timed out";
+                                capturedSuccess = NO;
+                                timedOut = YES;
+                            }
+                        
+                            // Capture results from the block
+                            if (capturedOutput) {
+                                resultOutput = [capturedOutput UTF8String];
                             }
                             
+                            if (capturedError) {
+                                resultError = [capturedError UTF8String];
+                            }
+                            
+                            resultSuccess = capturedSuccess;
+                        
                             // Remove web view
                             [webView removeFromSuperview];
                         } else {
-                            error = "Failed to find key window for execution";
-                            success = false;
+                            // Handle missing key window
+                            resultError = "Failed to find key window for execution";
+                            resultSuccess = false;
                         }
                         
                         dispatch_group_leave(group);
@@ -160,8 +209,8 @@ namespace iOS {
                     dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, timeoutNs);
                     
                     if (dispatch_group_wait(group, timeout) != 0) {
-                        error = "Script execution timed out";
-                        success = false;
+                        resultError = "Script execution timed out";
+                        resultSuccess = false;
                     }
                 }
             } else {
@@ -169,15 +218,15 @@ namespace iOS {
                 // In a real implementation, we'd use Cycript/Frida/etc.
                 
                 // Simulate successful execution for demonstration purposes
-                success = true;
-                output = "Script executed successfully in jailbroken mode";
+                resultSuccess = true;
+                resultOutput = "Script executed successfully in jailbroken mode";
                 
                 // TODO: Implement actual jailbroken execution
             }
             
             // Process output
-            if (m_outputCallback && !output.empty()) {
-                m_outputCallback(output);
+            if (m_outputCallback && !resultOutput.empty()) {
+                m_outputCallback(resultOutput);
             }
             
             // Calculate execution time
@@ -185,7 +234,7 @@ namespace iOS {
             uint64_t executionTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
             
             // Create result
-            ExecutionResult result(success, error, executionTime, output);
+            ExecutionResult result(resultSuccess, resultError, executionTime, resultOutput);
             
             // Call after-execute callbacks
             for (const auto& callback : m_afterCallbacks) {
@@ -199,7 +248,7 @@ namespace iOS {
             m_isExecuting = false;
             
             // Handle auto-retry if enabled and execution failed
-            if (!success && executionContext.m_autoRetry && m_retryCount < executionContext.m_maxRetries) {
+            if (!resultSuccess && executionContext.m_autoRetry && m_retryCount < executionContext.m_maxRetries) {
                 m_retryCount++;
                 std::cout << "ExecutionEngine: Auto-retrying script execution (attempt " << m_retryCount 
                           << " of " << executionContext.m_maxRetries << ")" << std::endl;
@@ -448,9 +497,9 @@ namespace iOS {
         
         // Write to log file if FileSystem is available
         if (!FileSystem::GetLogPath().empty()) {
-            std::string logPath = FileSystem::CombinePaths(
-                FileSystem::GetLogPath(),
-                "execution_" + std::to_string(time(nullptr)) + ".log");
+            // Use direct path construction instead of private CombinePaths method
+            std::string logPath = FileSystem::GetLogPath() + 
+                                  "/execution_" + std::to_string(time(nullptr)) + ".log";
             
             FileSystem::WriteFile(logPath, logEntry.str());
         }

@@ -91,10 +91,20 @@ namespace iOS {
         mach_port_t objectName = MACH_PORT_NULL;
         
         while (true) {
-            kern_return_t kr = mach_vm_region(m_targetTask, &address, &size, 
-                                            VM_REGION_BASIC_INFO_64, 
-                                            (vm_region_info_t)&info, 
-                                            &infoCount, &objectName);
+            #if defined(IOS_TARGET) || defined(__APPLE__)
+            // On iOS we use vm_region_64 instead of mach_vm_region
+            kr = vm_region_64(m_targetTask, &address, &size, 
+                          VM_REGION_BASIC_INFO_64,
+                          (vm_region_info_t)&info, 
+                          &infoCount, 
+                          &objectName);
+            #else
+            kr = mach_vm_region(m_targetTask, &address, &size, 
+                           VM_REGION_BASIC_INFO_64,
+                           (vm_region_info_t)&info, 
+                           &infoCount, 
+                           &objectName);
+            #endif
             
             if (kr != KERN_SUCCESS) {
                 if (kr != KERN_INVALID_ADDRESS) {
@@ -228,13 +238,23 @@ namespace iOS {
             }
             
             // Scan this region
+            #if defined(IOS_TARGET) || defined(__APPLE__)
+            // On iOS, the field is called 'size' not 'virtual_size'
+            mach_vm_address_t result = FindPattern(address, region.size, pattern, mask);
+            #else
             mach_vm_address_t result = FindPattern(address, region.virtual_size, pattern, mask);
+            #endif
             if (result != 0) {
                 return result;
             }
             
             // Move to next region
+            #if defined(IOS_TARGET) || defined(__APPLE__)
+            // On iOS, the field is called 'size' not 'virtual_size'
+            address += region.size;
+            #else
             address += region.virtual_size;
+            #endif
         }
         
         return 0;

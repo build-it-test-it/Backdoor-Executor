@@ -1,6 +1,10 @@
 #pragma once
 
+// Only include JNI for Android builds, not iOS
+#if !defined(IOS_TARGET) && !defined(__APPLE__)
 #include <jni.h>
+#endif
+
 #include <unistd.h>
 #include <cstdio>
 #include <cstring>
@@ -73,6 +77,14 @@ static bool isLibraryLoaded(const char *libraryName) {
 }
 
 
+// Conditionally compile JNI-dependent functions
+#if !defined(IOS_TARGET) && !defined(__APPLE__)
 static jboolean isGameLibLoaded(JNIEnv *env, jobject thiz) {
     return isLibraryLoaded(("libroblox.so"));
 }
+#else
+// iOS version doesn't need JNI
+static bool isGameLibLoaded() {
+    return isLibraryLoaded(("libroblox.dylib"));
+}
+#endif

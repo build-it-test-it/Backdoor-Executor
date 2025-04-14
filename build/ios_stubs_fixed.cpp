@@ -76,6 +76,19 @@ namespace iOS {
                 EXPORT std::string AnalyzeScript(const std::string& script) { return ""; }
                 EXPORT std::string GenerateResponse(const std::string& input, const std::string& context) { return ""; }
             };
+            
+            // Explicit implementations with mangled names
+            extern "C" {
+                __attribute__((visibility("default"), used))
+                void* _ZN3iOS10AIFeatures11LocalModels19ScriptGenerationModel12AnalyzeScriptERKNSt3__112basic_stringIcNS3_11char_traitsIcEENS3_9allocatorIcEEEE() {
+                    return nullptr; // AnalyzeScript
+                }
+                
+                __attribute__((visibility("default"), used))
+                void* _ZN3iOS10AIFeatures11LocalModels19ScriptGenerationModel16GenerateResponseERKNSt3__112basic_stringIcNS3_11char_traitsIcEENS3_9allocatorIcEEEES9_() {
+                    return nullptr; // GenerateResponse
+                }
+            }
         }
         
         namespace SignatureAdaptation {
@@ -95,6 +108,35 @@ namespace iOS {
                 EXPORT static void PruneDetectionHistory() {}
                 EXPORT static void ReleaseUnusedResources() {}
             };
+            
+            // Explicit implementations of the methods with full namespace qualifications
+            // This ensures the exact symbol names the linker is looking for
+            extern "C" {
+                __attribute__((visibility("default"), used))
+                void* _ZN3iOS10AIFeatures19SignatureAdaptationC1Ev() { 
+                    return nullptr; // Constructor
+                }
+                
+                __attribute__((visibility("default"), used))
+                void* _ZN3iOS10AIFeatures19SignatureAdaptationD1Ev() { 
+                    return nullptr; // Destructor
+                }
+                
+                __attribute__((visibility("default"), used))
+                void* _ZN3iOS10AIFeatures19SignatureAdaptation10InitializeEv() { 
+                    return nullptr; // Initialize
+                }
+                
+                __attribute__((visibility("default"), used))
+                void* _ZN3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_13DetectionEventE() {
+                    return nullptr; // ReportDetection
+                }
+                
+                __attribute__((visibility("default"), used))
+                void* _ZN3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
+                    return nullptr; // PruneDetectionHistory
+                }
+            }
         }
     }
     

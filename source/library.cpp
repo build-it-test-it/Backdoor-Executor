@@ -1,7 +1,8 @@
-#include "cpp/luau/lua.hpp"  // Lua core (using local Luau compatibility header)
-#include "cpp/luau/lualib.h" // Lua standard libraries
-#include "cpp/luau/lauxlib.h" // Lua auxiliary library
-#include "lfs.h"    // LuaFileSystem for file handling
+#include "cpp/luau/lua.hpp"     // Lua core (using local Luau compatibility header)
+#include "cpp/luau/lualib.h"    // Lua standard libraries
+#include "cpp/luau/lauxlib.h"   // Lua auxiliary library
+#include "cpp/luau/lua_register.h"  // Compatibility for lua_register
+#include "lfs.h"                // LuaFileSystem for file handling
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -247,6 +248,23 @@ void executeMainLuau(lua_State* L, const std::string& playerName) {
     }
 }
 
+// Player added handler function (separated from lambda for clarity)
+static int playerAddedHandler(lua_State* L) {
+    // Get the new player
+    lua_getglobal(L, "game");
+    lua_getfield(L, -1, "Players");
+    lua_getfield(L, -1, "LocalPlayer"); // Get LocalPlayer
+
+    lua_getfield(L, -1, "Name"); // Get the player's name
+    const char* playerName = lua_tostring(L, -1);
+    
+    // Execute main Luau script for the new player
+    executeMainLuau(L, playerName);
+
+    lua_pop(L, 4); // Clean up the stack (game, Players, LocalPlayer, Name)
+    return 0; // Number of return values
+}
+
 // Hook for Roblox's PlayerAdded event
 void hookPlayerAddedEvent(lua_State* L) {
     lua_getglobal(L, "game");
@@ -254,21 +272,8 @@ void hookPlayerAddedEvent(lua_State* L) {
 
     // Get the PlayerAdded event
     lua_getfield(L, -1, "PlayerAdded");
-    lua_pushcfunction(L, [](lua_State* L) -> int {
-        // Get the new player
-        lua_getglobal(L, "game");
-        lua_getfield(L, -1, "Players");
-        lua_getfield(L, -1, "LocalPlayer"); // Get LocalPlayer
-
-        lua_getfield(L, -1, "Name"); // Get the player's name
-        const char* playerName = lua_tostring(L, -1);
-        
-        // Execute main Luau script for the new player
-        executeMainLuau(L, playerName);
-
-        lua_pop(L, 4); // Clean up the stack (game, Players, LocalPlayer, Name)
-        return 0; // Number of return values
-    });
+    // Push the function with a debug name for Luau
+    lua_pushcfunction(L, playerAddedHandler, "playerAddedHandler");
 
     // Connect the PlayerAdded event to the function
     lua_call(L, 1, 0); // Connect event
@@ -277,15 +282,27 @@ void hookPlayerAddedEvent(lua_State* L) {
 
 // Register executor-specific functions
 void registerExecutorFunctions(lua_State* L) {
-    // File operations
-    lua_register(L, "isfile", isfile);
-    lua_register(L, "writefile", writefile);
-    lua_register(L, "append_file", append_file);
-    lua_register(L, "readfile", readfile);
+    // Create a luaL_Reg table of functions for proper registration
+    const luaL_Reg execFuncs[] = {
+        // File operations
+        {"isfile", isfile},
+        {"writefile", writefile},
+        {"append_file", append_file},
+        {"readfile", readfile},
+        
+        // AI-powered features
+        {"generateScript", generateScript},
+        {"scanVulnerabilities", scanVulnerabilities},
+        
+        // End of table marker
+        {NULL, NULL}
+    };
     
-    // AI-powered features
-    lua_register(L, "generateScript", generateScript);
-    lua_register(L, "scanVulnerabilities", scanVulnerabilities);
+    // Register each function as a global
+    for (const luaL_Reg* func = execFuncs; func->name != NULL; func++) {
+        lua_pushcfunction(L, func->func, func->name);
+        lua_setglobal(L, func->name);
+    }
 }
 
 // Main function to initialize Lua and set up event listener

@@ -22,9 +22,9 @@ namespace iOS {
     std::unordered_set<std::string> JailbreakBypass::m_jailbreakProcesses;
     std::unordered_map<std::string, std::string> JailbreakBypass::m_fileRedirects;
     
-    // Original function pointers - conditionally defined based on platform
+    // Original function pointers and their stub implementations
     #if !defined(IOS_TARGET) && !defined(__APPLE__)
-    // These are only used on non-iOS platforms
+    // These function pointers are only populated on non-iOS platforms
     static int (*original_stat)(const char* path, struct stat* buf);
     static int (*original_access)(const char* path, int mode);
     static FILE* (*original_fopen)(const char* path, const char* mode);
@@ -33,9 +33,43 @@ namespace iOS {
     static int (*original_fork)(void);
     static int (*original_execve)(const char* path, char* const argv[], char* const envp[]);
     #else
-    // For iOS, we'll use alternative approaches (method swizzling instead of function hooks)
-    // These are defined but not actually used with real function pointers
-    static int dummy_hook(void) { return 0; }
+    // On iOS, we create stub functions instead of function pointers
+    // We'll redefine the "original_*" names to be actual functions
+    // This avoids undefined identifiers in the other methods
+    static int original_stat(const char* path, struct stat* buf) { 
+        return stat(path, buf); // Direct call, no hook on iOS
+    }
+    
+    static int original_access(const char* path, int mode) {
+        return access(path, mode); // Direct call, no hook on iOS
+    }
+    
+    static FILE* original_fopen(const char* path, const char* mode) {
+        return fopen(path, mode); // Direct call, no hook on iOS
+    }
+    
+    static char* original_getenv(const char* name) {
+        return getenv(name); // Direct call, no hook on iOS
+    }
+    
+    static int original_system(const char* command) {
+        // system() is not available on iOS, so just log and return success
+        std::cout << "iOS: system() call would execute: " << (command ? command : "null") << std::endl;
+        return 0; // Pretend it succeeded
+    }
+    
+    static int original_fork(void) {
+        // fork() usually won't work on iOS, so return error
+        errno = EPERM;
+        return -1;
+    }
+    
+    static int original_execve(const char* path, char* const argv[], char* const envp[]) {
+        // execve() often won't work on iOS apps, so log and return error
+        std::cout << "iOS: execve() call would execute: " << (path ? path : "null") << std::endl;
+        errno = EPERM;
+        return -1;
+    }
     #endif
     
     void JailbreakBypass::InitializeTables() {

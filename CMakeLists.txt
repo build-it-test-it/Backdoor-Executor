@@ -16,9 +16,13 @@ enable_language(OBJCXX)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum iOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for iOS")
 
-# Set iOS TARGET definition for proper conditional compilation
+# Set iOS TARGET definition and other platform-specific defines
 if(APPLE)
     add_definitions(-DIOS_TARGET)
+    add_definitions(-DTARGET_OS_IPHONE=1)
+    add_definitions(-DTARGET_OS_MAC=1)
+    # This ensures vm_region_64 is properly recognized
+    add_definitions(-D_DARWIN_C_SOURCE)
 endif()
 
 # Find Lua - try multiple approaches

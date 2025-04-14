@@ -1,125 +1,97 @@
-cmake_minimum_required(VERSION 3.13)  # Updated for better iOS support
+# For more information about using CMake with Android Studio, read the
+# documentation: https://d.android.com/studio/projects/add-native-code.html
 
-# Project name
-project(RobloxExecutor VERSION 1.0.0 LANGUAGES CXX C)
+# Sets the minimum version of CMake required to build the native library.
 
-# Specify the required C++ standard (C++17 for better iOS compatibility)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+cmake_minimum_required(VERSION 3.18.1)
 
-# Enable ObjectiveC and ObjectiveC++ support
-enable_language(OBJC)
-enable_language(OBJCXX)
+# Declares and names the project.
 
-# Set iOS target platform and architecture
-set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum iOS deployment version")
-set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for iOS")
+project("mobileblox" CXX)
 
-# Find Lua
-find_package(Lua REQUIRED)
+# Creates and names a library, sets it as either STATIC
+# or SHARED, and provides the relative paths to its source code.
+# You can define multiple libraries, and CMake builds them for you.
+# Gradle automatically packages shared libraries with your APK.
 
-# Find CoreML if available
-find_library(COREML_LIBRARY CoreML)
-find_library(FOUNDATION_LIBRARY Foundation)
-find_library(UIKIT_LIBRARY UIKit)
-find_library(WEBKIT_LIBRARY WebKit)
+add_library( # Sets the name of the library.
+        mobileblox
 
-# Specify the output directory for the library
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
+        # Sets the library as a shared library.
+        SHARED
 
-# Collect all source files
-file(GLOB_RECURSE LUA_SOURCES source/lfs.c)
+        # Provides a relative path to your source file(s).
+        native-lib.cpp
+        luau/lapi.cpp
+        luau/laux.cpp
+        luau/lbaselib.cpp
+        luau/lbitlib.cpp
+        luau/lbuiltins.cpp
+        luau/lcorolib.cpp
+        luau/ldblib.cpp
+        luau/ldebug.cpp
+        luau/ldo.cpp
+        luau/lfunc.cpp
+        luau/lgc.cpp
+        luau/lgcdebug.cpp
+        luau/linit.cpp
+        luau/lmathlib.cpp
+        luau/lmem.cpp
+        luau/lnumprint.cpp
+        luau/lobject.cpp
+        luau/loslib.cpp
+        luau/lperf.cpp
+        luau/lstate.cpp
+        luau/lstring.cpp
+        luau/lstrlib.cpp
+        luau/ltable.cpp
+        luau/ltablib.cpp
+        luau/ltm.cpp
+        luau/ludata.cpp
+        luau/lutf8lib.cpp
+        luau/lvmexecute.cpp
+        luau/lvmload.cpp
+        luau/lvmutils.cpp
+        luau/Ast.cpp
+        luau/BuiltinFolding.cpp
+        luau/Builtins.cpp
+        luau/BytecodeBuilder.cpp
+        luau/Compiler.cpp
+        luau/Confusables.cpp
+        luau/ConstantFolding.cpp
+        luau/CostModel.cpp
+        luau/lcode.cpp
+        luau/Lexer.cpp
+        luau/Location.cpp
+        luau/Parser.cpp
+        luau/StringUtils.cpp
+        luau/TableShape.cpp
+        luau/TimeTrace.cpp
+        luau/ValueTracking.cpp)
 
-file(GLOB_RECURSE CPP_SOURCES 
-    source/library.cpp
-    source/cpp/*.cpp
-)
+# Searches for a specified prebuilt library and stores the path as a
+# variable. Because CMake includes system libraries in the search path by
+# default, you only need to specify the name of the public NDK library
+# you want to add. CMake verifies that the library exists before
+# completing its build.
 
-file(GLOB_RECURSE MM_SOURCES 
-    source/cpp/ios/*.mm
-    source/cpp/ios/ui/*.mm
-    source/cpp/ios/advanced_bypass/*.mm
-    source/cpp/ios/ai_features/*.mm
-)
+find_library( # Sets the name of the path variable.
+        log-lib
 
-# Combine all sources
-set(SOURCES
-    ${LUA_SOURCES}
-    ${CPP_SOURCES}
-    ${MM_SOURCES}
-)
+        # Specifies the name of the NDK library that
+        # you want CMake to locate.
+        log)
+find_package(Dobby REQUIRED CONFIG)
 
-# Define the library
-add_library(roblox_executor SHARED ${SOURCES})
+include_directories(prefab/modules/dobby/include)
 
-# Set the output name to match what the workflow expects
-set_target_properties(roblox_executor PROPERTIES
-    OUTPUT_NAME "mylibrary"
-    SUFFIX ".dylib"
-)
+# Specifies libraries CMake should link to your target library. You
+# can link multiple libraries, such as libraries you define in this
+# build script, prebuilt third-party libraries, or system libraries.
+target_link_libraries( # Specifies the target library.
+        mobileblox
+        dobby::dobby
 
-# Set compile definitions
-target_compile_definitions(roblox_executor PRIVATE
-    BUILDING_DYLIB=1
-    EXECUTOR_VERSION="1.0.0"
-    IOS_TARGET=1
-    _DARWIN_C_SOURCE=1
-)
-
-# Include directories
-target_include_directories(roblox_executor PRIVATE 
-    ${LUA_INCLUDE_DIR} 
-    source
-    source/cpp
-    source/cpp/ios
-)
-
-# Link against required libraries
-target_link_libraries(roblox_executor PRIVATE
-    ${LUA_LIBRARIES}
-    "-framework Foundation"
-    "-framework UIKit"
-    "-framework WebKit"
-    "-framework CoreGraphics"
-)
-
-# Add CoreML if available
-if(COREML_LIBRARY)
-    target_link_libraries(roblox_executor PRIVATE "-framework CoreML")
-    target_compile_definitions(roblox_executor PRIVATE HAS_CORE_ML=1)
-else()
-    target_compile_definitions(roblox_executor PRIVATE HAS_CORE_ML=0)
-endif()
-
-# Copy required resources
-add_custom_command(TARGET roblox_executor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:roblox_executor>/Resources/Models"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/Resources/Models"
-        "$<TARGET_FILE_DIR:roblox_executor>/Resources/Models"
-    COMMENT "Copying AI models and resources to output directory"
-)
-
-# Install the dylib
-install(TARGETS roblox_executor
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
-)
-
-# Add additional iOS framework dependencies
-target_link_libraries(roblox_executor PRIVATE
-    "-framework CoreFoundation"
-    "-framework JavaScriptCore"
-    "-framework Security"
-)
-
-# Set build options for iOS
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    # Optimization flags for release builds
-    target_compile_options(roblox_executor PRIVATE
-        -Os
-        -fvisibility=hidden
-        -fvisibility-inlines-hidden
-    )
-endif()
+        # Links the target library to the log library
+        # included in the NDK.
+        ${log-lib})

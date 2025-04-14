@@ -5,18 +5,27 @@
 
 // Forward declarations for iOS namespaces
 namespace iOS {
-    // Forward declarations
+    // VulnerabilityDetection namespace with full definitions first
+    namespace AIFeatures {
+        namespace VulnerabilityDetection {
+            class VulnerabilityDetector {
+            public:
+                struct Vulnerability {
+                    std::string name;
+                };
+                
+                VulnerabilityDetector() {}
+                ~VulnerabilityDetector() {}
+            };
+        }
+        
+        class ScriptAssistant;
+    }
+    
+    // Forward declarations for UI
     namespace UI {
         class MainViewController;
         class VulnerabilityViewController;
-    }
-    
-    namespace AIFeatures {
-        class ScriptAssistant;
-        
-        namespace VulnerabilityDetection {
-            class VulnerabilityDetector;
-        }
     }
     
     // UI namespace implementations
@@ -121,19 +130,6 @@ namespace iOS {
             ScriptAssistant() {}
             ~ScriptAssistant() {}
         };
-        
-        // VulnerabilityDetection namespace
-        namespace VulnerabilityDetection {
-            class VulnerabilityDetector {
-            public:
-                struct Vulnerability {
-                    std::string name;
-                };
-                
-                VulnerabilityDetector() {}
-                ~VulnerabilityDetector() {}
-            };
-        }
         
         // AIIntegration classes
         class AIIntegration {

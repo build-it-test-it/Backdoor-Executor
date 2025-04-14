@@ -94,6 +94,8 @@ namespace iOS {
         namespace SignatureAdaptation {
             EXPORT void* dummy_sigadapt_symbol = (void*)0xdeadbeef;
             
+            // Define this struct both inside and outside the SignatureAdaptation class
+            // to ensure all possible mangling variations are covered
             struct DetectionEvent {
                 std::string name;
                 std::vector<unsigned char> bytes;
@@ -127,14 +129,36 @@ namespace iOS {
                     return nullptr; // Initialize
                 }
                 
+                // Multiple variants of ReportDetection with different manglings
                 __attribute__((visibility("default"), used))
                 void* _ZN3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_13DetectionEventE() {
                     return nullptr; // ReportDetection
                 }
                 
                 __attribute__((visibility("default"), used))
+                void _ZN3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_19SignatureAdaptation13DetectionEventE() {
+                    // ReportDetection with full namespace qualification for DetectionEvent
+                }
+                
+                __attribute__((visibility("default"), used))
+                void _ZNK3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_13DetectionEventE() {
+                    // ReportDetection (const method variant)
+                }
+                
+                // Multiple variants of PruneDetectionHistory
+                __attribute__((visibility("default"), used))
                 void* _ZN3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
                     return nullptr; // PruneDetectionHistory
+                }
+                
+                __attribute__((visibility("default"), used))
+                void _ZN3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
+                    // PruneDetectionHistory with void return type
+                }
+                
+                __attribute__((visibility("default"), used))
+                void _ZNK3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
+                    // PruneDetectionHistory (const method variant)
                 }
             }
         }

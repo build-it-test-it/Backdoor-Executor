@@ -125,6 +125,7 @@ namespace AIFeatures {
         bool IsScriptExecutionRequest(const std::string& query);
         std::string ExtractScriptFromQuery(const std::string& query);
         void TrimConversationHistory();
+        void AddDefaultScriptTemplates();
         
     public:
         /**

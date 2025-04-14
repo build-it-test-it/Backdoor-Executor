@@ -171,10 +171,12 @@ void LocalModelBase::PredictAsync(const std::string& input, PredictionCallback c
     std::string inputCopy = input;
     
     // Predict in background thread
-    std::thread([this, inputCopy, callback]() {
-        std::string result = Predict(inputCopy);
-        callback(result);
-    }).detach();
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        std::string result = this->Predict(inputCopy);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            callback(result);
+        });
+    });
 }
 
 // Get model name

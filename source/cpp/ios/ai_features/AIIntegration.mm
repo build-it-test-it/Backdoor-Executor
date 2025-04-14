@@ -1,12 +1,16 @@
 #include "AIIntegration.h"
 #include "ScriptAssistant.h"
 #include "SignatureAdaptation.h"
+#include "local_models/ScriptGenerationModel.h" 
+#include "vulnerability_detection/VulnerabilityDetector.h"
+#include "HybridAISystem.h"
+#include "OfflineAISystem.h"
 #include "../FileSystem.h"
 #include "../ui/MainViewController.h"
+#include "../ui/VulnerabilityViewController.h"
 #include <iostream>
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
-#import <CoreML/CoreML.h>
 
 namespace iOS {
 namespace AIFeatures {
@@ -24,6 +28,11 @@ private:
     std::shared_ptr<ScriptAssistant> m_scriptAssistant;
     std::shared_ptr<SignatureAdaptation> m_signatureAdaptation;
     std::shared_ptr<UI::MainViewController> m_mainViewController;
+    std::shared_ptr<UI::VulnerabilityViewController> m_vulnerabilityViewController;
+    std::shared_ptr<LocalModels::ScriptGenerationModel> m_scriptGenerationModel;
+    std::shared_ptr<VulnerabilityDetection::VulnerabilityDetector> m_vulnerabilityDetector;
+    std::shared_ptr<HybridAISystem> m_hybridAI;
+    std::shared_ptr<OfflineAISystem> m_offlineAI;
     bool m_aiInitialized;
     bool m_modelsLoaded;
     bool m_isInLowMemoryMode;
@@ -42,6 +51,17 @@ private:
         NSBundle* mainBundle = [NSBundle mainBundle];
         m_modelsPath = [[mainBundle resourcePath] UTF8String];
         m_modelsPath += "/Models";
+        
+        // Ensure models directory exists (it will be empty, models are trained locally)
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSString* modelsPath = [NSString stringWithUTF8String:m_modelsPath.c_str()];
+        
+        if (![fileManager fileExistsAtPath:modelsPath]) {
+            [fileManager createDirectoryAtPath:modelsPath 
+                  withIntermediateDirectories:YES 
+                                   attributes:nil 
+                                        error:nil];
+        }
         
         // Register for memory warnings
         [[NSNotificationCenter defaultCenter] addObserver:[AIMemoryObserver sharedObserver]
@@ -88,6 +108,66 @@ public:
             
             if (progressCallback) progressCallback(0.1f);
             
+            // Create directory for locally trained models
+            std::string localModelsPath = FileSystem::GetSafePath("AIData/LocalModels");
+            if (!FileSystem::Exists(localModelsPath)) {
+                FileSystem::CreateDirectory(localModelsPath);
+            }
+            
+            // Create directory for vulnerability detection
+            std::string vulnerabilitiesPath = FileSystem::GetSafePath("AIData/Vulnerabilities");
+            if (!FileSystem::Exists(vulnerabilitiesPath)) {
+                FileSystem::CreateDirectory(vulnerabilitiesPath);
+            }
+            
+            if (progressCallback) progressCallback(0.2f);
+            
+            // Initialize local script generation model
+            m_scriptGenerationModel = std::make_shared<LocalModels::ScriptGenerationModel>();
+            bool scriptGenInitialized = m_scriptGenerationModel->Initialize(localModelsPath + "/script_generator");
+            
+            if (!scriptGenInitialized) {
+                std::cerr << "AIIntegration: Warning - Failed to initialize script generation model" << std::endl;
+                // Continue anyway, as we can recover later
+            }
+            
+            if (progressCallback) progressCallback(0.3f);
+            
+            // Initialize vulnerability detector
+            m_vulnerabilityDetector = std::make_shared<VulnerabilityDetection::VulnerabilityDetector>();
+            bool vulnerabilityInitialized = m_vulnerabilityDetector->Initialize(vulnerabilitiesPath);
+            
+            if (!vulnerabilityInitialized) {
+                std::cerr << "AIIntegration: Warning - Failed to initialize vulnerability detector" << std::endl;
+                // Continue anyway, as we can recover later
+            }
+            
+            if (progressCallback) progressCallback(0.4f);
+            
+            // Initialize hybrid AI system (works both online and offline)
+            m_hybridAI = std::make_shared<HybridAISystem>();
+            bool hybridInitialized = m_hybridAI->Initialize(
+                localModelsPath,  // Local model path
+                "",               // No API endpoint (fully local)
+                ""                // No API key (fully local)
+            );
+            
+            if (!hybridInitialized) {
+                std::cerr << "AIIntegration: Warning - Failed to initialize hybrid AI" << std::endl;
+            }
+            
+            if (progressCallback) progressCallback(0.5f);
+            
+            // Initialize offline AI system (works completely offline)
+            m_offlineAI = std::make_shared<OfflineAISystem>();
+            bool offlineInitialized = m_offlineAI->Initialize(localModelsPath);
+            
+            if (!offlineInitialized) {
+                std::cerr << "AIIntegration: Warning - Failed to initialize offline AI" << std::endl;
+            }
+            
+            if (progressCallback) progressCallback(0.6f);
+            
             // Initialize script assistant
             m_scriptAssistant = std::make_shared<ScriptAssistant>();
             bool assistantInitialized = m_scriptAssistant->Initialize();
@@ -97,7 +177,7 @@ public:
                 // Continue anyway, we'll try to recover or use fallbacks
             }
             
-            if (progressCallback) progressCallback(0.4f);
+            if (progressCallback) progressCallback(0.7f);
             
             // Initialize signature adaptation
             m_signatureAdaptation = std::make_shared<SignatureAdaptation>();
@@ -108,17 +188,22 @@ public:
                 // Continue anyway, we'll try to recover or use fallbacks
             }
             
-            if (progressCallback) progressCallback(0.7f);
+            if (progressCallback) progressCallback(0.8f);
             
-            // Load models in background
-            LoadModelsInBackground();
+            // Initialize vulnerability view controller
+            m_vulnerabilityViewController = std::make_shared<UI::VulnerabilityViewController>();
+            bool vulnerabilityVCInitialized = m_vulnerabilityViewController->Initialize();
+            
+            if (vulnerabilityVCInitialized) {
+                m_vulnerabilityViewController->SetVulnerabilityDetector(m_vulnerabilityDetector);
+            } else {
+                std::cerr << "AIIntegration: Failed to initialize vulnerability view controller" << std::endl;
+            }
             
             if (progressCallback) progressCallback(0.9f);
             
-            // Set up AI data collection (if user has opted in)
-            SetupAIDataCollection();
-            
             m_aiInitialized = true;
+            m_modelsLoaded = true; // Models are now generated locally, not loaded
             std::cout << "AIIntegration: Successfully initialized" << std::endl;
             
             if (progressCallback) progressCallback(1.0f);
@@ -128,129 +213,6 @@ public:
             std::cerr << "AIIntegration: Exception during initialization: " << e.what() << std::endl;
             if (progressCallback) progressCallback(1.0f);
             return false;
-        }
-    }
-    
-    /**
-     * @brief Load AI models in background
-     */
-    void LoadModelsInBackground() {
-        if (m_modelsLoaded) {
-            return;
-        }
-        
-        dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
-            @autoreleasepool {
-                NSLog(@"AIIntegration: Loading models in background");
-                
-                // Check if models exist
-                NSFileManager* fileManager = [NSFileManager defaultManager];
-                NSString* modelsPath = [NSString stringWithUTF8String:m_modelsPath.c_str()];
-                
-                if (![fileManager fileExistsAtPath:modelsPath]) {
-                    NSLog(@"AIIntegration: Models directory not found: %@", modelsPath);
-                    return;
-                }
-                
-                // Check available disk space
-                NSDictionary* attributes = [fileManager attributesOfFileSystemForPath:NSHomeDirectory() error:nil];
-                if (attributes) {
-                    NSNumber* freeSpace = [attributes objectForKey:NSFileSystemFreeSize];
-                    long long freeSpaceBytes = [freeSpace longLongValue];
-                    
-                    // Require at least 200MB free space for models
-                    if (freeSpaceBytes < 200 * 1024 * 1024) {
-                        NSLog(@"AIIntegration: Insufficient disk space for models: %lld bytes", freeSpaceBytes);
-                        return;
-                    }
-                }
-                
-                // Load models in order of importance
-                LoadModelWithName("script_assistant", 1); // High priority
-                LoadModelWithName("pattern_recognition", 1); // High priority
-                
-                // Check memory before loading larger models
-                UIDevice* device = [UIDevice currentDevice];
-                if (@available(iOS 15.0, *)) {
-                    // On iOS 15+, check system memory
-                    if (device.systemFreeSize > 500 * 1024 * 1024) { // 500MB free
-                        LoadModelWithName("script_generator", 2); // Medium priority
-                        LoadModelWithName("behavior_prediction", 2); // Medium priority
-                    }
-                    
-                    if (device.systemFreeSize > 1000 * 1024 * 1024) { // 1GB free
-                        LoadModelWithName("code_evolution", 3); // Low priority
-                    }
-                } else {
-                    // On older iOS, use simpler approach - load all models
-                    LoadModelWithName("script_generator", 2);
-                    LoadModelWithName("behavior_prediction", 2);
-                    LoadModelWithName("code_evolution", 3);
-                }
-                
-                m_modelsLoaded = true;
-                NSLog(@"AIIntegration: Finished loading models");
-            }
-        });
-    }
-    
-    /**
-     * @brief Load a specific model
-     * @param name Model name
-     * @param priority Loading priority (1=high, 3=low)
-     */
-    void LoadModelWithName(const char* name, int priority) {
-        @autoreleasepool {
-            NSString* modelName = [NSString stringWithUTF8String:name];
-            NSString* modelsPath = [NSString stringWithUTF8String:m_modelsPath.c_str()];
-            NSString* modelPath = [modelsPath stringByAppendingPathComponent:[modelName stringByAppendingString:@".mlmodelc"]];
-            
-            NSLog(@"AIIntegration: Loading model: %@", modelName);
-            
-            // Check if model exists
-            NSFileManager* fileManager = [NSFileManager defaultManager];
-            if (![fileManager fileExistsAtPath:modelPath]) {
-                NSLog(@"AIIntegration: Model file not found: %@", modelPath);
-                return;
-            }
-            
-            // Load the model based on iOS version
-            if (@available(iOS 15.0, *)) {
-                NSError* error = nil;
-                NSURL* modelURL = [NSURL fileURLWithPath:modelPath];
-                MLModel* model = [MLModel modelWithContentsOfURL:modelURL error:&error];
-                
-                if (error || !model) {
-                    NSLog(@"AIIntegration: Failed to load model: %@", [error localizedDescription]);
-                    return;
-                }
-                
-                // Store model in appropriate subsystem
-                if ([modelName isEqualToString:@"script_assistant"] ||
-                    [modelName isEqualToString:@"script_generator"]) {
-                    // Send to script assistant
-                    m_scriptAssistant->SetModel(name, (__bridge void*)model);
-                } else {
-                    // Send to signature adaptation
-                    m_signatureAdaptation->SetModel(name, (__bridge void*)model);
-                }
-            } else {
-                // On older iOS versions, use simplified models or fallbacks
-                NSLog(@"AIIntegration: Using simplified model for iOS < 15");
-                
-                // Load simplified model (implementation would vary)
-                // Using dummy approach for example
-                void* simplifiedModel = nullptr;
-                
-                if ([modelName isEqualToString:@"script_assistant"] ||
-                    [modelName isEqualToString:@"script_generator"]) {
-                    m_scriptAssistant->SetModel(name, simplifiedModel);
-                } else {
-                    m_signatureAdaptation->SetModel(name, simplifiedModel);
-                }
-            }
-            
-            NSLog(@"AIIntegration: Successfully loaded model: %@", modelName);
         }
     }
     
@@ -276,57 +238,38 @@ public:
             std::cout << "ScriptAssistant: " << message.m_content << std::endl;
         });
         
+        // Add vulnerability view controller to main UI
+        if (m_vulnerabilityViewController && m_vulnerabilityViewController->GetViewController()) {
+            // In a real implementation, this would add the vulnerability view controller
+            // to the main view controller's navigation stack or tab bar
+            
+            // Set up vulnerability scan callback
+            m_vulnerabilityViewController->SetScanButtonCallback([this]() {
+                // Start vulnerability scan
+                if (m_vulnerabilityDetector) {
+                    // Get current game ID and name (placeholder implementation)
+                    std::string gameId = "current_game";
+                    std::string gameName = "Current Game";
+                    
+                    m_vulnerabilityViewController->StartScan(gameId, gameName);
+                }
+            });
+            
+            // Set up vulnerability exploit callback
+            m_vulnerabilityViewController->SetExploitButtonCallback([this](
+                const VulnerabilityDetection::VulnerabilityDetector::Vulnerability& vulnerability) {
+                // Exploit vulnerability
+                if (m_scriptAssistant) {
+                    m_scriptAssistant->ExecuteScript(vulnerability.m_exploitCode, 
+                        [vulnerability](bool success, const std::string& output) {
+                            std::cout << "Exploit " << (success ? "succeeded" : "failed") << ": " 
+                                    << output << std::endl;
+                        });
+                }
+            });
+        }
+        
         std::cout << "AIIntegration: Set up UI integration" << std::endl;
-    }
-    
-    /**
-     * @brief Set up AI data collection
-     */
-    void SetupAIDataCollection() {
-        // Create training data directory
-        std::string trainingDir = FileSystem::GetSafePath("AIData/Training");
-        if (!FileSystem::Exists(trainingDir)) {
-            FileSystem::CreateDirectory(trainingDir);
-        }
-        
-        // Set up signature adaptation data collection
-        m_signatureAdaptation->SetResponseCallback([this](const SignatureAdaptation::ProtectionStrategy& strategy) {
-            // Handle protection strategy updates
-            std::cout << "SignatureAdaptation: New strategy - " << strategy.m_name << std::endl;
-            
-            // Log strategy for training
-            LogStrategyForTraining(strategy);
-            
-            // In a real implementation, this would apply the strategy
-            // to the execution system
-        });
-    }
-    
-    /**
-     * @brief Log a protection strategy for training
-     * @param strategy Protection strategy
-     */
-    void LogStrategyForTraining(const SignatureAdaptation::ProtectionStrategy& strategy) {
-        // Create JSON representation
-        NSMutableDictionary* strategyDict = [NSMutableDictionary dictionary];
-        [strategyDict setObject:[NSString stringWithUTF8String:strategy.m_name.c_str()] forKey:@"name"];
-        [strategyDict setObject:@(strategy.m_effectiveness) forKey:@"effectiveness"];
-        [strategyDict setObject:@(strategy.m_lastModified) forKey:@"timestamp"];
-        [strategyDict setObject:@(strategy.m_evolutionGeneration) forKey:@"generation"];
-        
-        // Convert to JSON
-        NSError* error = nil;
-        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:strategyDict options:0 error:&error];
-        
-        if (error || !jsonData) {
-            std::cerr << "AIIntegration: Failed to serialize strategy for training" << std::endl;
-            return;
-        }
-        
-        // Write to training file
-        NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        std::string trainingPath = FileSystem::GetSafePath("AIData/Training/strategies.jsonl");
-        FileSystem::WriteFile(trainingPath, std::string([jsonString UTF8String]) + "\n", true); // Append mode
     }
     
     /**
@@ -340,11 +283,20 @@ public:
         
         // Release non-essential resources
         if (m_scriptAssistant) {
-            m_scriptAssistant->ReleaseUnusedResources();
+            m_scriptAssistant->SetMaxHistorySize(20); // Reduce history size
         }
         
-        if (m_signatureAdaptation) {
-            m_signatureAdaptation->ReleaseUnusedResources();
+        if (m_hybridAI) {
+            m_hybridAI->HandleMemoryWarning();
+        }
+        
+        if (m_offlineAI) {
+            m_offlineAI->HandleMemoryWarning();
+        }
+        
+        if (m_vulnerabilityDetector) {
+            // Cancel any active scan
+            m_vulnerabilityDetector->CancelScan();
         }
     }
     
@@ -357,9 +309,9 @@ public:
         // Reset low memory mode
         m_isInLowMemoryMode = false;
         
-        // Reload models if needed
-        if (!m_modelsLoaded) {
-            LoadModelsInBackground();
+        // Network status may have changed, update hybrid AI
+        if (m_hybridAI) {
+            m_hybridAI->HandleNetworkStatusChange(true);
         }
     }
     
@@ -377,6 +329,22 @@ public:
      */
     std::shared_ptr<SignatureAdaptation> GetSignatureAdaptation() const {
         return m_signatureAdaptation;
+    }
+    
+    /**
+     * @brief Get vulnerability detector
+     * @return Vulnerability detector instance
+     */
+    std::shared_ptr<VulnerabilityDetection::VulnerabilityDetector> GetVulnerabilityDetector() const {
+        return m_vulnerabilityDetector;
+    }
+    
+    /**
+     * @brief Get vulnerability view controller
+     * @return Vulnerability view controller instance
+     */
+    std::shared_ptr<UI::VulnerabilityViewController> GetVulnerabilityViewController() const {
+        return m_vulnerabilityViewController;
     }
     
     /**
@@ -403,14 +371,188 @@ public:
         uint64_t total = 0;
         
         if (m_scriptAssistant) {
-            total += m_scriptAssistant->GetMemoryUsage();
+            // Placeholder - would calculate actual memory usage
+            total += 10 * 1024 * 1024; // Assume 10MB
         }
         
         if (m_signatureAdaptation) {
-            total += m_signatureAdaptation->GetMemoryUsage();
+            // Placeholder - would calculate actual memory usage
+            total += 5 * 1024 * 1024; // Assume 5MB
+        }
+        
+        if (m_hybridAI) {
+            total += m_hybridAI->GetMemoryUsage();
+        }
+        
+        if (m_offlineAI) {
+            total += m_offlineAI->GetMemoryUsage();
+        }
+        
+        if (m_vulnerabilityDetector) {
+            // Placeholder - would calculate actual memory usage
+            total += 15 * 1024 * 1024; // Assume 15MB
         }
         
         return total;
+    }
+    
+    /**
+     * @brief Process an AI query
+     * @param query User query
+     * @param callback Callback function for response
+     */
+    void ProcessQuery(const std::string& query, std::function<void(const std::string&)> callback) {
+        if (!m_aiInitialized) {
+            if (callback) {
+                callback("AI system not initialized");
+            }
+            return;
+        }
+        
+        // Check if in low memory mode
+        if (m_isInLowMemoryMode) {
+            // Use offline AI in low memory mode
+            if (m_offlineAI) {
+                m_offlineAI->ProcessQuery(query, callback);
+                return;
+            }
+        }
+        
+        // Use hybrid AI normally
+        if (m_hybridAI) {
+            m_hybridAI->ProcessQuery(query, callback);
+        } else if (m_offlineAI) {
+            // Fall back to offline AI if hybrid not available
+            m_offlineAI->ProcessQuery(query, callback);
+        } else if (callback) {
+            callback("AI processing not available");
+        }
+    }
+    
+    /**
+     * @brief Generate a script
+     * @param description Script description
+     * @param callback Callback function for the generated script
+     */
+    void GenerateScript(const std::string& description, std::function<void(const std::string&)> callback) {
+        if (!m_aiInitialized) {
+            if (callback) {
+                callback("AI system not initialized");
+            }
+            return;
+        }
+        
+        // Check if in low memory mode
+        if (m_isInLowMemoryMode) {
+            // Use offline AI in low memory mode
+            if (m_offlineAI) {
+                m_offlineAI->GenerateScript(description, "", callback);
+                return;
+            }
+        }
+        
+        // Use script generation model directly if available
+        if (m_scriptGenerationModel) {
+            try {
+                LocalModels::ScriptGenerationModel::GeneratedScript script = 
+                    m_scriptGenerationModel->GenerateScript(description);
+                
+                if (callback) {
+                    callback(script.m_code);
+                }
+                return;
+            } catch (const std::exception& e) {
+                // Fall back to hybrid AI on error
+                std::cerr << "AIIntegration: Error generating script: " << e.what() << std::endl;
+            }
+        }
+        
+        // Fall back to hybrid AI
+        if (m_hybridAI) {
+            m_hybridAI->GenerateScript(description, "", callback);
+        } else if (m_offlineAI) {
+            m_offlineAI->GenerateScript(description, "", callback);
+        } else if (callback) {
+            callback("Script generation not available");
+        }
+    }
+    
+    /**
+     * @brief Debug a script
+     * @param script Script to debug
+     * @param callback Callback function for debug results
+     */
+    void DebugScript(const std::string& script, std::function<void(const std::string&)> callback) {
+        if (!m_aiInitialized) {
+            if (callback) {
+                callback("AI system not initialized");
+            }
+            return;
+        }
+        
+        // Check if in low memory mode
+        if (m_isInLowMemoryMode) {
+            // Use offline AI in low memory mode
+            if (m_offlineAI) {
+                m_offlineAI->DebugScript(script, callback);
+                return;
+            }
+        }
+        
+        // Use hybrid AI
+        if (m_hybridAI) {
+            m_hybridAI->DebugScript(script, callback);
+        } else if (m_offlineAI) {
+            m_offlineAI->DebugScript(script, callback);
+        } else if (callback) {
+            callback("Script debugging not available");
+        }
+    }
+    
+    /**
+     * @brief Scan current game for vulnerabilities
+     * @param gameId Game ID
+     * @param gameName Game name
+     * @param progressCallback Callback for scan progress
+     * @param completeCallback Callback for scan completion
+     * @return True if scan started successfully
+     */
+    bool ScanForVulnerabilities(
+        const std::string& gameId, 
+        const std::string& gameName,
+        std::function<void(float progress, const std::string& status)> progressCallback = nullptr,
+        std::function<void(bool success)> completeCallback = nullptr) {
+        
+        if (!m_aiInitialized || !m_vulnerabilityDetector) {
+            if (completeCallback) {
+                completeCallback(false);
+            }
+            return false;
+        }
+        
+        // Create game object (placeholder)
+        auto gameRoot = std::make_shared<VulnerabilityDetection::VulnerabilityDetector::GameObject>(
+            "Game", "DataModel");
+        
+        // Set up callbacks
+        VulnerabilityDetection::VulnerabilityDetector::ScanProgressCallback progress = nullptr;
+        if (progressCallback) {
+            progress = [progressCallback](
+                const VulnerabilityDetection::VulnerabilityDetector::ScanProgress& scanProgress) {
+                progressCallback(scanProgress.m_progress, scanProgress.m_currentActivity);
+            };
+        }
+        
+        VulnerabilityDetection::VulnerabilityDetector::ScanCompleteCallback complete = nullptr;
+        if (completeCallback) {
+            complete = [completeCallback](
+                const VulnerabilityDetection::VulnerabilityDetector::ScanResult& result) {
+                completeCallback(result.m_scanComplete);
+            };
+        }
+        
+        // Start scan
+        return m_vulnerabilityDetector->StartScan(gameId, gameName, gameRoot, progress, complete);
     }
 };
 
@@ -487,6 +629,77 @@ uint64_t GetAIMemoryUsage(void* integration) {
 void HandleAppForeground(void* integration) {
     auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
     aiIntegration->HandleAppForeground();
+}
+
+void HandleAppMemoryWarning(void* integration) {
+    auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
+    aiIntegration->HandleMemoryWarning();
+}
+
+void ProcessAIQuery(void* integration, const char* query, void (*callback)(const char*)) {
+    auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
+    
+    // Create C++ callback that forwards to C callback
+    auto cppCallback = [callback](const std::string& response) {
+        callback(response.c_str());
+    };
+    
+    aiIntegration->ProcessQuery(query, cppCallback);
+}
+
+void GenerateScript(void* integration, const char* description, void (*callback)(const char*)) {
+    auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
+    
+    // Create C++ callback that forwards to C callback
+    auto cppCallback = [callback](const std::string& script) {
+        callback(script.c_str());
+    };
+    
+    aiIntegration->GenerateScript(description, cppCallback);
+}
+
+void DebugScript(void* integration, const char* script, void (*callback)(const char*)) {
+    auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
+    
+    // Create C++ callback that forwards to C callback
+    auto cppCallback = [callback](const std::string& results) {
+        callback(results.c_str());
+    };
+    
+    aiIntegration->DebugScript(script, cppCallback);
+}
+
+void* GetVulnerabilityViewController(void* integration) {
+    auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
+    return &aiIntegration->GetVulnerabilityViewController();
+}
+
+bool ScanForVulnerabilities(void* integration, const char* gameId, const char* gameName,
+                          void (*progressCallback)(float, const char*),
+                          void (*completeCallback)(bool)) {
+    auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
+    
+    // Create C++ callbacks
+    std::function<void(float, const std::string&)> progress = nullptr;
+    if (progressCallback) {
+        progress = [progressCallback](float progressValue, const std::string& status) {
+            progressCallback(progressValue, status.c_str());
+        };
+    }
+    
+    std::function<void(bool)> complete = nullptr;
+    if (completeCallback) {
+        complete = [completeCallback](bool success) {
+            completeCallback(success);
+        };
+    }
+    
+    return aiIntegration->ScanForVulnerabilities(
+        gameId ? gameId : "",
+        gameName ? gameName : "",
+        progress,
+        complete
+    );
 }
 
 } // extern "C"

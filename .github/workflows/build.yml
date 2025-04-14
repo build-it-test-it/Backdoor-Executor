@@ -194,63 +194,57 @@ jobs:
         # Apply compiler and linker flags by constructing complete flags once
         echo "Setting up compiler and linker flags for LLVM and libomp"
         
-        # Initialize empty flags
-        LINKER_FLAGS=""
-        CXX_FLAGS=""
-        C_FLAGS=""
-        
-        # Build up the flags with all necessary paths
+        # Let's create a CMake toolchain file to handle compiler flags
+        echo "Creating CMake toolchain file for compiler and linker flags"
+        cat > cmake/ios-toolchain.cmake << 'EOF'
+# iOS toolchain file with compiler flags
+set(CMAKE_SYSTEM_NAME iOS)
+set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Architecture")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Deployment Target")
+EOF
+
+        # Add LLVM and libomp paths to toolchain file if available
         if [ -n "$LLVM_LIB_PATH" ]; then
-          echo "Adding LLVM lib path: $LLVM_LIB_PATH"
-          LINKER_FLAGS="$LINKER_FLAGS -L$LLVM_LIB_PATH"
+          echo "Adding LLVM lib path to toolchain: $LLVM_LIB_PATH"
+          echo "list(APPEND CMAKE_EXE_LINKER_FLAGS \"-L$LLVM_LIB_PATH\")" >> cmake/ios-toolchain.cmake
+          echo "list(APPEND CMAKE_SHARED_LINKER_FLAGS \"-L$LLVM_LIB_PATH\")" >> cmake/ios-toolchain.cmake
         fi
         
         if [ -n "$LLVM_INCLUDE_PATH" ]; then
-          echo "Adding LLVM include path: $LLVM_INCLUDE_PATH"
-          CXX_FLAGS="$CXX_FLAGS -I$LLVM_INCLUDE_PATH"
-          C_FLAGS="$C_FLAGS -I$LLVM_INCLUDE_PATH"
+          echo "Adding LLVM include path to toolchain: $LLVM_INCLUDE_PATH"
+          echo "include_directories(\"$LLVM_INCLUDE_PATH\")" >> cmake/ios-toolchain.cmake
         fi
         
         if [ -n "$LIBOMP_LIB_PATH" ]; then
-          echo "Adding libomp lib path: $LIBOMP_LIB_PATH"
-          LINKER_FLAGS="$LINKER_FLAGS -L$LIBOMP_LIB_PATH"
+          echo "Adding libomp lib path to toolchain: $LIBOMP_LIB_PATH"
+          echo "list(APPEND CMAKE_EXE_LINKER_FLAGS \"-L$LIBOMP_LIB_PATH\")" >> cmake/ios-toolchain.cmake
+          echo "list(APPEND CMAKE_SHARED_LINKER_FLAGS \"-L$LIBOMP_LIB_PATH\")" >> cmake/ios-toolchain.cmake
         fi
         
         if [ -n "$LIBOMP_INCLUDE_PATH" ]; then
-          echo "Adding libomp include path: $LIBOMP_INCLUDE_PATH"
-          CXX_FLAGS="$CXX_FLAGS -I$LIBOMP_INCLUDE_PATH"
-          C_FLAGS="$C_FLAGS -I$LIBOMP_INCLUDE_PATH"
+          echo "Adding libomp include path to toolchain: $LIBOMP_INCLUDE_PATH"
+          echo "include_directories(\"$LIBOMP_INCLUDE_PATH\")" >> cmake/ios-toolchain.cmake
         fi
         
-        # Add the flags to cmake args (only if they're not empty)
-        if [ -n "$LINKER_FLAGS" ]; then
-          echo "Using linker flags: $LINKER_FLAGS"
-          # Use single quotes to pass the entire string as one argument
-          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_EXE_LINKER_FLAGS='$LINKER_FLAGS' -DCMAKE_SHARED_LINKER_FLAGS='$LINKER_FLAGS'"
-        fi
+        # Tell CMake to use our toolchain file
+        echo "Using toolchain file for compiler/linker flags"
+        EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=cmake/ios-toolchain.cmake"
         
-        if [ -n "$CXX_FLAGS" ]; then
-          echo "Using C++ flags: $CXX_FLAGS"
-          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_CXX_FLAGS='$CXX_FLAGS'"
-        fi
-        
-        if [ -n "$C_FLAGS" ]; then
-          echo "Using C flags: $C_FLAGS"
-          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DCMAKE_C_FLAGS='$C_FLAGS'"
-        fi
-        
-        # Configure CMake for iOS build with all options
+        # Configure CMake for iOS build with options
         echo "CMake args: $EXTRA_CMAKE_ARGS"
         
+        # Add more details to the toolchain file
+        echo "set(CMAKE_BUILD_TYPE Release CACHE STRING \"Build Type\")" >> cmake/ios-toolchain.cmake
+        echo "set(ENABLE_AI_FEATURES ON CACHE BOOL \"Enable AI Features\")" >> cmake/ios-toolchain.cmake
+        echo "set(ENABLE_LOCAL_TRAINING ON CACHE BOOL \"Enable Local Training\")" >> cmake/ios-toolchain.cmake
+        
+        # Display the toolchain file contents for debugging
+        echo "=== Toolchain file contents ==="
+        cat cmake/ios-toolchain.cmake
+        echo "============================="
+        
         set -x # Echo commands
-        cmake -S . -B build \
-          -DCMAKE_OSX_ARCHITECTURES="arm64" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_SYSTEM_NAME=iOS \
-          -DENABLE_AI_FEATURES=ON \
-          -DENABLE_LOCAL_TRAINING=ON \
-          ${EXTRA_CMAKE_ARGS}
+        cmake -S . -B build ${EXTRA_CMAKE_ARGS}
         
         # Print config and diagnostics with expanded debugging
         echo "CMake configuration from cache:"

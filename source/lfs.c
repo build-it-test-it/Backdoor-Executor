@@ -86,16 +86,10 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #else
-// Use standard Lua headers - we're going back to the original approach
-#ifdef LFS_USE_INCLUDE_QUOTES
+// Always use quotes for includes since paths might be non-standard
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
-#else
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-#endif
 #endif
 
 #include "lfs.h"

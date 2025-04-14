@@ -410,8 +410,15 @@ set_target_properties(roblox_executor PROPERTIES
     SUFFIX ".dylib"
 )
 
-# Explicitly add our custom SignatureAdaptation implementation to sources
-list(APPEND SOURCES "${CMAKE_SOURCE_DIR}/source/cpp/ios/ai_features/SignatureAdaptation.cpp")
+# Explicitly add our custom implementations to sources
+list(APPEND SOURCES 
+    "${CMAKE_SOURCE_DIR}/source/cpp/ios/ai_features/SignatureAdaptation.cpp"
+    "${CMAKE_SOURCE_DIR}/source/cpp/ios/UIController.cpp"
+    "${CMAKE_SOURCE_DIR}/source/cpp/ios/ui/MainViewController.cpp"
+    "${CMAKE_SOURCE_DIR}/source/cpp/ios/ui/VulnerabilityViewController.cpp"
+    "${CMAKE_SOURCE_DIR}/source/cpp/ios/ai_features/local_models/ScriptGenerationModel.cpp"
+    "${CMAKE_SOURCE_DIR}/source/cpp/ios/advanced_bypass/ExecutionIntegration.cpp"
+)
 
 # Set compile definitions
 target_compile_definitions(roblox_executor PRIVATE

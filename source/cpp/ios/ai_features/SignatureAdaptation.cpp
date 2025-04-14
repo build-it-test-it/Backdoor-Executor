@@ -10,6 +10,18 @@ namespace iOS {
                 std::vector<unsigned char> bytes;
             };
             
+            // Add class implementation for SignatureAdaptation itself (as a class, not just a namespace)
+            class SignatureAdaptation {
+            public:
+                SignatureAdaptation() {
+                    // Constructor implementation
+                }
+                
+                ~SignatureAdaptation() {
+                    // Destructor implementation
+                }
+            };
+            
             // Implement the required methods directly with proper namespaces
             void Initialize() {
                 // Stub implementation

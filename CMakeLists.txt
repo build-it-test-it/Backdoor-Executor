@@ -404,6 +404,9 @@ set_target_properties(roblox_executor PROPERTIES
     SUFFIX ".dylib"
 )
 
+# Explicitly add our custom SignatureAdaptation implementation to sources
+list(APPEND SOURCES "${CMAKE_SOURCE_DIR}/source/cpp/ios/ai_features/SignatureAdaptation.cpp")
+
 # Set compile definitions
 target_compile_definitions(roblox_executor PRIVATE
     BUILDING_DYLIB=1

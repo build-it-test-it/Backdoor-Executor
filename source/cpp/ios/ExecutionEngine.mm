@@ -6,8 +6,11 @@
 #include <algorithm>
 #include <random>
 #include <iomanip>  // For std::setw and std::setfill
+
+// Objective-C frameworks need to be imported at the top level
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import <WebKit/WebKit.h>
 
 namespace iOS {
     // Constructor
@@ -101,7 +104,6 @@ namespace iOS {
                     // Execute on main thread since UIKit requires it
                     dispatch_async(dispatch_get_main_queue(), ^{
                         // Create a hidden web view for JavaScript execution
-                        #import <WebKit/WebKit.h>
                         WKWebView* webView = [[WKWebView alloc] initWithFrame:CGRectZero];
                         webView.hidden = YES;
                     

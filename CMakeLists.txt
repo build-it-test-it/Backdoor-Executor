@@ -467,8 +467,8 @@ if(USE_DOBBY AND Dobby_FOUND)
     endif()
 endif()
 
-# Link against iOS stubs
-target_link_libraries(roblox_executor PRIVATE ios_stubs)
+# Link against iOS stubs and ensure it has higher priority in linking
+target_link_libraries(roblox_executor PRIVATE "-force_load" $<TARGET_FILE:ios_stubs>)
 
 # Create required directories for AI data
 if(ENABLE_AI_FEATURES)

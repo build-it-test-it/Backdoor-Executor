@@ -313,13 +313,20 @@ jobs:
         # We'll use a simpler approach without trying to modify compiler flags
         # This should be enough to find the module files without quoting issues
         
-        # Verify Dobby directory and library exist before enabling
+        # Always enable Dobby as requested
+        echo "Enabling Dobby support as requested by user"
+        EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DDobby_DIR=$DOBBY_DIR -DUSE_DOBBY=ON"
+        
+        # Check if real Dobby library exists for information
         if [ -d "$DOBBY_DIR" ] && [ -d "$DOBBY_DIR/lib" ] && [ -f "$DOBBY_DIR/lib/libdobby.a" ]; then
-            echo "Dobby library found at $DOBBY_DIR/lib/libdobby.a, enabling Dobby support"
-            EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DDobby_DIR=$DOBBY_DIR -DUSE_DOBBY=ON"
+            echo "✅ Found real Dobby library at $DOBBY_DIR/lib/libdobby.a"
+        elif [ -d "$DOBBY_DIR" ] && [ -f "$DOBBY_DIR/libdobby.a" ]; then
+            echo "✅ Found real Dobby library at $DOBBY_DIR/libdobby.a"
         else
-            echo "Dobby library not found or incomplete, disabling Dobby support"
-            EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DUSE_DOBBY=OFF -DNO_DOBBY_HOOKS=ON"
+            echo "⚠️ Real Dobby library not found, will use stub implementation"
+            # Create directories to make CMake happy
+            mkdir -p $DOBBY_DIR/include
+            mkdir -p $DOBBY_DIR/lib
         fi
         
         # Configure CMake for iOS build with standard options

@@ -32,14 +32,24 @@ jobs:
         # Install LuaRocks libraries
         luarocks install luafilesystem
         
-        # Create directories for resources
-        mkdir -p Resources/Models
+        # Install Dobby library (for hooking functionality)
+        # First try to use brew, but if it fails, use direct download
+        brew install dobby || true
         
-        # Create placeholder files for AI models (these would normally be pre-trained models)
-        echo "// Placeholder for script_assistant_lite model" > Resources/Models/script_assistant_lite.mlmodel
-        echo "// Placeholder for script_generator model" > Resources/Models/script_generator.mlmodel
-        echo "// Placeholder for debug_analyzer model" > Resources/Models/debug_analyzer.mlmodel
-        echo "// Placeholder for pattern_recognition model" > Resources/Models/pattern_recognition.mlmodel
+        if [ ! -d "/usr/local/include/dobby" ]; then
+          echo "Dobby not installed via Homebrew, downloading from source..."
+          git clone --depth=1 https://github.com/jmpews/Dobby.git
+          cd Dobby
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DDOBBY_BUILD_SHARED_LIBRARY=ON
+          make -j4
+          sudo make install
+          cd ../..
+        fi
+        
+        # Create AI data directories
+        mkdir -p Resources/AIData/LocalModels
+        mkdir -p Resources/AIData/Vulnerabilities
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -54,12 +64,18 @@ jobs:
         # Create build directory
         mkdir -p build
         
-        # Configure CMake for iOS build
+        # Configure CMake for iOS build with additional options
         cmake -S . -B build \
           -DCMAKE_OSX_ARCHITECTURES="arm64" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_SYSTEM_NAME=iOS
+          -DCMAKE_SYSTEM_NAME=iOS \
+          -DENABLE_AI_FEATURES=ON \
+          -DENABLE_LOCAL_TRAINING=ON
+        
+        # Print config
+        echo "CMake configuration:"
+        cat build/CMakeCache.txt | grep -E "AI_FEATURES|LOCAL_TRAINING|DOBBY"
         
         # Build the dynamic library
         cmake --build build --config Release -j4
@@ -79,14 +95,17 @@ jobs:
           cp "build/libmylibrary.dylib" output/
         else
           # Search for the dylib
+          echo "Searching for libmylibrary.dylib..."
           find ${PWD} -name "libmylibrary.dylib" -exec cp {} output/ \;
         fi
         
-        # Copy resources directory for any required files
-        mkdir -p output/Resources
-        if [ -d "Resources" ]; then
-          cp -r Resources output/
-        fi
+        # Create and copy AI data directories
+        mkdir -p output/Resources/AIData
+        mkdir -p output/Resources/AIData/LocalModels
+        mkdir -p output/Resources/AIData/Vulnerabilities
+        
+        # Create some sample data
+        echo "{\"version\":\"1.0.0\",\"created\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\"}" > output/Resources/AIData/config.json
 
     - name: Check Build Output
       run: |
@@ -97,10 +116,14 @@ jobs:
           file output/libmylibrary.dylib
           # Show architecture info
           lipo -info output/libmylibrary.dylib
+          # Show symbols (filtering for AI-related functions)
+          nm -g output/libmylibrary.dylib | grep -i "AI" || echo "No AI symbols found"
         else
           echo "❌ libmylibrary.dylib does not exist."
           echo "Files in output directory:"
           ls -la output/
+          echo "Build directory contents:"
+          find build -name "*.dylib" -o -name "*.a"
           exit 1  # Exit with error if the library does not exist
         fi
 
@@ -113,21 +136,21 @@ jobs:
         fi
 
     - name: Upload dynamic library
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: roblox-executor-ios
         path: output/libmylibrary.dylib
         if-no-files-found: error
 
     - name: Upload debug symbols
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: debug-symbols
         path: output/libmylibrary.dSYM.zip
         if-no-files-found: warn
 
     - name: Upload resources
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: resources
         path: output/Resources/

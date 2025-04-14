@@ -280,14 +280,15 @@ if(USE_DOBBY)
             # which has proper forward declarations for namespaces
             message(STATUS "Using fixed iOS stubs implementation")
             
-            # Copy the ios_stubs.cpp file into the build directory to ensure it's available
-            file(COPY "${CMAKE_SOURCE_DIR}/ios_stubs.cpp" DESTINATION "${CMAKE_BINARY_DIR}")
+            # We'll use a freshly created fixed ios_stubs_fixed.cpp file
+            # This is created directly in the build directory
+            message(STATUS "Using fixed ios_stubs_fixed.cpp implementation")
             
             # Create a static library for Dobby stub
             add_library(dobby_stub STATIC "${CMAKE_BINARY_DIR}/dobby_stub.c")
             
-            # Create iOS stubs library using the file in the build directory
-            add_library(ios_stubs STATIC "${CMAKE_BINARY_DIR}/ios_stubs.cpp")
+            # Create iOS stubs library using the fixed file in the build directory
+            add_library(ios_stubs STATIC "${CMAKE_BINARY_DIR}/ios_stubs_fixed.cpp")
             target_include_directories(ios_stubs PRIVATE 
                 "${CMAKE_SOURCE_DIR}/source/cpp/ios"
                 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"

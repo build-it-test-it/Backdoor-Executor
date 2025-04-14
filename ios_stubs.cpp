@@ -181,24 +181,25 @@ namespace iOS {
         class VulnerabilityViewController;
     }
     
-    // UI namespace implementations
+    // Define UI classes after VulnerabilityDetector is defined
     namespace UI {
         class MainViewController {
         public:
-            void SetScriptAssistant(std::shared_ptr<AIFeatures::ScriptAssistant> assistant) {}
+            EXPORT void SetScriptAssistant(std::shared_ptr<AIFeatures::ScriptAssistant> assistant) {}
         };
         
         class VulnerabilityViewController {
         public:
-            VulnerabilityViewController() {}
-            ~VulnerabilityViewController() {}
+            EXPORT VulnerabilityViewController() {}
+            EXPORT ~VulnerabilityViewController() {}
             
-            void Initialize() {}
-            void SetScanButtonCallback(std::function<void()> callback) {}
-            void SetExploitButtonCallback(std::function<void(AIFeatures::VulnerabilityDetection::VulnerabilityDetector::Vulnerability const&)> callback) {}
-            void SetVulnerabilityDetector(std::shared_ptr<AIFeatures::VulnerabilityDetection::VulnerabilityDetector> detector) {}
-            void StartScan(const std::string& path1, const std::string& path2) {}
-            void* GetViewController() const { return nullptr; }
+            EXPORT void Initialize() {}
+            EXPORT void SetScanButtonCallback(std::function<void()> callback) {}
+            // Now safe to use Vulnerability since VulnerabilityDetector is fully defined above
+            EXPORT void SetExploitButtonCallback(std::function<void(AIFeatures::VulnerabilityDetection::VulnerabilityDetector::Vulnerability const&)> callback) {}
+            EXPORT void SetVulnerabilityDetector(std::shared_ptr<AIFeatures::VulnerabilityDetection::VulnerabilityDetector> detector) {}
+            EXPORT void StartScan(const std::string& path1, const std::string& path2) {}
+            EXPORT void* GetViewController() const { return nullptr; }
         };
     }
     

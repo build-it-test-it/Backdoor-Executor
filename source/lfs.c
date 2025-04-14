@@ -81,9 +81,15 @@
 
 #endif
 
+#ifdef LFS_USE_INCLUDE_QUOTES
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+#else
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#endif
 
 #include "lfs.h"
 

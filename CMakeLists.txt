@@ -146,14 +146,18 @@ endif()
 option(ENABLE_AI_FEATURES "Enable AI features" ON)
 option(ENABLE_LOCAL_TRAINING "Enable local AI model training" ON)
 
-# Collect all source files
-file(GLOB_RECURSE LUA_SOURCES source/lfs.c)
+# Include our custom LuaFileSystem finder
+include(cmake/FindLuaFileSystem.cmake)
 
+# Do not include lfs.c directly, we'll handle it separately
 # Main C++ sources
 file(GLOB_RECURSE CPP_SOURCES 
     source/library.cpp
     source/cpp/*.cpp
 )
+
+# Add the lfs target
+add_lfs_target()
 
 # Objective-C++ sources
 file(GLOB_RECURSE MM_SOURCES 
@@ -177,9 +181,8 @@ if(ENABLE_AI_FEATURES)
     list(REMOVE_DUPLICATES AI_SOURCES)
 endif()
 
-# Combine all sources
+# Combine all sources (excluding lfs.c which is built separately)
 set(SOURCES
-    ${LUA_SOURCES}
     ${CPP_SOURCES}
     ${MM_SOURCES}
 )
@@ -189,8 +192,8 @@ if(ENABLE_AI_FEATURES)
     list(APPEND SOURCES ${AI_SOURCES})
 endif()
 
-# Define the library
-add_library(roblox_executor SHARED ${SOURCES})
+# Define the library and add lfs.c as an object separately
+add_library(roblox_executor SHARED ${SOURCES} $<TARGET_OBJECTS:lfs_obj>)
 
 # Set the output name to match what the workflow expects
 set_target_properties(roblox_executor PROPERTIES
@@ -218,9 +221,13 @@ else()
     )
 endif()
 
-# Include directories
+# Include directories - ensure Lua headers are available
 target_include_directories(roblox_executor PRIVATE 
-    ${LUA_INCLUDE_DIR} 
+    ${LUA_INCLUDE_DIR}
+    $ENV{LUA_INCLUDE_DIR}  # Also try from environment
+    /opt/homebrew/opt/lua/include  # Explicit path for macOS GitHub runner
+    /opt/homebrew/include  # Common Homebrew include path
+    /usr/local/include  # Standard system include path
     source
     source/cpp
     source/cpp/ios

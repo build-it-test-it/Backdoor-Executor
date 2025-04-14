@@ -789,7 +789,7 @@ std::vector<std::string> ScriptGenerationModel::GenerateTags(const std::string& 
 }
 
 // Generate script
-ScriptGenerationModel::GeneratedScript ScriptGenerationModel::GenerateScript(const std::string& description) {
+ScriptGenerationModel::GeneratedScript ScriptGenerationModel::GenerateScript(const std::string& description, const std::string& context) {
     // Find best template match
     ScriptTemplate bestTemplate = FindBestTemplateMatch(description);
     

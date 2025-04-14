@@ -78,6 +78,7 @@ private:
     std::string ProcessOutput(const std::vector<float>& output) override;
     
     // Helper methods
+    void AddDefaultTemplates();
     void BuildVocabulary();
     ScriptTemplate FindBestTemplateMatch(const std::string& description);
     GeneratedScript GenerateScriptFromTemplate(const ScriptTemplate& templ, const std::string& description);

@@ -6,6 +6,11 @@
 #include "memory/mem.hpp"
 #include "exec/funcs.hpp"
 
+// If on iOS, include proper AI headers
+#if defined(__APPLE__) || defined(IOS_TARGET)
+#include "cpp/ios/ai_features/AIIntegrationManager.h"
+#endif
+
 // Include Dobby only if available (controlled by CMake)
 #ifndef NO_DOBBY_HOOKS
   // Skip including dobby.h for iOS builds as it's not available
@@ -17,23 +22,34 @@
   #define HOOKING_AVAILABLE 0
 #endif
 
-// Forward declarations for AI integration
+// Forward declarations only if not on iOS
+#if !defined(__APPLE__) && !defined(IOS_TARGET)
 namespace iOS {
 namespace AIFeatures {
     class AIIntegrationManager;
 }}
+#endif
 
 // Function to initialize the AI subsystem
 void initializeAISystem() {
 #ifdef ENABLE_AI_FEATURES
     try {
-        // Simplified stub for iOS build - doesn't require actual AIIntegrationManager
-        std::cout << "Initializing AI System (stub for iOS build)..." << std::endl;
+        #if defined(__APPLE__) || defined(IOS_TARGET)
+        // Use the real AIIntegrationManager on iOS
+        auto& aiManager = iOS::AIFeatures::AIIntegrationManager::GetSharedInstance();
+        aiManager.Initialize([](const auto& status) {
+            std::cout << "AI System: " << status.m_status << " (" 
+                      << (status.m_progress * 100) << "%)" << std::endl;
+        });
+        #else
+        // On other platforms, simulate basic functionality
+        std::cout << "Initializing AI System..." << std::endl;
         
         // Simulate initialization progress
         for (int i = 0; i <= 100; i += 25) {
             std::cout << "AI System: Initializing (" << i << "%)" << std::endl;
         }
+        #endif
         
         std::cout << "AI system initialized successfully" << std::endl;
     } catch (const std::exception& e) {

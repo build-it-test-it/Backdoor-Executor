@@ -5,13 +5,7 @@
 #include <cctype>
 #include <regex>
 #import <Foundation/Foundation.h>
-
-#ifdef ENABLE_ML_MODELS
-// If we have machine learning enabled, include appropriate headers
-#import <CoreML/CoreML.h>
-#import <NaturalLanguage/NaturalLanguage.h>
-#import <CreateML/CreateML.h>
-#endif
+#include "local_models/ScriptGenerationModel.h"
 
 namespace iOS {
 namespace AIFeatures {
@@ -37,8 +31,7 @@ namespace AIFeatures {
     ScriptAssistant::~ScriptAssistant() {
         // Cleanup resources
         if (m_languageModel) {
-            // Cleanup language model
-            // In a real implementation, this would release the ML model
+            // Cleanup language model - now a shared_ptr
             m_languageModel = nullptr;
         }
         
@@ -65,46 +58,40 @@ namespace AIFeatures {
         }
         
         try {
-            // Initialize language model
-#ifdef ENABLE_ML_MODELS
-            // In a real implementation, this would load a CoreML model
-            // For this prototype, we'll create a placeholder
-            @autoreleasepool {
-                NSBundle* mainBundle = [NSBundle mainBundle];
-                NSURL* modelURL = [mainBundle URLForResource:@"ScriptAssistantModel" withExtension:@"mlmodel"];
-                
-                if (modelURL) {
-                    NSError* error = nil;
-                    // Load model
-                    MLModel* model = [MLModel modelWithContentsOfURL:modelURL error:&error];
-                    
-                    if (!error && model) {
-                        // Store model
-                        m_languageModel = (__bridge_retained void*)model;
-                    } else {
-                        std::cerr << "ScriptAssistant: Failed to load language model: " 
-                                 << (error ? [[error localizedDescription] UTF8String] : "Unknown error")
-                                 << std::endl;
-                    }
-                }
-            }
-#endif
+            // Initialize language model - now using local models
+            // Create a local model path
+            NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+            NSString* documentsDirectory = [paths objectAtIndex:0];
+            NSString* localModelsPath = [documentsDirectory stringByAppendingPathComponent:@"AIData/LocalModels"];
             
-            // If no ML model, use a rule-based fallback
-            if (!m_languageModel) {
-                // Create a simple rule-based language processor
-                std::cout << "ScriptAssistant: Using rule-based language processor" << std::endl;
-                // m_languageModel would be set to a custom processor object
+            // Create directory if it doesn't exist
+            NSFileManager* fileManager = [NSFileManager defaultManager];
+            if (![fileManager fileExistsAtPath:localModelsPath]) {
+                [fileManager createDirectoryAtPath:localModelsPath 
+                      withIntermediateDirectories:YES 
+                                       attributes:nil 
+                                            error:nil];
             }
-            
-            // Initialize game analyzer
-            // In a real implementation, this would create a game analysis engine
             
             // Initialize script generator
-            // In a real implementation, this would create a script generation engine
+            auto scriptGenerator = std::make_shared<LocalModels::ScriptGenerationModel>();
+            bool generatorInitialized = scriptGenerator->Initialize(
+                std::string([localModelsPath UTF8String]) + "/script_generator");
             
-            // Initialize execution interface
-            // In a real implementation, this would connect to the execution system
+            if (generatorInitialized) {
+                m_scriptGenerator = scriptGenerator.get();
+                std::cout << "ScriptAssistant: Successfully initialized script generator" << std::endl;
+            } else {
+                std::cerr << "ScriptAssistant: Failed to initialize script generator" << std::endl;
+                // Continue anyway - we can recover later
+            }
+            
+            // If we need to, use a rule-based fallback
+            if (!m_scriptGenerator) {
+                // Create a simple rule-based language processor
+                std::cout << "ScriptAssistant: Using rule-based language processor" << std::endl;
+                // We'll handle this directly in the processing methods
+            }
             
             // Add some default script templates
             AddDefaultScriptTemplates();

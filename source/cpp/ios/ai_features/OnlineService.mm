@@ -4,12 +4,11 @@
 #include <chrono>
 #import <Foundation/Foundation.h>
 #import <SystemConfiguration/SystemConfiguration.h>
-
-namespace iOS {
-namespace AIFeatures {
+#import <netinet/in.h>
 
 /**
  * Objective-C class to handle network reachability
+ * Declared outside the namespace to avoid "Objective-C declarations may only appear in global scope" error
  */
 @interface NetworkReachability : NSObject
 
@@ -52,10 +51,13 @@ namespace AIFeatures {
     if (self.reachabilityRef) {
         CFRelease(self.reachabilityRef);
     }
+    [super dealloc]; // Added [super dealloc] call for non-ARC
 }
 
+// This section has been moved earlier to be properly inside the @implementation block
+
 static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void* info) {
-    NetworkReachability* reachability = (__bridge NetworkReachability*)info;
+    NetworkReachability* reachability = (NetworkReachability*)info; // Removed __bridge cast
     if (reachability.statusCallback) {
         reachability.statusCallback(flags);
     }
@@ -68,7 +70,7 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     
     self.statusCallback = callback;
     
-    SCNetworkReachabilityContext context = {0, (__bridge void *)(self), NULL, NULL, NULL};
+    SCNetworkReachabilityContext context = {0, (void*)(self), NULL, NULL, NULL}; // Removed __bridge cast
     if (SCNetworkReachabilitySetCallback(self.reachabilityRef, ReachabilityCallback, &context)) {
         return SCNetworkReachabilityScheduleWithRunLoop(self.reachabilityRef, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
     }
@@ -76,21 +78,11 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     return NO;
 }
 
-- (void)stopMonitoring {
-    if (self.reachabilityRef) {
-        SCNetworkReachabilityUnscheduleFromRunLoop(self.reachabilityRef, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-    }
-}
-
-- (SCNetworkReachabilityFlags)currentReachabilityFlags {
-    SCNetworkReachabilityFlags flags = 0;
-    if (self.reachabilityRef) {
-        SCNetworkReachabilityGetFlags(self.reachabilityRef, &flags);
-    }
-    return flags;
-}
-
 @end
+
+// Start the C++ namespace after all Objective-C code
+namespace iOS {
+namespace AIFeatures {
 
 // Constructor
 OnlineService::OnlineService()
@@ -111,8 +103,8 @@ OnlineService::OnlineService()
 OnlineService::~OnlineService() {
     // Stop monitoring network status
     if (m_reachability) {
-        [(__bridge NetworkReachability*)m_reachability stopMonitoring];
-        CFRelease(m_reachability);
+        [(NetworkReachability*)m_reachability stopMonitoring];
+        [(NetworkReachability*)m_reachability release]; // Manual release instead of CFRelease
         m_reachability = nullptr;
     }
     
@@ -147,28 +139,31 @@ bool OnlineService::Initialize(const std::string& baseUrl, const std::string& ap
 
 // Monitor network status
 void OnlineService::MonitorNetworkStatus() {
-    // Create reachability object if not already created
-    if (!m_reachability) {
-        NetworkReachability* reachability = [NetworkReachability sharedInstance];
-        m_reachability = (__bridge_retained void*)reachability;
-        
-        // Start monitoring
-        __weak NetworkReachability* weakReachability = reachability;
-        [reachability startMonitoringWithCallback:^(SCNetworkReachabilityFlags flags) {
-            // Process flags and update network status
-            NetworkStatus status = NetworkStatus::NotReachable;
+        // Create reachability object if not already created
+        if (!m_reachability) {
+            NetworkReachability* reachability = [NetworkReachability sharedInstance];
+            // Store pointer without __bridge_retained which requires ARC
+            m_reachability = (void*)reachability;
+            [reachability retain]; // Manually retain since we're not using ARC
             
-            if ((flags & kSCNetworkReachabilityFlagsReachable) != 0) {
-                if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) {
-                    status = NetworkStatus::ReachableViaCellular;
-                } else {
-                    status = NetworkStatus::ReachableViaWiFi;
+            // Start monitoring
+            // Removed __weak since it's not available without ARC
+            NetworkReachability* strongReachability = reachability;
+            [reachability startMonitoringWithCallback:^(SCNetworkReachabilityFlags flags) {
+                // Process flags and update network status
+                NetworkStatus status = NetworkStatus::NotReachable;
+                
+                if ((flags & kSCNetworkReachabilityFlagsReachable) != 0) {
+                    if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) {
+                        status = NetworkStatus::ReachableViaCellular;
+                    } else {
+                        status = NetworkStatus::ReachableViaWiFi;
+                    }
                 }
-            }
-            
-            // Update status
-            UpdateNetworkStatus(status);
-        }];
+                
+                // Update status
+                UpdateNetworkStatus(status);
+            }];
         
         // Get initial status
         SCNetworkReachabilityFlags flags = [reachability currentReachabilityFlags];
@@ -412,7 +407,7 @@ void* OnlineService::CreateNSURLRequest(const Request& request) {
     }
     
     // Create NSMutableURLRequest
-    NSMutableURLRequest* urlRequest = [NSMutableURLRequest requestWithURL:url];
+    NSMutableURLRequest* urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     
     // Set HTTP method
     [urlRequest setHTTPMethod:[NSString stringWithUTF8String:request.m_method.c_str()]];
@@ -446,8 +441,9 @@ void* OnlineService::CreateNSURLRequest(const Request& request) {
         [urlRequest setHTTPBody:bodyData];
     }
     
-    // Return as opaque pointer
-    return (__bridge_retained void*)urlRequest;
+    // Return as opaque pointer (manual retain instead of __bridge_retained which requires ARC)
+    [urlRequest retain];
+    return (void*)urlRequest;
 }
 
 // Parse NSURLResponse
@@ -456,7 +452,7 @@ OnlineService::Response OnlineService::ParseNSURLResponse(void* urlResponse, voi
     
     // Check for error
     if (error) {
-        NSError* nsError = (__bridge NSError*)error;
+        NSError* nsError = (NSError*)error; // Removed __bridge cast
         response.m_success = false;
         response.m_statusCode = (int)[nsError code];
         response.m_errorMessage = [[nsError localizedDescription] UTF8String];
@@ -472,7 +468,7 @@ OnlineService::Response OnlineService::ParseNSURLResponse(void* urlResponse, voi
     }
     
     // Get HTTP status code
-    NSHTTPURLResponse* httpResponse = (__bridge NSHTTPURLResponse*)urlResponse;
+    NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)urlResponse; // Removed __bridge cast
     response.m_statusCode = (int)[httpResponse statusCode];
     
     // Get headers
@@ -484,7 +480,7 @@ OnlineService::Response OnlineService::ParseNSURLResponse(void* urlResponse, voi
     
     // Get body
     if (data) {
-        NSData* nsData = (__bridge NSData*)data;
+        NSData* nsData = (NSData*)data; // Removed __bridge cast
         if ([nsData length] > 0) {
             // Convert to string
             std::string body(static_cast<const char*>([nsData bytes]), [nsData length]);

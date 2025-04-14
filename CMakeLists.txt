@@ -413,6 +413,7 @@ set_target_properties(roblox_executor PROPERTIES
 # Explicitly add our custom implementations to sources
 list(APPEND SOURCES 
     "${CMAKE_SOURCE_DIR}/source/cpp/ios/ai_features/SignatureAdaptation.cpp"
+    "${CMAKE_SOURCE_DIR}/source/cpp/ios/ai_features/SignatureAdaptationClass.cpp"
     "${CMAKE_SOURCE_DIR}/source/cpp/ios/UIController.cpp"
     "${CMAKE_SOURCE_DIR}/source/cpp/ios/ui/MainViewController.cpp"
     "${CMAKE_SOURCE_DIR}/source/cpp/ios/ui/VulnerabilityViewController.cpp"

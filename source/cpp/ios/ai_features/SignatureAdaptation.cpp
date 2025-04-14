@@ -30,17 +30,7 @@ namespace iOS {
             }
         }
         
-        // Define the SignatureAdaptation class directly in the AIFeatures namespace
-        // This is what the code is actually looking for
-        class SignatureAdaptation {
-        public:
-            SignatureAdaptation() {
-                // Constructor implementation
-            }
-            
-            ~SignatureAdaptation() {
-                // Destructor implementation
-            }
-        };
+        // The class SignatureAdaptation is now defined in SignatureAdaptationClass.cpp
+        // to avoid the "redefinition as different kind of symbol" error
     }
 }

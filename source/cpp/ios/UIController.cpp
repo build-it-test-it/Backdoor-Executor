@@ -5,6 +5,7 @@
 #include <thread>
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
+#import <objc/runtime.h>
 
 namespace iOS {
     
@@ -269,7 +270,7 @@ namespace iOS {
     }
     
     // Get script content from editor
-    std::string UIController::GetScriptContent() const {
+    std::string iOS::UIController::GetScriptContent() const {
         __block std::string content = m_currentScript;
         
         // Retrieve content from UI on main thread synchronously
@@ -288,7 +289,7 @@ namespace iOS {
     }
     
     // Execute current script in editor
-    bool UIController::ExecuteCurrentScript() {
+    bool iOS::UIController::ExecuteCurrentScript() {
         // Get the current script content
         std::string script = GetScriptContent();
         
@@ -306,7 +307,7 @@ namespace iOS {
     }
     
     // Save current script in editor
-    bool UIController::SaveCurrentScript(const std::string& name) {
+    bool iOS::UIController::SaveCurrentScript(const std::string& name) {
         // Get the current script content
         std::string script = GetScriptContent();
         
@@ -338,7 +339,7 @@ namespace iOS {
     }
     
     // Load a script into the editor
-    bool UIController::LoadScript(const ScriptInfo& scriptInfo) {
+    bool iOS::UIController::LoadScript(const iOS::UIController::ScriptInfo& scriptInfo) {
         // Set the script content
         SetScriptContent(scriptInfo.m_content);
         
@@ -351,7 +352,7 @@ namespace iOS {
     }
     
     // Delete a saved script
-    bool UIController::DeleteScript(const std::string& name) {
+    bool iOS::UIController::DeleteScript(const std::string& name) {
         bool success = false;
         
         // Find and remove the script from the saved scripts list
@@ -375,7 +376,7 @@ namespace iOS {
     }
     
     // Clear the console
-    void UIController::ClearConsole() {
+    void iOS::UIController::ClearConsole() {
         m_consoleText.clear();
         
         // Update the console UI
@@ -392,38 +393,38 @@ namespace iOS {
     }
     
     // Get console text
-    std::string UIController::GetConsoleText() const {
+    std::string iOS::UIController::GetConsoleText() const {
         return m_consoleText;
     }
     
     // Set execute callback
-    void UIController::SetExecuteCallback(ExecuteCallback callback) {
+    void iOS::UIController::SetExecuteCallback(iOS::UIController::ExecuteCallback callback) {
         if (callback) {
             m_executeCallback = callback;
         }
     }
     
     // Set save script callback
-    void UIController::SetSaveScriptCallback(SaveScriptCallback callback) {
+    void iOS::UIController::SetSaveScriptCallback(iOS::UIController::SaveScriptCallback callback) {
         if (callback) {
             m_saveScriptCallback = callback;
         }
     }
     
     // Set load scripts callback
-    void UIController::SetLoadScriptsCallback(LoadScriptsCallback callback) {
+    void iOS::UIController::SetLoadScriptsCallback(iOS::UIController::LoadScriptsCallback callback) {
         if (callback) {
             m_loadScriptsCallback = callback;
         }
     }
     
     // Check if button is visible
-    bool UIController::IsButtonVisible() const {
+    bool iOS::UIController::IsButtonVisible() const {
         return m_floatingButton && m_floatingButton->IsVisible();
     }
     
     // Show/hide floating button
-    void UIController::SetButtonVisible(bool visible) {
+    void iOS::UIController::SetButtonVisible(bool visible) {
         if (m_floatingButton) {
             if (visible) {
                 m_floatingButton->Show();
@@ -435,7 +436,7 @@ namespace iOS {
     
     // Private method implementations
     
-    void UIController::CreateUI() {
+    void iOS::UIController::CreateUI() {
         // Ensure we're on the main thread for UI operations
         dispatch_async(dispatch_get_main_queue(), ^{
             // Get the key window
@@ -515,14 +516,14 @@ namespace iOS {
                         if (rootVC) {
                             // This approach is simplified; in a real implementation you'd have proper associations
                             // between UI components and C++ objects
-                            UIController* controller = (__bridge UIController*)(void*)objc_getAssociatedObject(rootVC, "UIControllerInstance");
+                            iOS::UIController* controller = (__bridge iOS::UIController*)(void*)objc_getAssociatedObject(rootVC, "UIControllerInstance");
                             if (controller) {
-                                TabType tabType = TabType::Editor;
+                                iOS::UIController::TabType tabType = iOS::UIController::TabType::Editor;
                                 switch (selectedItem.tag) {
-                                    case 0: tabType = TabType::Editor; break;
-                                    case 1: tabType = TabType::Scripts; break;
-                                    case 2: tabType = TabType::Console; break;
-                                    case 3: tabType = TabType::Settings; break;
+                                    case 0: tabType = iOS::UIController::TabType::Editor; break;
+                                    case 1: tabType = iOS::UIController::TabType::Scripts; break;
+                                    case 2: tabType = iOS::UIController::TabType::Console; break;
+                                    case 3: tabType = iOS::UIController::TabType::Settings; break;
                                 }
                                 controller->SwitchTab(tabType);
                             }
@@ -646,6 +647,261 @@ namespace iOS {
             
             // 4. Settings view
             UIView* settingsView = [[UIView alloc] initWithFrame:CGRectMake(0, 50, 
+                                                                          containerView.bounds.size.width,
+                                                                          containerView.bounds.size.height - 50)];
+            settingsView.tag = 1004;
+            settingsView.backgroundColor = [UIColor clearColor];
+            settingsView.hidden = YES;
+            [contentView addSubview:settingsView];
+            
+            // Settings options
+            UIView* settingsContainer = [[UIView alloc] initWithFrame:CGRectMake(10, 10, 
+                                                                              settingsView.bounds.size.width - 20,
+                                                                              settingsView.bounds.size.height - 20)];
+            settingsContainer.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.5];
+            settingsContainer.layer.cornerRadius = 8.0;
+            settingsContainer.layer.masksToBounds = YES;
+            [settingsView addSubview:settingsContainer];
+            
+            // Add our UI view to the key window
+            [keyWindow addSubview:containerView];
+            
+            // Store the UI view for later use
+            m_uiView = (__bridge_retained void*)containerView;
+        });
+    }
+    
+    void iOS::UIController::UpdateLayout() {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // Update the UI layout based on the current state
+        });
+    }
+    
+    void iOS::UIController::SaveUIState() {
+        // Save UI state (position, opacity, visibility) to user defaults
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (m_uiView) {
+                UIView* view = (__bridge UIView*)m_uiView;
+                NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+                
+                // Store position
+                [defaults setFloat:view.frame.origin.x forKey:@"UIControllerPositionX"];
+                [defaults setFloat:view.frame.origin.y forKey:@"UIControllerPositionY"];
+                
+                // Store opacity
+                [defaults setFloat:m_opacity forKey:@"UIControllerOpacity"];
+                
+                // Store visibility
+                [defaults setBool:m_isVisible forKey:@"UIControllerVisible"];
+                
+                // Store current tab
+                [defaults setInteger:(NSInteger)m_currentTab forKey:@"UIControllerCurrentTab"];
+                
+                [defaults synchronize];
+            }
+        });
+    }
+    
+    void iOS::UIController::LoadUIState() {
+        // Load UI state from user defaults
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (m_uiView) {
+                UIView* view = (__bridge UIView*)m_uiView;
+                NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+                
+                // Load position if available
+                if ([defaults objectForKey:@"UIControllerPositionX"] && [defaults objectForKey:@"UIControllerPositionY"]) {
+                    CGFloat x = [defaults floatForKey:@"UIControllerPositionX"];
+                    CGFloat y = [defaults floatForKey:@"UIControllerPositionY"];
+                    CGRect frame = view.frame;
+                    frame.origin.x = x;
+                    frame.origin.y = y;
+                    view.frame = frame;
+                }
+                
+                // Load opacity if available
+                if ([defaults objectForKey:@"UIControllerOpacity"]) {
+                    float opacity = [defaults floatForKey:@"UIControllerOpacity"];
+                    SetOpacity(opacity);
+                }
+                
+                // Load visibility if available
+                if ([defaults objectForKey:@"UIControllerVisible"]) {
+                    bool visible = [defaults boolForKey:@"UIControllerVisible"];
+                    if (visible) {
+                        Show();
+                    } else {
+                        Hide();
+                    }
+                }
+                
+                // Load current tab if available
+                if ([defaults objectForKey:@"UIControllerCurrentTab"]) {
+                    NSInteger tabIndex = [defaults integerForKey:@"UIControllerCurrentTab"];
+                    SwitchTab(static_cast<TabType>(tabIndex));
+                }
+            }
+        });
+    }
+    
+    void iOS::UIController::RefreshScriptsList() {
+        // Load scripts using the callback
+        m_savedScripts = m_loadScriptsCallback();
+        
+        // Update the scripts table view
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (m_uiView) {
+                UIView* view = (__bridge UIView*)m_uiView;
+                UITableView* scriptsTableView = [view viewWithTag:2100];
+                
+                if ([scriptsTableView isKindOfClass:[UITableView class]]) {
+                    // Create a data source and delegate for the table view
+                    // This is done using Objective-C runtime because we can't use protocols in C++
+                    
+                    // Create a class to handle data source and delegate methods
+                    static Class TableHandlerClass = nil;
+                    static std::vector<iOS::UIController::ScriptInfo>* scriptsPtr = nullptr;
+                    static void* controllerPtr = nullptr;
+                    
+                    // Store references to the scripts and controller
+                    scriptsPtr = &m_savedScripts;
+                    controllerPtr = (__bridge void*)this;
+                    
+                    // Create the class dynamically if it doesn't exist
+                    if (!TableHandlerClass) {
+                        TableHandlerClass = objc_allocateClassPair([NSObject class], "ScriptsTableHandler", 0);
+                        
+                        // Add protocol conformance
+                        class_addProtocol(TableHandlerClass, @protocol(UITableViewDataSource));
+                        class_addProtocol(TableHandlerClass, @protocol(UITableViewDelegate));
+                        
+                        // Add methods for the data source protocol
+                        class_addMethod(TableHandlerClass, @selector(tableView:numberOfRowsInSection:),
+                                       imp_implementationWithBlock(^NSInteger(id self, UITableView* tableView, NSInteger section) {
+                            return static_cast<NSInteger>(scriptsPtr->size());
+                        }), "i@:@i");
+                        
+                        class_addMethod(TableHandlerClass, @selector(tableView:cellForRowAtIndexPath:),
+                                       imp_implementationWithBlock(^UITableViewCell*(id self, UITableView* tableView, NSIndexPath* indexPath) {
+                            static NSString* CellID = @"ScriptCell";
+                            UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:CellID];
+                            
+                            if (!cell) {
+                                cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellID];
+                                cell.backgroundColor = [UIColor clearColor];
+                                cell.textLabel.textColor = [UIColor whiteColor];
+                                cell.detailTextLabel.textColor = [UIColor lightGrayColor];
+                                
+                                // Add load button
+                                UIButton* loadButton = [UIButton buttonWithType:UIButtonTypeSystem];
+                                loadButton.frame = CGRectMake(0, 0, 60, 30);
+                                loadButton.backgroundColor = [UIColor colorWithRed:0.2 green:0.2 blue:0.8 alpha:0.7];
+                                loadButton.layer.cornerRadius = 5.0;
+                                [loadButton setTitle:@"Load" forState:UIControlStateNormal];
+                                [loadButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+                                cell.accessoryView = loadButton;
+                                
+                                // Set up the button action
+                                [loadButton addTarget:self action:@selector(loadScript:) forControlEvents:UIControlEventTouchUpInside];
+                            }
+                            
+                            // Configure the cell
+                            NSUInteger index = static_cast<NSUInteger>(indexPath.row);
+                            if (index < scriptsPtr->size()) {
+                                const auto& script = (*scriptsPtr)[index];
+                                cell.textLabel.text = [NSString stringWithUTF8String:script.m_name.c_str()];
+                                
+                                // Format the timestamp
+                                NSDate* date = [NSDate dateWithTimeIntervalSince1970:script.m_timestamp / 1000.0];
+                                NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
+                                formatter.dateStyle = NSDateFormatterShortStyle;
+                                formatter.timeStyle = NSDateFormatterShortStyle;
+                                NSString* dateStr = [formatter stringFromDate:date];
+                                cell.detailTextLabel.text = dateStr;
+                                
+                                // Store the script index in the button's tag
+                                UIButton* loadButton = (UIButton*)cell.accessoryView;
+                                loadButton.tag = index;
+                            }
+                            
+                            return cell;
+                        }), "@@:@@");
+                        
+                        // Add method for the load button action
+                        class_addMethod(TableHandlerClass, @selector(loadScript:),
+                                       imp_implementationWithBlock(^(id self, UIButton* sender) {
+                            NSUInteger index = sender.tag;
+                            if (index < scriptsPtr->size()) {
+                                iOS::UIController* controller = (__bridge iOS::UIController*)controllerPtr;
+                                controller->LoadScript((*scriptsPtr)[index]);
+                            }
+                        }), "v@:@");
+                        
+                        // Add method for row deletion
+                        class_addMethod(TableHandlerClass, @selector(tableView:canEditRowAtIndexPath:),
+                                       imp_implementationWithBlock(^BOOL(id self, UITableView* tableView, NSIndexPath* indexPath) {
+                            return YES;
+                        }), "B@:@@");
+                        
+                        class_addMethod(TableHandlerClass, @selector(tableView:commitEditingStyle:forRowAtIndexPath:),
+                                       imp_implementationWithBlock(^(id self, UITableView* tableView, UITableViewCellEditingStyle editingStyle, NSIndexPath* indexPath) {
+                            if (editingStyle == UITableViewCellEditingStyleDelete) {
+                                NSUInteger index = static_cast<NSUInteger>(indexPath.row);
+                                if (index < scriptsPtr->size()) {
+                                    iOS::UIController* controller = (__bridge iOS::UIController*)controllerPtr;
+                                    controller->DeleteScript((*scriptsPtr)[index].m_name);
+                                    // Table view will be refreshed by DeleteScript
+                                }
+                            }
+                        }), "v@:@i@");
+                        
+                        // Register the class
+                        objc_registerClassPair(TableHandlerClass);
+                    }
+                    
+                    // Create the handler instance
+                    id handler = [[TableHandlerClass alloc] init];
+                    
+                    // Set the delegate and data source
+                    scriptsTableView.delegate = handler;
+                    scriptsTableView.dataSource = handler;
+                    
+                    // Reload the table view
+                    [scriptsTableView reloadData];
+                }
+            }
+        });
+    }
+    
+    void iOS::UIController::AppendToConsole(const std::string& text) {
+        // Add the text to the console with a timestamp
+        auto now = std::chrono::system_clock::now();
+        auto nowTime = std::chrono::system_clock::to_time_t(now);
+        std::string timestamp = std::ctime(&nowTime);
+        timestamp.pop_back(); // Remove trailing newline
+        
+        std::string logEntry = "[" + timestamp + "] " + text + "\n";
+        m_consoleText += logEntry;
+        
+        // Update the console UI
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (m_uiView) {
+                UIView* view = (__bridge UIView*)m_uiView;
+                UITextView* consoleTextView = [view viewWithTag:3000];
+                
+                if ([consoleTextView isKindOfClass:[UITextView class]]) {
+                    NSString* currentText = consoleTextView.text;
+                    NSString* newEntry = [NSString stringWithUTF8String:logEntry.c_str()];
+                    consoleTextView.text = [currentText stringByAppendingString:newEntry];
+                    
+                    // Scroll to the bottom
+                    NSRange range = NSMakeRange(consoleTextView.text.length, 0);
+                    [consoleTextView scrollRangeToVisible:range];
+                }
+            }
+        });
+    }
+} // namespace iOS
                                                                           containerView.bounds.size.width,
                                                                           containerView.bounds.size.height - 50)];
             settingsView.tag = 1004;

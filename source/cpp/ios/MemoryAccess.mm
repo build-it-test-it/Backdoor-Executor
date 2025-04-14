@@ -250,8 +250,9 @@ namespace iOS {
             // Scan this region
             mach_vm_size_t regionSize;
             #if defined(IOS_TARGET) || defined(__APPLE__)
-            // On iOS, we stored the size in the upper bits of the protection field during GetMemoryRegions
-            regionSize = (region.protection >> 32) & 0xFFFFFFFF; // Extract the size we stored
+            // For iOS, use a reasonable default size for scanning
+            // This is safer than trying to extract size from protection bits
+            regionSize = 4 * 1024 * 1024; // 4MB default scan size
             #else
             regionSize = region.virtual_size;
             #endif

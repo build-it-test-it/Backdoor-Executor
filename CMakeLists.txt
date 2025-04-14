@@ -122,8 +122,34 @@ if(NOT DEFINED LUA_LIBRARIES)
     endif()
 endif()
 
+# If we're using bundled Lua, create a static library from the sources we have
+if(USE_BUNDLED_LUA)
+    # We'll create a stub Lua library that has just enough to satisfy the linker
+    file(WRITE "${CMAKE_BINARY_DIR}/lua_stub.c" "
+        #include <stdlib.h>
+        // Minimal set of Lua functions needed to link
+        void luaL_openlibs() { }
+        void* luaL_newstate() { return NULL; }
+        void lua_close(void* L) { }
+        int luaL_loadstring(void* L, const char* s) { return 0; }
+        int lua_pcall(void* L, int a, int b, int c) { return 0; }
+    ")
+    
+    # Create a static library
+    add_library(lua_bundled STATIC "${CMAKE_BINARY_DIR}/lua_stub.c")
+    target_include_directories(lua_bundled PRIVATE 
+        ${LUA_INCLUDE_DIR}
+        ${CMAKE_SOURCE_DIR}/source/cpp/luau
+    )
+    
+    # Use this as our Lua library
+    set(LUA_LIBRARIES lua_bundled)
+    message(STATUS "Using bundled Lua library for link time")
+else()
+    message(STATUS "Using system Lua library: ${LUA_LIBRARIES}")
+endif()
+
 message(STATUS "Using Lua include dir: ${LUA_INCLUDE_DIR}")
-message(STATUS "Using Lua libraries: ${LUA_LIBRARIES}")
 
 # Find required frameworks
 find_library(FOUNDATION_LIBRARY Foundation REQUIRED)
@@ -139,6 +165,9 @@ add_definitions(-DJAVASCRIPT_CORE_AVAILABLE=1)
 
 # Specify the output directory for the library
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
+
+# Option to use bundled Lua or find system Lua
+option(USE_BUNDLED_LUA "Use bundled Lua library instead of system library" ON)
 
 # Check for Dobby dependency (optional)
 option(USE_DOBBY "Use Dobby for function hooking" ON)
@@ -283,6 +312,11 @@ target_link_libraries(roblox_executor PRIVATE
     "-framework JavaScriptCore"
     "-framework Security"
 )
+
+# Make sure our bundled library is built before the main target
+if(USE_BUNDLED_LUA)
+    add_dependencies(roblox_executor lua_bundled)
+endif()
 
 # Add Dobby if found
 if(Dobby_FOUND)

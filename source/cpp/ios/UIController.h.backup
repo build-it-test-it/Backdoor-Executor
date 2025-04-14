@@ -22,8 +22,7 @@ namespace iOS {
             Editor,
             Scripts,
             Console,
-            Settings,
-            Studio    // New tab for Roblox Studio-like execution
+            Settings
         };
         
         // Script information structure
@@ -191,32 +190,6 @@ namespace iOS {
          */
         std::string GetConsoleText() const;
         
-        /**
-         * @brief Get Studio code content
-         * @return Studio code content as string
-         */
-        std::string GetStudioCodeContent() const;
-        
-        /**
-         * @brief Execute current Studio code (Roblox Studio-like execution)
-         * @return True if successful, false otherwise
-         */
-        bool ExecuteStudioCode();
-        
-        /**
-         * @brief Import code from a file into the Studio editor
-         * @param filePath Path to the file to import (optional)
-         * @return True if successful, false otherwise
-         */
-        bool ImportStudioCode(const std::string& filePath = "");
-        
-        /**
-         * @brief Export Studio code and execution results to a file
-         * @param filePath Path to export to (optional)
-         * @return True if successful, false otherwise
-         */
-        bool ExportStudioResults(const std::string& filePath = "");
-
         /**
          * @brief Set execute callback
          * @param callback Function to call when executing a script

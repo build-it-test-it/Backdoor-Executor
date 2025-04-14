@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 // Define CI_BUILD for CI builds
 #define CI_BUILD
 
@@ -9,9 +10,6 @@
 
 // Only include iOS-specific headers when not in CI build
 #ifndef CI_BUILD
-#import <UIKit/UIKit.h>
-#import <Foundation/Foundation.h>
-#import <objc/runtime.h>
 #endif
 
 namespace iOS {
@@ -269,201 +267,6 @@ namespace iOS {
         }
     }
     
-    // Get Studio code content
-    std::string UIController::GetStudioCodeContent() const {
-        __block std::string content = "";
-        
-        #ifndef CI_BUILD
-        // Retrieve content from UI on main thread synchronously
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            if (m_uiView) {
-                UIView* view = (__bridge UIView*)m_uiView;
-                UIView* studioView = [view viewWithTag:1005];
-                UITextView* studioCodeTextView = [studioView viewWithTag:5000];
-                
-                if ([studioCodeTextView isKindOfClass:[UITextView class]]) {
-                    content = [studioCodeTextView.text UTF8String];
-                }
-            }
-        });
-        #endif
-        
-        return content;
-    }
-    
-    // Execute Studio code
-    bool UIController::ExecuteStudioCode() {
-        // Get the current Studio code content
-        std::string code = GetStudioCodeContent();
-        
-        // Execute the code (using the same callback as regular scripts)
-        bool success = m_executeCallback(code);
-        
-        #ifndef CI_BUILD
-        // Update the results view
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (m_uiView) {
-                UIView* view = (__bridge UIView*)m_uiView;
-                UIView* studioView = [view viewWithTag:1005];
-                UITextView* resultsView = [studioView viewWithTag:5004];
-                
-                if ([resultsView isKindOfClass:[UITextView class]]) {
-                    if (success) {
-                        resultsView.text = @"Execution successful";
-                        resultsView.textColor = [UIColor greenColor];
-                    } else {
-                        resultsView.text = @"Execution failed";
-                        resultsView.textColor = [UIColor redColor];
-                    }
-                }
-            }
-        });
-        #endif
-        
-        // Log to console regardless of CI build
-        AppendToConsole(success ? "Studio code executed successfully" : "Studio code execution failed");
-        
-        return success;
-    }
-    
-    // Import code from file
-    bool UIController::ImportStudioCode(const std::string& filePath) {
-        bool success = false;
-        std::string code = "";
-        
-        #ifndef CI_BUILD
-        // Use NSFileManager to open a file dialog if no path is provided
-        if (filePath.empty()) {
-            dispatch_sync(dispatch_get_main_queue(), ^{
-                // Create a UIDocumentPickerViewController to allow file selection
-                UIDocumentPickerViewController* documentPicker = 
-                    [[UIDocumentPickerViewController alloc] initWithDocumentTypes:@[@"public.text", @"public.plain-text", @"public.lua-script"]
-                                                                             inMode:UIDocumentPickerModeImport];
-                
-                // Set up a completion handler to read the selected file
-                documentPicker.delegate = nil;  // Will set up delegate methods with blocks
-                
-                // Access UIViewController to present the document picker
-                UIWindow* keyWindow = nil;
-                for (UIWindow* window in [[UIApplication sharedApplication] windows]) {
-                    if (window.isKeyWindow) {
-                        keyWindow = window;
-                        break;
-                    }
-                }
-                
-                if (keyWindow && keyWindow.rootViewController) {
-                    // Present the document picker
-                    [keyWindow.rootViewController presentViewController:documentPicker animated:YES completion:nil];
-                }
-            });
-        } else {
-            // Read directly from specified file path
-            std::ifstream fileStream(filePath);
-            if (fileStream.is_open()) {
-                std::stringstream buffer;
-                buffer << fileStream.rdbuf();
-                code = buffer.str();
-                fileStream.close();
-                success = true;
-            }
-        }
-        
-        // If we got code content, update the text view
-        if (!code.empty()) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (m_uiView) {
-                    UIView* view = (__bridge UIView*)m_uiView;
-                    UIView* studioView = [view viewWithTag:1005];
-                    UITextView* studioCodeTextView = [studioView viewWithTag:5000];
-                    
-                    if ([studioCodeTextView isKindOfClass:[UITextView class]]) {
-                        studioCodeTextView.text = [NSString stringWithUTF8String:code.c_str()];
-                    }
-                }
-            });
-        }
-        #endif
-        
-        // Log result
-        AppendToConsole(success ? "Studio code imported from file" : "Failed to import Studio code from file");
-        
-        return success;
-    }
-    
-    // Export results to file
-    bool UIController::ExportStudioResults(const std::string& filePath) {
-        bool success = false;
-        
-        // Get both code and results
-        std::string code = GetStudioCodeContent();
-        std::string results = "";
-        
-        #ifndef CI_BUILD
-        // Get results from UI
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            if (m_uiView) {
-                UIView* view = (__bridge UIView*)m_uiView;
-                UIView* studioView = [view viewWithTag:1005];
-                UITextView* resultsView = [studioView viewWithTag:5004];
-                
-                if ([resultsView isKindOfClass:[UITextView class]]) {
-                    results = [resultsView.text UTF8String];
-                }
-            }
-        });
-        
-        // Format export content
-        std::stringstream exportContent;
-        exportContent << "-- Roblox Studio Code --\n\n";
-        exportContent << code << "\n\n";
-        exportContent << "-- Execution Results --\n\n";
-        exportContent << results << "\n";
-        
-        // Export to file
-        if (filePath.empty()) {
-            // Use share sheet to export if no path given
-            dispatch_async(dispatch_get_main_queue(), ^{
-                NSString* nsContent = [NSString stringWithUTF8String:exportContent.str().c_str()];
-                NSURL* tempFileURL = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"studio_export.lua"]];
-                
-                [nsContent writeToURL:tempFileURL atomically:YES encoding:NSUTF8StringEncoding error:nil];
-                
-                // Use UIActivityViewController to share
-                UIActivityViewController* activityController = 
-                    [[UIActivityViewController alloc] initWithActivityItems:@[tempFileURL] applicationActivities:nil];
-                
-                // Present the view controller
-                UIWindow* keyWindow = nil;
-                for (UIWindow* window in [[UIApplication sharedApplication] windows]) {
-                    if (window.isKeyWindow) {
-                        keyWindow = window;
-                        break;
-                    }
-                }
-                
-                if (keyWindow && keyWindow.rootViewController) {
-                    [keyWindow.rootViewController presentViewController:activityController animated:YES completion:nil];
-                    success = true;
-                }
-            });
-        } else {
-            // Write directly to specified file
-            std::ofstream fileStream(filePath);
-            if (fileStream.is_open()) {
-                fileStream << exportContent.str();
-                fileStream.close();
-                success = true;
-            }
-        }
-        #endif
-        
-        // Log result
-        AppendToConsole(success ? "Studio code and results exported" : "Failed to export Studio code and results");
-        
-        return success;
-    }
-    
     // Set load scripts callback
     void UIController::SetLoadScriptsCallback(LoadScriptsCallback callback) {
         if (callback) {
@@ -541,9 +344,8 @@ namespace iOS {
             UITabBarItem* scriptsTab = [[UITabBarItem alloc] initWithTitle:@"Scripts" image:nil tag:1];
             UITabBarItem* consoleTab = [[UITabBarItem alloc] initWithTitle:@"Console" image:nil tag:2];
             UITabBarItem* settingsTab = [[UITabBarItem alloc] initWithTitle:@"Settings" image:nil tag:3];
-            UITabBarItem* studioTab = [[UITabBarItem alloc] initWithTitle:@"Studio" image:nil tag:4];
             
-            tabBar.items = @[editorTab, scriptsTab, consoleTab, settingsTab, studioTab];
+            tabBar.items = @[editorTab, scriptsTab, consoleTab, settingsTab];
             tabBar.selectedItem = editorTab; // Default to editor tab
             [contentView addSubview:tabBar];
             
@@ -579,17 +381,6 @@ namespace iOS {
                                     case 1: tabType = iOS::UIController::TabType::Scripts; break;
                                     case 2: tabType = iOS::UIController::TabType::Console; break;
                                     case 3: tabType = iOS::UIController::TabType::Settings; break;
-                                    case 4: tabType = iOS::UIController::TabType::Studio; break;
-                                }
-                                
-                                // Clear previous Studio results when switching to Studio tab
-                                if (tabType == iOS::UIController::TabType::Studio) {
-                                    UIView* containerView = rootVC.view;
-                                    UIView* studioView = [containerView viewWithTag:1005];
-                                    UITextView* resultsView = [studioView viewWithTag:5004];
-                                    if ([resultsView isKindOfClass:[UITextView class]]) {
-                                        resultsView.text = @"Ready for execution";
-                                    }
                                 }
                                 controller->SwitchTab(tabType);
                             }
@@ -719,82 +510,6 @@ namespace iOS {
             settingsView.backgroundColor = [UIColor clearColor];
             settingsView.hidden = YES;
             [contentView addSubview:settingsView];
-            
-            // Studio tab view (Roblox Studio-like execution)
-            UIView* studioView = [[UIView alloc] initWithFrame:CGRectMake(0, 50, 
-                                                                        containerView.bounds.size.width,
-                                                                        containerView.bounds.size.height - 50)];
-            studioView.tag = 1005;
-            studioView.backgroundColor = [UIColor clearColor];
-            studioView.hidden = YES;
-            [contentView addSubview:studioView];
-            
-            // Studio code editor
-            UITextView* studioCodeTextView = [[UITextView alloc] initWithFrame:CGRectMake(10, 10, 
-                                                                                 studioView.bounds.size.width - 20,
-                                                                                 studioView.bounds.size.height - 120)];
-            studioCodeTextView.tag = 5000;
-            studioCodeTextView.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.8];
-            studioCodeTextView.textColor = [UIColor whiteColor];
-            studioCodeTextView.font = [UIFont fontWithName:@"Menlo" size:14.0];
-            studioCodeTextView.autocorrectionType = UITextAutocorrectionTypeNo;
-            studioCodeTextView.autocapitalizationType = UITextAutocapitalizationTypeNone;
-            studioCodeTextView.text = @"-- Enter Roblox Studio-style code here\n\n-- Example:\n-- local part = Instance.new(\"Part\")\n-- part.Parent = workspace\n-- part.Position = Vector3.new(0, 10, 0)";
-            [studioView addSubview:studioCodeTextView];
-            
-            // Studio execution button
-            UIButton* studioExecuteButton = [UIButton buttonWithType:UIButtonTypeSystem];
-            studioExecuteButton.frame = CGRectMake(10, studioView.bounds.size.height - 100, 
-                                              100, 40);
-            studioExecuteButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.5 blue:1.0 alpha:0.7];
-            studioExecuteButton.layer.cornerRadius = 5.0;
-            [studioExecuteButton setTitle:@"Execute" forState:UIControlStateNormal];
-            [studioExecuteButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-            studioExecuteButton.tag = 5001;
-            [studioView addSubview:studioExecuteButton];
-            
-            // Import file button
-            UIButton* importButton = [UIButton buttonWithType:UIButtonTypeSystem];
-            importButton.frame = CGRectMake(120, studioView.bounds.size.height - 100, 
-                                       100, 40);
-            importButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.6 blue:0.3 alpha:0.7];
-            importButton.layer.cornerRadius = 5.0;
-            [importButton setTitle:@"Import" forState:UIControlStateNormal];
-            [importButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-            importButton.tag = 5002;
-            [studioView addSubview:importButton];
-            
-            // Export results button
-            UIButton* exportButton = [UIButton buttonWithType:UIButtonTypeSystem];
-            exportButton.frame = CGRectMake(230, studioView.bounds.size.height - 100, 
-                                       100, 40);
-            exportButton.backgroundColor = [UIColor colorWithRed:0.8 green:0.4 blue:0.0 alpha:0.7];
-            exportButton.layer.cornerRadius = 5.0;
-            [exportButton setTitle:@"Export" forState:UIControlStateNormal];
-            [exportButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-            exportButton.tag = 5003;
-            [studioView addSubview:exportButton];
-            
-            // Results label
-            UILabel* resultsLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, studioView.bounds.size.height - 50, 100, 30)];
-            resultsLabel.text = @"Results:";
-            resultsLabel.textColor = [UIColor whiteColor];
-            [studioView addSubview:resultsLabel];
-            
-            // Results output (small area to show execution results)
-            UITextView* studioResultsView = [[UITextView alloc] initWithFrame:CGRectMake(120, studioView.bounds.size.height - 50, 
-                                                                                studioView.bounds.size.width - 130, 40)];
-            studioResultsView.tag = 5004;
-            studioResultsView.backgroundColor = [UIColor colorWithWhite:0.15 alpha:0.8];
-            studioResultsView.textColor = [UIColor greenColor];
-            studioResultsView.font = [UIFont fontWithName:@"Menlo" size:12.0];
-            studioResultsView.editable = NO;
-            [studioView addSubview:studioResultsView];
-            
-            // Set up button actions for Studio tab
-            [studioExecuteButton addTarget:nil action:NSSelectorFromString(@"studioExecuteButtonTapped:") forControlEvents:UIControlEventTouchUpInside];
-            [importButton addTarget:nil action:NSSelectorFromString(@"studioImportButtonTapped:") forControlEvents:UIControlEventTouchUpInside];
-            [exportButton addTarget:nil action:NSSelectorFromString(@"studioExportButtonTapped:") forControlEvents:UIControlEventTouchUpInside];
             
             // Settings options
             UIView* settingsContainer = [[UIView alloc] initWithFrame:CGRectMake(10, 10, 
@@ -1239,66 +954,6 @@ namespace iOS {
                     }
                 });
                 class_addMethod([buttonSwitch class], buttonSelector, buttonImp, "v@:@");
-                
-                // Studio execute button handler
-                SEL studioExecuteSelector = NSSelectorFromString(@"studioExecuteButtonTapped:");
-                IMP studioExecuteImp = imp_implementationWithBlock(^(id self, UIButton* sender) {
-                    UIViewController* rootVC = nil;
-                    for (UIWindow* window in [[UIApplication sharedApplication] windows]) {
-                        if (window.isKeyWindow) {
-                            rootVC = window.rootViewController;
-                            break;
-                        }
-                    }
-                    
-                    if (rootVC) {
-                        iOS::UIController* controller = (__bridge iOS::UIController*)(void*)objc_getAssociatedObject(rootVC, "UIControllerInstance");
-                        if (controller) {
-                            controller->ExecuteStudioCode();
-                        }
-                    }
-                });
-                class_addMethod(UIButton.class, studioExecuteSelector, studioExecuteImp, "v@:@");
-                
-                // Studio import button handler
-                SEL studioImportSelector = NSSelectorFromString(@"studioImportButtonTapped:");
-                IMP studioImportImp = imp_implementationWithBlock(^(id self, UIButton* sender) {
-                    UIViewController* rootVC = nil;
-                    for (UIWindow* window in [[UIApplication sharedApplication] windows]) {
-                        if (window.isKeyWindow) {
-                            rootVC = window.rootViewController;
-                            break;
-                        }
-                    }
-                    
-                    if (rootVC) {
-                        iOS::UIController* controller = (__bridge iOS::UIController*)(void*)objc_getAssociatedObject(rootVC, "UIControllerInstance");
-                        if (controller) {
-                            controller->ImportStudioCode();
-                        }
-                    }
-                });
-                class_addMethod(UIButton.class, studioImportSelector, studioImportImp, "v@:@");
-                
-                // Studio export button handler
-                SEL studioExportSelector = NSSelectorFromString(@"studioExportButtonTapped:");
-                IMP studioExportImp = imp_implementationWithBlock(^(id self, UIButton* sender) {
-                    UIViewController* rootVC = nil;
-                    for (UIWindow* window in [[UIApplication sharedApplication] windows]) {
-                        if (window.isKeyWindow) {
-                            rootVC = window.rootViewController;
-                            break;
-                        }
-                    }
-                    
-                    if (rootVC) {
-                        iOS::UIController* controller = (__bridge iOS::UIController*)(void*)objc_getAssociatedObject(rootVC, "UIControllerInstance");
-                        if (controller) {
-                            controller->ExportStudioResults();
-                        }
-                    }
-                });
-                class_addMethod(UIButton.class, studioExportSelector, studioExportImp, "v@:@");
             }();
             
             // Set up dragging behavior for the container

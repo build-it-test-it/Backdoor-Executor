@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "OfflineAISystem.h"
 #include "local_models/LocalModelBase.h"
 #include "local_models/ScriptGenerationModel.h"
@@ -7,7 +8,6 @@
 #include <thread>
 #include <regex>
 #include <set>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AIFeatures {

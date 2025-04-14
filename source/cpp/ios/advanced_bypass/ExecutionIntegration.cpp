@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 // Simplified ExecutionIntegration implementation for CI builds
 #define CI_BUILD
 

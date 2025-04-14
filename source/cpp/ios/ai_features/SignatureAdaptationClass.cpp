@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #define CI_BUILD
 
 

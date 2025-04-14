@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "MemoryAccess.h"
 #include <iostream>
 #include <sstream>

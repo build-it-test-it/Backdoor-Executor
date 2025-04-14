@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 // Stub implementation for CI build
 #define CI_BUILD
 

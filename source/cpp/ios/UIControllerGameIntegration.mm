@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "UIControllerGameIntegration.h"
 #include <iostream>
 

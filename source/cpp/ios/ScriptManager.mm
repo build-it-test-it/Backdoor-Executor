@@ -1,10 +1,10 @@
+#include "../ios_compat.h"
 #include "ScriptManager.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <chrono>
-#import <Foundation/Foundation.h>
 #import <CommonCrypto/CommonCrypto.h>
 
 namespace iOS {

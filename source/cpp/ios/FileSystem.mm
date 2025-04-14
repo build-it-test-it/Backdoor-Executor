@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "FileSystem.h"
 #include <iostream>
 #include <fstream>
@@ -7,7 +8,6 @@
 #include <dirent.h>
 #include <ctime>
 #include <cstring>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
     // Initialize static members

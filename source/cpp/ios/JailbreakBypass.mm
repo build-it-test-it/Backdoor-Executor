@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "JailbreakBypass.h"
 #include <cstdio>
 #include <cstdlib>
@@ -41,7 +42,6 @@
 #endif
 
 // Objective-C method swizzling helper
-#import <objc/runtime.h>
 
 namespace iOS {
     // Initialize static members

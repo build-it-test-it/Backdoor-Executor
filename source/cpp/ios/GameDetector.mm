@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "GameDetector.h"
 #include "MemoryAccess.h"
 #include "PatternScanner.h"

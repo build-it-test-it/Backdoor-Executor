@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "PatternScanner.h"
 #include <sstream>
 #include <iomanip>

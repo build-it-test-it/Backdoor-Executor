@@ -1,11 +1,10 @@
+#include "../ios_compat.h"
 #include "MainViewController.h"
 #include <chrono>
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
 #include <cmath>
-#import <UIKit/UIKit.h>
-#import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/QuartzCore.h>
 

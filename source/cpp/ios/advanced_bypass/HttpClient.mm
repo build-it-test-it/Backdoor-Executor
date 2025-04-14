@@ -1,10 +1,10 @@
+#include "../ios_compat.h"
 #include "HttpClient.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AdvancedBypass {

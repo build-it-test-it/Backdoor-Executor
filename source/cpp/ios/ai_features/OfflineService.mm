@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #include "OfflineService.h"
 #include <iostream>
 #include <sstream>
@@ -5,7 +6,6 @@
 #include <chrono>
 #include <thread>
 #include "local_models/ScriptGenerationModel.h"
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AIFeatures {

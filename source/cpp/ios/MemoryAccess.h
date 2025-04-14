@@ -4,7 +4,14 @@
 // mach_vm.h is not supported on iOS, use alternative headers
 #if !defined(IOS_TARGET) && !defined(__APPLE__)
 #include <mach/mach_vm.h>
+#else
+// Add additional headers needed for iOS compatibility
+#include <mach/vm_types.h>
+#include <mach/vm_prot.h>
+#include <mach/vm_map.h>
+#include <mach/vm_region.h>
 #endif
+
 #include <mach/vm_map.h>
 #include <mach-o/dyld.h>
 #include <vector>

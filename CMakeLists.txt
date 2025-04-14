@@ -506,9 +506,9 @@ endif()
 #     "-all_load"
 # )
 
-# Instead, just make sure SystemConfiguration weak linking is maintained
-target_link_libraries(roblox_executor PRIVATE 
-    "-weak_framework" "SystemConfiguration"
+# Fix SystemConfiguration framework linking syntax
+target_link_libraries(roblox_executor PRIVATE
+    "-weak_framework SystemConfiguration"
 )
 
 # Create required directories for AI data

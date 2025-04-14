@@ -268,4 +268,17 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
         -fvisibility=hidden
         -fvisibility-inlines-hidden
     )
+else()
+    # Debug build flags
+    target_compile_options(roblox_executor PRIVATE
+        -g
+    )
 endif()
+
+# Add error reporting flags to show more details during build
+target_compile_options(roblox_executor PRIVATE
+    -ferror-limit=0        # No limit on number of errors to show
+    -fcolor-diagnostics    # Use color in diagnostics
+    -fdiagnostics-show-category=name    # Show category name
+    -fdiagnostics-absolute-paths        # Show absolute paths
+)

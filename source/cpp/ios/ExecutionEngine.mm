@@ -182,24 +182,37 @@ namespace iOS {
                                 timedOut = YES;
                             }
                         
-                            // Copy results to output variables after all async operations
+                            // Create local copies of the results from the block
+                            std::string localOutput;
+                            std::string localError;
+                            bool localSuccess = capturedSuccess;
+                            
                             if (capturedOutput) {
-                                output = [capturedOutput UTF8String];
+                                localOutput = [capturedOutput UTF8String];
                             }
-                        
+                            
                             if (capturedError) {
-                                error = [capturedError UTF8String];
+                                localError = [capturedError UTF8String];
                             }
-                        
-                            success = capturedSuccess;
+                            
+                            // Assign local values back using a mutable ExecutionResult
+                            ExecutionResult result(localSuccess, localError, 0, localOutput);
+                            output = result.m_output;
+                            error = result.m_error;
+                            success = result.m_success;
                         
                             // Remove web view
                             [webView removeFromSuperview];
                         } else {
-                            // Handle missing key window by setting the error and success locally
+                            // Handle missing key window with a local result first
                             std::string localError = "Failed to find key window for execution";
-                            error = localError;
-                            success = false;
+                            bool localSuccess = false;
+                            
+                            // Create a result object and then copy its values
+                            ExecutionResult result(localSuccess, localError);
+                            output = result.m_output;  // Empty in this case
+                            error = result.m_error;
+                            success = result.m_success;
                         }
                         
                         dispatch_group_leave(group);

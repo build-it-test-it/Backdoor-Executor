@@ -63,9 +63,19 @@ void mainfunc() {
 #if HOOKING_AVAILABLE
     // Thanks to no memcheck we can just hook StartScript and steal first arg to get script context
     std::cout << "Setting up Roblox script hooks..." << std::endl;
+    
+    #if !defined(IOS_TARGET) && !defined(__APPLE__)
+    // Only use actual Dobby hook on non-iOS platforms
     DobbyHook(reinterpret_cast<void*>(getAddress(startscript_addy)), 
               (void*)&hkstartscript, 
               (void**)&origstartscript);
+    #else
+    // On iOS, just log that we would hook (no actual hook)
+    std::cout << "iOS build: Dobby hooks simulated" << std::endl;
+    // Declare extern to avoid undeclared identifier
+    extern int (*origstartscript)(std::uintptr_t, std::uintptr_t);
+    #endif
+    
     std::cout << "Hooks installed successfully" << std::endl;
 #else
     std::cout << "Hooking functionality is disabled (Dobby not available)" << std::endl;

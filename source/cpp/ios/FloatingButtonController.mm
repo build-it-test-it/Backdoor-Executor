@@ -203,10 +203,9 @@ namespace iOS {
             UITapGestureRecognizer* tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:button action:@selector(handleTap:)];
             [button addGestureRecognizer:tapGesture];
             
-            // Store the button and apply initial position
-            // Manual retain in non-ARC mode
+            // Store the button and apply initial position (manual memory management)
             m_buttonView = (void*)button;
-            [button retain];
+            [button retain]; // Explicitly retain the button since we're not using ARC
             UpdateButtonPosition();
             
             // Initially hidden
@@ -219,8 +218,7 @@ namespace iOS {
         if (m_buttonView) {
             FloatingButton* button = (FloatingButton*)m_buttonView;
             [button removeFromSuperview];
-            // Manual release in non-ARC mode
-            [button release];
+            [button release]; // Explicitly release since we're manually retaining
             m_buttonView = nullptr;
         }
     }

@@ -87,7 +87,9 @@
 #include <string.h>
 
 // Include Luau headers from Homebrew
-#include <luau.h>
+// Homebrew Luau uses standard Lua naming for headers
+#include <lua.h>
+#include <lauxlib.h>
 #include <lualib.h>
 
 #include "lfs.h"

@@ -62,15 +62,37 @@ jobs:
         LUAU_PREFIX=$(brew --prefix luau)
         echo "Using Homebrew Luau from $LUAU_PREFIX"
         
+        # Check actual library and include structure
+        echo "Checking Luau installation structure..."
+        ls -la $LUAU_PREFIX/include/ || echo "Include directory not found"
+        ls -la $LUAU_PREFIX/lib/ || echo "Lib directory not found"
+        
+        # Find the actual library file
+        LUAU_LIBRARY=$(find $LUAU_PREFIX/lib -name "*.dylib" | head -1)
+        if [ -z "$LUAU_LIBRARY" ]; then
+            LUAU_LIBRARY=$(find $LUAU_PREFIX/lib -name "*.a" | head -1)
+        fi
+        
+        if [ -z "$LUAU_LIBRARY" ]; then
+            echo "Warning: Could not find Luau library, using default path assumption"
+            LUAU_LIBRARY="$LUAU_PREFIX/lib/liblua.dylib"
+        fi
+        
+        echo "Found Luau library: $LUAU_LIBRARY"
+        
         # Set environment variables for Luau
         echo "LUAU_INCLUDE_DIR=$LUAU_PREFIX/include" >> $GITHUB_ENV
         echo "LUAU_LIB_DIR=$LUAU_PREFIX/lib" >> $GITHUB_ENV
         echo "LUA_INCLUDE_DIR=$LUAU_PREFIX/include" >> $GITHUB_ENV
-        echo "LUA_LIBRARIES=$LUAU_PREFIX/lib/libluau.dylib" >> $GITHUB_ENV
+        echo "LUA_LIBRARIES=$LUAU_LIBRARY" >> $GITHUB_ENV
         
         # Set compiler flags to include Luau headers
         echo "CFLAGS=-I$LUAU_PREFIX/include" >> $GITHUB_ENV
         echo "CXXFLAGS=-I$LUAU_PREFIX/include" >> $GITHUB_ENV
+        
+        # Also pass these to subsequent commands
+        export LUA_INCLUDE_DIR=$LUAU_PREFIX/include
+        export LUA_LIBRARIES=$LUAU_LIBRARY
         
         # Create directories for project resources (only once)
         mkdir -p Resources/AIData/LocalModels

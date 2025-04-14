@@ -136,15 +136,16 @@ namespace iOS {
                     return nullptr; // ReportDetection
                 }
                 
+                // Function names must be unique - fixed by adding qualifiers to name
                 __attribute__((visibility("default"), used))
-                int _ZN3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_19SignatureAdaptation13DetectionEventE() {
+                int _ZN3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_19SignatureAdaptation13DetectionEventE_qualified() {
                     // ReportDetection with full namespace qualification for DetectionEvent
                     return 0;
                 }
                 
                 __attribute__((visibility("default"), used))
                 int _ZNK3iOS10AIFeatures19SignatureAdaptation15ReportDetectionERKNS1_13DetectionEventE() {
-                    // ReportDetection (const method variant)
+                    // ReportDetection (const method variant - already uses different mangling with NK)
                     return 0;
                 }
                 
@@ -154,9 +155,10 @@ namespace iOS {
                     return nullptr; // PruneDetectionHistory
                 }
                 
+                // Changed name to include a suffix to avoid duplicate definition
                 __attribute__((visibility("default"), used))
-                int _ZN3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv() {
-                    // PruneDetectionHistory with void return type
+                int _ZN3iOS10AIFeatures19SignatureAdaptation20PruneDetectionHistoryEv_int() {
+                    // PruneDetectionHistory with int return type (renamed)
                     return 0;
                 }
                 

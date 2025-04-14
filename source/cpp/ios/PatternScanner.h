@@ -4,7 +4,16 @@
 #include <vector>
 #include <optional>
 #include <cstdint>
+// Include MemoryAccess.h first as it contains the mach_vm typedefs and compatibility wrappers
 #include "MemoryAccess.h"
+
+// Make sure we have proper definitions for all platforms
+#if defined(__APPLE__) || defined(IOS_TARGET)
+// MemoryAccess.h should already have defined these but make sure
+#ifndef mach_vm_address_t
+typedef vm_address_t mach_vm_address_t;
+#endif
+#endif
 
 namespace iOS {
     /**

@@ -199,11 +199,14 @@ file(WRITE "${CMAKE_BINARY_DIR}/lua_stub.c" "
     int scanVulnerabilities(void* L) { return 0; }
 ")
 
-# Create the stub library
+# Create the stub library - define the luaopen_lfs symbol with different name to avoid conflicts
 add_library(lua_bundled STATIC "${CMAKE_BINARY_DIR}/lua_stub.c")
 target_include_directories(lua_bundled PRIVATE 
     ${LUA_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/source/cpp/luau
+)
+target_compile_definitions(lua_bundled PRIVATE
+    luaopen_lfs=luaopen_lfs_stub  # Rename the symbol in lua_stub.c to avoid duplication with real lfs.c
 )
 
 # Create a symlink target that ensures the liblua.dylib exists
@@ -288,18 +291,21 @@ if(USE_DOBBY)
             add_library(dobby_stub STATIC "${CMAKE_BINARY_DIR}/dobby_stub.c")
             
             # Create iOS stubs library using the fixed file in the build directory
-            add_library(ios_stubs STATIC "${CMAKE_BINARY_DIR}/ios_stubs_fixed.cpp")
-            target_include_directories(ios_stubs PRIVATE 
-                "${CMAKE_SOURCE_DIR}/source/cpp/ios"
-                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
-            )
-            set_target_properties(ios_stubs PROPERTIES
-                POSITION_INDEPENDENT_CODE ON
-                LINKER_LANGUAGE CXX
-                OUTPUT_NAME "ios_stubs"
-                LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-                ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-            )
+            # We no longer need to build the ios_stubs library since we have real implementations now
+            # This will prevent duplicate symbol errors
+
+            # add_library(ios_stubs STATIC "${CMAKE_BINARY_DIR}/ios_stubs_fixed.cpp")
+            # target_include_directories(ios_stubs PRIVATE 
+            #     "${CMAKE_SOURCE_DIR}/source/cpp/ios"
+            #     "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+            # )
+            # set_target_properties(ios_stubs PROPERTIES
+            #     POSITION_INDEPENDENT_CODE ON
+            #     LINKER_LANGUAGE CXX
+            #     OUTPUT_NAME "ios_stubs"
+            #     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+            #     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+            # )
             set(Dobby_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/source/cpp/ios")
             set(Dobby_LIBRARIES dobby_stub)
             set(Dobby_FOUND TRUE)
@@ -476,8 +482,9 @@ target_link_libraries(roblox_executor PRIVATE
     "-weak_framework SystemConfiguration"  # Use weak linking for SystemConfiguration
 )
 
-# Ensure all stub libraries are built before the main target
-add_dependencies(roblox_executor lua_bundled ensure_lua_path ios_stubs dobby_stub)
+# Ensure required libraries are built before the main target
+# Removed ios_stubs dependency to avoid duplicate symbols
+add_dependencies(roblox_executor lua_bundled ensure_lua_path dobby_stub)
 
 # Add Dobby and iOS stubs - we'll always have something to link against
 if(USE_DOBBY AND Dobby_FOUND)
@@ -492,12 +499,16 @@ if(USE_DOBBY AND Dobby_FOUND)
     endif()
 endif()
 
-# Link against iOS stubs with multiple approaches to ensure symbols are found
-# Use direct path to static library to avoid dependency issues
-set(IOS_STUBS_LIB "${CMAKE_BINARY_DIR}/libios_stubs.a")
+# Now that we have proper implementations, we don't need to force-load the ios_stubs library
+# Remove ios_stubs library linking to avoid duplicate symbols
+# target_link_libraries(roblox_executor PRIVATE 
+#     "-force_load" "${CMAKE_BINARY_DIR}/libios_stubs.a"
+#     "-all_load"
+# )
+
+# Instead, just make sure SystemConfiguration weak linking is maintained
 target_link_libraries(roblox_executor PRIVATE 
-    "-force_load" "${IOS_STUBS_LIB}"
-    "-all_load" # Force all symbols to be loaded from all libraries
+    "-weak_framework" "SystemConfiguration"
 )
 
 # Create required directories for AI data

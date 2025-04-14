@@ -80,6 +80,14 @@ jobs:
         
         echo "Found Luau library: $LUAU_LIBRARY"
         
+        # Create a symbolic link from libluau.dylib to liblua.dylib (if needed)
+        if [ -f "$LUAU_PREFIX/lib/libluau.dylib" ] && [ ! -f "$LUAU_PREFIX/lib/liblua.dylib" ]; then
+            echo "Creating symbolic link from libluau.dylib to liblua.dylib"
+            ln -sf "$LUAU_PREFIX/lib/libluau.dylib" "$LUAU_PREFIX/lib/liblua.dylib"
+            # Use the symlinked path for consistency
+            LUAU_LIBRARY="$LUAU_PREFIX/lib/liblua.dylib"
+        fi
+        
         # Set environment variables for Luau
         echo "LUAU_INCLUDE_DIR=$LUAU_PREFIX/include" >> $GITHUB_ENV
         echo "LUAU_LIB_DIR=$LUAU_PREFIX/lib" >> $GITHUB_ENV
@@ -166,7 +174,24 @@ jobs:
         echo "" >> cmake/FindLua.cmake
         echo "    if(LUAU_PREFIX)" >> cmake/FindLua.cmake
         echo "        set(LUA_INCLUDE_DIR \"\${LUAU_PREFIX}/include\")" >> cmake/FindLua.cmake
-        echo "        set(LUA_LIBRARIES \"\${LUAU_PREFIX}/lib/libluau.dylib\")" >> cmake/FindLua.cmake
+        echo "        # First check for liblua.dylib (our symlink)" >> cmake/FindLua.cmake
+        echo "        if(EXISTS \"\${LUAU_PREFIX}/lib/liblua.dylib\")" >> cmake/FindLua.cmake
+        echo "            set(LUA_LIBRARIES \"\${LUAU_PREFIX}/lib/liblua.dylib\")" >> cmake/FindLua.cmake
+        echo "        # Then try libluau.dylib (the original library name)" >> cmake/FindLua.cmake
+        echo "        elseif(EXISTS \"\${LUAU_PREFIX}/lib/libluau.dylib\")" >> cmake/FindLua.cmake
+        echo "            set(LUA_LIBRARIES \"\${LUAU_PREFIX}/lib/libluau.dylib\")" >> cmake/FindLua.cmake
+        echo "        # Finally try any dylib in the lib directory" >> cmake/FindLua.cmake
+        echo "        else()" >> cmake/FindLua.cmake
+        echo "            file(GLOB LUAU_LIBS \"\${LUAU_PREFIX}/lib/*.dylib\")" >> cmake/FindLua.cmake
+        echo "            if(LUAU_LIBS)" >> cmake/FindLua.cmake
+        echo "                list(GET LUAU_LIBS 0 LUA_LIBRARIES)" >> cmake/FindLua.cmake
+        echo "            else()" >> cmake/FindLua.cmake
+        echo "                # Fallback to a default path" >> cmake/FindLua.cmake
+        echo "                set(LUA_LIBRARIES \"\${LUAU_PREFIX}/lib/liblua.dylib\")" >> cmake/FindLua.cmake
+        echo "                message(WARNING \"Could not find Luau library, using default path\")" >> cmake/FindLua.cmake
+        echo "            endif()" >> cmake/FindLua.cmake
+        echo "        endif()" >> cmake/FindLua.cmake
+        echo "" >> cmake/FindLua.cmake
         echo "        set(LUA_FOUND TRUE)" >> cmake/FindLua.cmake
         echo "    endif()" >> cmake/FindLua.cmake
         echo "endif()" >> cmake/FindLua.cmake

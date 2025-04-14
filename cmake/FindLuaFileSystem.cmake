@@ -1,32 +1,38 @@
 # FindLuaFileSystem.cmake
-# This module allows compilation of lfs.c specifically using our own Lua headers
+# This module allows compilation of lfs.c specifically by finding external Lua
 
-# Create a target for lfs.c that ensures it can find the Luau headers
+# Create a target for lfs.c with external Lua
 function(add_lfs_target)
     # Don't add it twice
     if(TARGET lfs_obj)
         return()
     endif()
     
-    message(STATUS "Setting up LuaFileSystem with native Luau headers")
+    message(STATUS "Setting up LuaFileSystem with external Lua headers")
     
     # Create an object library for lfs.c
     add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
     
-    # Set include directories for just this file
-    # The source directory is needed for relative includes like "cpp/luau/lua.h"
-    target_include_directories(lfs_obj PRIVATE
-        ${CMAKE_SOURCE_DIR}/source         # Main source directory for relative includes
-        ${CMAKE_SOURCE_DIR}/source/cpp     # For cpp/luau/lua.h path style
-        ${CMAKE_SOURCE_DIR}/source/cpp/luau # For direct lua.h access
-        ${CMAKE_SOURCE_DIR}                # For absolute paths
+    # Look for lua in standard paths
+    find_path(LUA_INCLUDE_DIR lua.h
+        PATHS
+        /opt/homebrew/opt/lua/include
+        /opt/homebrew/include
+        /usr/local/include
+        /usr/include
+        PATH_SUFFIXES lua lua5.4 lua5.3 lua5.2 lua5.1
     )
     
-    # Add a define to use the internal Luau headers
-    target_compile_definitions(lfs_obj PRIVATE 
-        LFS_USE_INTERNAL_LUAU=1
-        LUAU_FASTFLAG_LUAERROR=1          # Handle missing dependencies
+    # Add include directories
+    target_include_directories(lfs_obj PRIVATE
+        ${LUA_INCLUDE_DIR}
     )
+    
+    # Enable standard paths with quotes if needed
+    if(LUA_INCLUDE_DIR)
+        message(STATUS "Found Lua include directory: ${LUA_INCLUDE_DIR}")
+        target_compile_definitions(lfs_obj PRIVATE LFS_USE_INCLUDE_QUOTES)
+    endif()
     
     # Ensure the compiler knows this is C
     set_target_properties(lfs_obj PROPERTIES
@@ -34,5 +40,5 @@ function(add_lfs_target)
         POSITION_INDEPENDENT_CODE ON
     )
     
-    message(STATUS "LFS using internal Luau headers from ${CMAKE_SOURCE_DIR}/source/cpp/luau")
+    message(STATUS "LFS using external Lua headers from: ${LUA_INCLUDE_DIR}")
 endfunction()

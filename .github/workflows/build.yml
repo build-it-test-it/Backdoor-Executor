@@ -55,8 +55,27 @@ jobs:
             fi
         fi
         
-        # Note: We're using the internal Luau headers, not external Lua
-        echo "Using internal Luau headers - no need to install external Lua"
+        # Note: We're using standard Lua headers
+        echo "Using standard Lua headers - we'll look for them on the system"
+        
+        # Install lua and luarocks with homebrew
+        brew install lua@5.4 || brew install lua || echo "Lua installation failed but we'll continue"
+        which lua || echo "Lua not found in PATH"
+        
+        # Copy any headers found to our directory
+        mkdir -p /tmp/lua_include
+        find /opt/homebrew -name "lua.h" -exec cp {} /tmp/lua_include/ \; || echo "No lua.h found"
+        find /opt/homebrew -name "lauxlib.h" -exec cp {} /tmp/lua_include/ \; || echo "No lauxlib.h found"
+        find /opt/homebrew -name "lualib.h" -exec cp {} /tmp/lua_include/ \; || echo "No lualib.h found"
+        
+        # Find and copy lua libraries
+        mkdir -p /tmp/lua_lib
+        find /opt/homebrew -name "liblua*.dylib" -exec cp {} /tmp/lua_lib/ \; || echo "No lua libraries found"
+        find /opt/homebrew -name "liblua*.a" -exec cp {} /tmp/lua_lib/ \; || echo "No lua libraries found"
+        
+        # Set environment variables
+        echo "LUA_INCLUDE_DIR=/tmp/lua_include" >> $GITHUB_ENV
+        echo "LUA_LIBRARIES=/tmp/lua_lib/liblua.dylib" >> $GITHUB_ENV
         
         # Create directories for project resources (only once)
         mkdir -p Resources/AIData/LocalModels

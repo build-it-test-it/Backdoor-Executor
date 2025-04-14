@@ -42,6 +42,45 @@ public:
         High           // Higher quality models (slower, more memory)
     };
     
+    /**
+     * @brief Set model quality
+     * @param quality Model quality
+     */
+    void SetModelQuality(ModelQuality quality) { 
+        std::string qualityStr;
+        switch (quality) {
+            case ModelQuality::Low:
+                qualityStr = "low";
+                break;
+            case ModelQuality::Medium:
+                qualityStr = "medium";
+                break;
+            case ModelQuality::High:
+                qualityStr = "high";
+                break;
+            default:
+                qualityStr = "medium";
+                break;
+        }
+        SetOption("model_quality", qualityStr);
+    }
+    
+    /**
+     * @brief Get model quality
+     * @return Model quality
+     */
+    ModelQuality GetModelQuality() const {
+        std::string qualityStr = GetOption("model_quality", "medium");
+        
+        if (qualityStr == "low") {
+            return ModelQuality::Low;
+        } else if (qualityStr == "high") {
+            return ModelQuality::High;
+        } else {
+            return ModelQuality::Medium;
+        }
+    }
+    
     // For compatibility - use HybridAISystem's OnlineMode
     typedef HybridAISystem::OnlineMode OnlineMode;
     

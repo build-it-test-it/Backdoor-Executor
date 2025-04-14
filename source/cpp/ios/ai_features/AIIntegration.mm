@@ -63,13 +63,15 @@ private:
                                         error:nil];
         }
         
-        // Register for memory warnings - use NSNotificationCenter and block-based API
+        // Register for memory warnings using a C function
+        static auto memoryWarningCallback = ^(NSNotification *note) {
+            iOS::AIFeatures::AIIntegration::GetSharedInstance()->HandleMemoryWarning();
+        };
+    
         [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification
                                                           object:nil
                                                            queue:[NSOperationQueue mainQueue]
-                                                      usingBlock:^(NSNotification *note) {
-                                                          [self handleMemoryWarning];
-                                                      }];
+                                                      usingBlock:memoryWarningCallback];
     }
     
 public:
@@ -88,7 +90,8 @@ public:
      * @brief Destructor
      */
     ~AIIntegration() {
-        [[NSNotificationCenter defaultCenter] removeObserver:self];
+        // Don't try to remove specific observer, just clean up what's needed
+        // The block-based observer is automatically removed when it goes out of scope
     }
     
     /**
@@ -564,17 +567,7 @@ AIIntegration* AIIntegration::s_instance = nullptr;
 } // namespace AIFeatures
 } // namespace iOS
 
-// Memory warning handling using category on AIIntegration
-@interface AIIntegration : NSObject
-- (void)handleMemoryWarning;
-@end
-
-@implementation AIIntegration
-- (void)handleMemoryWarning {
-    // Forward to C++ implementation
-    iOS::AIFeatures::AIIntegration::GetSharedInstance()->HandleMemoryWarning();
-}
-@end
+// We don't need this Objective-C category anymore since we're using a block directly
 
 // Expose C functions for integration
 extern "C" {

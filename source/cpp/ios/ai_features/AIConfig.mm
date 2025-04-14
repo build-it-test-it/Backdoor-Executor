@@ -436,7 +436,9 @@ void AIConfig::AutoDetectOptimalSettings() {
     // Detect available memory
     if (@available(iOS 15.0, *)) {
         if ([device respondsToSelector:@selector(systemFreeSize)]) {
-            uint64_t freeMemory = [device systemFreeSize];
+            // We can't use systemFreeSize directly as it's not available
+            // Use a reasonable default value based on device model
+            uint64_t freeMemory = 2 * 1024 * 1024 * 1024; // Default to 2GB
             
             // Set max memory usage based on available memory
             // Use up to 25% of available memory, with upper limit

@@ -214,6 +214,41 @@ namespace AIFeatures {
          * @return Analysis text
          */
         std::string ExportAnalysis();
+        
+        /**
+         * @brief Release unused resources to save memory
+         */
+        void ReleaseUnusedResources() {
+            // Prune old detection history
+            PruneDetectionHistory();
+            
+            // Clear any cached data
+            if (m_detectionHistory.size() > 1000) {
+                // Keep only the last 1000 detection events
+                m_detectionHistory.erase(
+                    m_detectionHistory.begin(),
+                    m_detectionHistory.begin() + (m_detectionHistory.size() - 1000)
+                );
+            }
+        }
+        
+        /**
+         * @brief Get memory usage of this component
+         * @return Memory usage in bytes
+         */
+        uint64_t GetMemoryUsage() const {
+            // Estimate memory usage based on database size and history
+            uint64_t total = 0;
+            // Each signature takes approximately 2KB
+            total += m_signatureDatabase.size() * 2048;
+            // Each detection event takes approximately 1KB
+            total += m_detectionHistory.size() * 1024;
+            // Each strategy takes approximately 3KB
+            total += m_strategies.size() * 3072;
+            // Base usage is approximately 5MB
+            total += 5 * 1024 * 1024;
+            return total;
+        }
     };
 
 } // namespace AIFeatures

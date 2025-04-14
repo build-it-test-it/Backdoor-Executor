@@ -71,13 +71,13 @@ bool AIIntegrationManager::Initialize(const std::string& apiKey, StatusCallback 
 // Initialize components
 void AIIntegrationManager::InitializeComponents() {
     try {
-        // Create and initialize online service
-        ReportStatus(StatusUpdate("Initializing network services...", 0.1f));
+        // Create and initialize online service but use empty API values
+        ReportStatus(StatusUpdate("Initializing system services...", 0.1f));
         
         m_onlineService = std::make_shared<OnlineService>();
         bool onlineInitialized = m_onlineService->Initialize(
-            m_config.GetAPIEndpoint(),
-            m_config.GetAPIKey()
+            "", // Empty endpoint to ensure no network access
+            ""  // Empty API key
         );
         
         if (onlineInitialized) {
@@ -97,14 +97,14 @@ void AIIntegrationManager::InitializeComponents() {
             m_online = false;
         }
         
-        // Create and initialize hybrid AI system
+        // Create and initialize hybrid AI system in offline mode
         ReportStatus(StatusUpdate("Initializing AI system...", 0.2f));
         
         m_hybridAI = std::make_shared<HybridAISystem>();
         bool hybridInitialized = m_hybridAI->Initialize(
             m_config.GetModelPath(),
-            onlineInitialized ? m_config.GetAPIEndpoint() : "",
-            m_config.GetAPIKey(),
+            "", // Empty endpoint to ensure no network access
+            "", // Empty API key
             [this](float progress) {
                 ReportStatus(StatusUpdate("Loading AI models...", 0.2f + progress * 0.4f));
             }
@@ -219,29 +219,8 @@ AIConfig::OnlineMode AIIntegrationManager::GetOptimalOnlineMode() const {
     // Get user preference
     AIConfig::OnlineMode configMode = m_config.GetOnlineMode();
     
-    // If user explicitly set mode, respect it
-    if (configMode != AIConfig::OnlineMode::Auto) {
-        return configMode;
-    }
-    
-    // Auto mode - determine based on network status
-    if (m_online) {
-        // Check if on WiFi or cellular
-        if (m_onlineService) {
-            auto networkStatus = m_onlineService->GetNetworkStatus();
-            if (networkStatus == OnlineService::NetworkStatus::ReachableViaWiFi) {
-                return AIConfig::OnlineMode::PreferOnline; // WiFi, prefer online
-            } else if (networkStatus == OnlineService::NetworkStatus::ReachableViaCellular) {
-                return AIConfig::OnlineMode::PreferOffline; // Cellular, prefer offline
-            }
-        }
-        
-        // Default online behavior if can't determine network type
-        return AIConfig::OnlineMode::PreferOnline;
-    } else {
-        // Offline, use offline only
-        return AIConfig::OnlineMode::OfflineOnly;
-    }
+    // We always use offline only mode as per user preference
+    return AIConfig::OnlineMode::OfflineOnly;
 }
 
 // Check if manager is initialized

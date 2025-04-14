@@ -404,8 +404,8 @@ void AIConfig::SetOnlineMode(OnlineMode mode) {
  * @return Online mode
  */
 AIConfig::OnlineMode AIConfig::GetOnlineMode() const {
-    // Get from options with default value
-    std::string modeStr = GetOption("online_mode", "auto");
+    // Get from options with default value - use offline_only as default
+    std::string modeStr = GetOption("online_mode", "offline_only");
     
     // Convert string to enum value
     if (modeStr == "auto") {
@@ -419,7 +419,7 @@ AIConfig::OnlineMode AIConfig::GetOnlineMode() const {
     } else if (modeStr == "online_only") {
         return OnlineMode::OnlineOnly;
     } else {
-        return OnlineMode::Auto;
+        return OnlineMode::OfflineOnly; // Default to offline only
     }
 }
 

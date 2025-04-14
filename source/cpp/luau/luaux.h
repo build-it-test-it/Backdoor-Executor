@@ -3,6 +3,11 @@
 
 #pragma once
 
+// Standard C library includes
+#include <string.h>  // For strlen
+#include <stdlib.h>  // For standard functions
+
+// Lua headers
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -15,8 +20,13 @@ extern "C" {
 // In standard Lua, it loads and executes a string
 #ifndef luaL_dostring
 inline int luaL_dostring(lua_State* L, const char* str) {
+    // Calculate string length directly to avoid any include issues
+    size_t len = 0;
+    const char* s = str;
+    while (*s++) len++;
+    
     // Use the standard luau_load function
-    if (luau_load(L, "chunk", str, strlen(str), 0) != 0)
+    if (luau_load(L, "chunk", str, len, 0) != 0)
         return 1;  // Error in compilation
     
     // Execute the chunk

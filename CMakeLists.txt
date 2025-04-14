@@ -72,34 +72,33 @@ endif()
 # Try standard find_package with our custom finder module
 find_package(Lua QUIET)
 
-# Check if Luau was found - modified for library flexibility
+# Check if Luau was found
 if(NOT LUA_FOUND)
     message(FATAL_ERROR "Could not find Luau. Please install Luau with: brew install luau")
 endif()
 
-# Create lua_bundled target before we potentially use it
+# Always create the bundled Lua lib in CI environment
+# We'll create a stub Lua library that has just enough to satisfy the linker
+file(WRITE "${CMAKE_BINARY_DIR}/lua_stub.c" "
+    #include <stdlib.h>
+    // Minimal set of Lua functions needed to link
+    void luaL_openlibs() { }
+    void* luaL_newstate() { return NULL; }
+    void lua_close(void* L) { }
+    int luaL_loadstring(void* L, const char* s) { return 0; }
+    int lua_pcall(void* L, int a, int b, int c) { return 0; }
+")
 
-# If we're using bundled Lua, create a static library from the sources we have
+# Create a static library
+add_library(lua_bundled STATIC "${CMAKE_BINARY_DIR}/lua_stub.c")
+target_include_directories(lua_bundled PRIVATE 
+    ${LUA_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/source/cpp/luau
+)
+
+# Decide whether to use the bundled library based on the option
 if(USE_BUNDLED_LUA)
-    # We'll create a stub Lua library that has just enough to satisfy the linker
-    file(WRITE "${CMAKE_BINARY_DIR}/lua_stub.c" "
-        #include <stdlib.h>
-        // Minimal set of Lua functions needed to link
-        void luaL_openlibs() { }
-        void* luaL_newstate() { return NULL; }
-        void lua_close(void* L) { }
-        int luaL_loadstring(void* L, const char* s) { return 0; }
-        int lua_pcall(void* L, int a, int b, int c) { return 0; }
-    ")
-    
-    # Create a static library
-    add_library(lua_bundled STATIC "${CMAKE_BINARY_DIR}/lua_stub.c")
-    target_include_directories(lua_bundled PRIVATE 
-        ${LUA_INCLUDE_DIR}
-        ${CMAKE_SOURCE_DIR}/source/cpp/luau
-    )
-    
-    # Use this as our Lua library
+    # Use our bundled library
     set(LUA_LIBRARIES lua_bundled)
     message(STATUS "Using bundled Lua library for link time")
 else()
@@ -314,10 +313,8 @@ target_link_libraries(roblox_executor PRIVATE
     "-framework Security"
 )
 
-# Make sure our bundled library is built before the main target
-if(USE_BUNDLED_LUA)
-    add_dependencies(roblox_executor lua_bundled)
-endif()
+# Always add the dependency since we always create the target now
+add_dependencies(roblox_executor lua_bundled)
 
 # Add Dobby if found
 if(Dobby_FOUND)

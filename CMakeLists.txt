@@ -21,19 +21,42 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 # Handle Lua finding on macOS
 if(APPLE)
-    # Check Homebrew Lua location (common on macOS)
-    execute_process(
-        COMMAND brew --prefix lua
-        OUTPUT_VARIABLE BREW_LUA_PREFIX
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-    
-    if(BREW_LUA_PREFIX)
-        message(STATUS "Found Homebrew Lua at: ${BREW_LUA_PREFIX}")
-        set(LUA_INCLUDE_DIR "${BREW_LUA_PREFIX}/include")
-        find_library(LUA_LIBRARIES NAMES lua lua54 lua5.4 lua-5.4 liblua liblua5.4
-                    PATHS "${BREW_LUA_PREFIX}/lib" NO_DEFAULT_PATH)
+    # First check for environment variables set by the workflow
+    if(DEFINED ENV{LUA_DIR} AND DEFINED ENV{LUA_INCLUDE_DIR} AND DEFINED ENV{LUA_LIBRARIES})
+        message(STATUS "Using Lua from environment variables")
+        set(LUA_INCLUDE_DIR "$ENV{LUA_INCLUDE_DIR}")
+        set(LUA_LIBRARIES "$ENV{LUA_LIBRARIES}")
+        set(LUA_FOUND TRUE)
+    else()
+        # Check Homebrew Lua location as fallback
+        execute_process(
+            COMMAND brew --prefix lua
+            OUTPUT_VARIABLE BREW_LUA_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+        
+        if(BREW_LUA_PREFIX)
+            message(STATUS "Found Homebrew Lua at: ${BREW_LUA_PREFIX}")
+            set(LUA_INCLUDE_DIR "${BREW_LUA_PREFIX}/include")
+            
+            # Look for the lua library file
+            find_library(LUA_LIBRARIES 
+                        NAMES lua lua5.4 lua5.3 liblua liblua5.4 liblua5.3
+                        PATHS "${BREW_LUA_PREFIX}/lib" NO_DEFAULT_PATH)
+            
+            if(LUA_LIBRARIES)
+                message(STATUS "Found Lua library: ${LUA_LIBRARIES}")
+                set(LUA_FOUND TRUE)
+            else()
+                # Hardcode as a last resort
+                set(LUA_LIBRARIES "${BREW_LUA_PREFIX}/lib/liblua.dylib")
+                message(STATUS "Using hardcoded Lua library path: ${LUA_LIBRARIES}")
+                set(LUA_FOUND TRUE)
+            endif()
+        else()
+            message(STATUS "Homebrew Lua not found via brew --prefix lua")
+        endif()
     endif()
 endif()
 

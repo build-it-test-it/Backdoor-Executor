@@ -31,22 +31,48 @@ jobs:
         
         # Install Lua with development headers and ensure availability
         brew install lua
-        brew unlink lua && brew link --force lua
+        brew install luarocks
+        
+        # Find the Homebrew prefix (could be /usr/local or /opt/homebrew depending on architecture)
+        BREW_PREFIX=$(brew --prefix)
+        echo "Homebrew prefix: $BREW_PREFIX"
         
         # Check Lua installation
         echo "Lua installation details:"
         brew info lua
+        
+        # Find Lua headers and libraries using brew --prefix
+        LUA_PREFIX=$(brew --prefix lua)
+        echo "Lua prefix: $LUA_PREFIX"
         echo "Lua headers location:"
-        find /usr/local/Cellar/lua -name "lua.h" || echo "lua.h not found in Homebrew Cellar"
+        find "$LUA_PREFIX" -name "lua.h" || echo "lua.h not found in $LUA_PREFIX"
         echo "Lua library location:"
-        find /usr/local/Cellar/lua -name "liblua*.dylib" -o -name "liblua*.a" || echo "liblua not found in Homebrew Cellar"
+        find "$LUA_PREFIX" -name "liblua*.dylib" -o -name "liblua*.a" || echo "liblua not found in $LUA_PREFIX"
         
-        # Create a symlink to make Lua easier to find
-        ln -sf /usr/local/Cellar/lua/*/include/lua*.h /usr/local/include/ || echo "Failed to create lua.h symlink"
-        ln -sf /usr/local/Cellar/lua/*/lib/liblua.* /usr/local/lib/ || echo "Failed to create liblua symlink"
+        # Create build directories if they don't exist
+        mkdir -p cmake
+        mkdir -p /tmp/lua_include
+        mkdir -p /tmp/lua_lib
         
-        # Install LuaRocks libraries
-        luarocks install luafilesystem
+        # Copy Lua headers and libraries to our own directories
+        cp -f "$LUA_PREFIX/include/lua"*.h /tmp/lua_include/ || echo "Failed to copy lua headers"
+        cp -f "$LUA_PREFIX/lib/liblua".* /tmp/lua_lib/ || echo "Failed to copy lua libraries"
+        
+        # Make sure FindLua.cmake is copied to the right place
+        cp -f $GITHUB_WORKSPACE/cmake/FindLua.cmake cmake/ || echo "No FindLua.cmake to copy yet"
+        
+        # Create symlinks if possible (try without sudo first)
+        mkdir -p $HOME/.local/include $HOME/.local/lib
+        ln -sf "$LUA_PREFIX/include/lua"*.h $HOME/.local/include/ || echo "Failed to create user lua.h symlink"
+        ln -sf "$LUA_PREFIX/lib/liblua".* $HOME/.local/lib/ || echo "Failed to create user liblua symlink"
+        
+        # Set environment variables to help CMake find Lua
+        echo "LUA_DIR=$LUA_PREFIX" >> $GITHUB_ENV
+        echo "LUA_INCLUDE_DIR=$LUA_PREFIX/include" >> $GITHUB_ENV
+        echo "LUA_LIBRARIES=$LUA_PREFIX/lib/liblua.dylib" >> $GITHUB_ENV
+        
+        # Install LuaRocks and necessary libraries
+        luarocks install luafilesystem || echo "Failed to install luafilesystem"
         
         # Create directories for project resources
         mkdir -p Resources/AIData/LocalModels
@@ -107,17 +133,30 @@ jobs:
         # Create build directory
         mkdir -p build
         
-        # Set additional CMake args if Dobby is installed
+        # Set additional CMake args for dependencies
         EXTRA_CMAKE_ARGS=""
+        
+        # Add Dobby args if available
         if [ -d "$DOBBY_DIR" ]; then
           echo "Dobby found at $DOBBY_DIR, enabling Dobby support"
-          EXTRA_CMAKE_ARGS="-DDobby_DIR=$DOBBY_DIR -DUSE_DOBBY=ON"
+          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DDobby_DIR=$DOBBY_DIR -DUSE_DOBBY=ON"
         else
           echo "Dobby not found, building without hooking functionality"
-          EXTRA_CMAKE_ARGS="-DNO_DOBBY_HOOKS=ON"
+          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DNO_DOBBY_HOOKS=ON"
         fi
         
-        # Configure CMake for iOS build with additional options
+        # Add Lua args for custom paths
+        if [ -n "$LUA_INCLUDE_DIR" ] && [ -n "$LUA_LIBRARIES" ]; then
+          echo "Setting Lua paths from environment: $LUA_INCLUDE_DIR and $LUA_LIBRARIES"
+          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DLUA_INCLUDE_DIR=$LUA_INCLUDE_DIR -DLUA_LIBRARIES=$LUA_LIBRARIES"
+        else
+          echo "Setting fallback Lua paths from copied files"
+          EXTRA_CMAKE_ARGS="$EXTRA_CMAKE_ARGS -DLUA_INCLUDE_DIR=/tmp/lua_include -DLUA_LIBRARIES=/tmp/lua_lib/liblua.dylib"
+        fi
+        
+        # Configure CMake for iOS build with all options
+        echo "CMake args: $EXTRA_CMAKE_ARGS"
+        
         cmake -S . -B build \
           -DCMAKE_OSX_ARCHITECTURES="arm64" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
@@ -125,11 +164,16 @@ jobs:
           -DCMAKE_SYSTEM_NAME=iOS \
           -DENABLE_AI_FEATURES=ON \
           -DENABLE_LOCAL_TRAINING=ON \
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/cmake" \
           ${EXTRA_CMAKE_ARGS}
         
-        # Print config
+        # Print config and diagnostics
         echo "CMake configuration:"
-        cat build/CMakeCache.txt | grep -E "AI_FEATURES|LOCAL_TRAINING|DOBBY|NO_DOBBY"
+        cat build/CMakeCache.txt | grep -E "AI_FEATURES|LOCAL_TRAINING|DOBBY|NO_DOBBY|LUA"
+        
+        # Show Lua-related variables for debugging
+        echo "LUA_INCLUDE_DIR from cache: $(grep LUA_INCLUDE_DIR build/CMakeCache.txt || echo 'Not found')"
+        echo "LUA_LIBRARIES from cache: $(grep LUA_LIBRARIES build/CMakeCache.txt || echo 'Not found')"
         
         # Build the dynamic library
         cmake --build build --config Release -j4

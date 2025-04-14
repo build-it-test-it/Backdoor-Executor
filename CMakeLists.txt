@@ -16,6 +16,11 @@ enable_language(OBJCXX)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum iOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for iOS")
 
+# Set iOS TARGET definition for proper conditional compilation
+if(APPLE)
+    add_definitions(-DIOS_TARGET)
+endif()
+
 # Find Lua - try multiple approaches
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 

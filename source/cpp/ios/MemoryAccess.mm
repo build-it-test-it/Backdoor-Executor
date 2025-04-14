@@ -89,8 +89,11 @@ namespace iOS {
         vm_region_basic_info_data_64_t info;
         mach_msg_type_number_t infoCount = VM_REGION_BASIC_INFO_COUNT_64;
         mach_port_t objectName = MACH_PORT_NULL;
+        kern_return_t kr = KERN_SUCCESS;
         
         while (true) {
+            // kr is already declared above, don't redeclare it
+            
             #if defined(IOS_TARGET) || defined(__APPLE__)
             // On iOS we use vm_region_64 instead of mach_vm_region
             kr = vm_region_64(m_targetTask, &address, &size, 
@@ -233,7 +236,12 @@ namespace iOS {
         mach_vm_address_t address = 0;
         for (const auto& region : regions) {
             // Skip regions that are not readable
+            #if defined(IOS_TARGET) || defined(__APPLE__)
+            // On iOS, protection is a different field
             if (!(region.protection & VM_PROT_READ)) {
+            #else
+            if (!(region.protection & VM_PROT_READ)) {
+            #endif
                 continue;
             }
             

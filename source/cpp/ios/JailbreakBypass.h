@@ -6,6 +6,11 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// Include platform-specific headers
+#if defined(__APPLE__) || defined(IOS_TARGET)
+#include "MethodSwizzling.h"
+#endif
+
 namespace iOS {
     /**
      * @class JailbreakBypass

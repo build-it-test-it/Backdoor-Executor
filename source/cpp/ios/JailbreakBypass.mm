@@ -22,9 +22,9 @@ namespace iOS {
     std::unordered_set<std::string> JailbreakBypass::m_jailbreakProcesses;
     std::unordered_map<std::string, std::string> JailbreakBypass::m_fileRedirects;
     
-    // Original function pointers and their stub implementations
+    // Define function pointers for non-iOS platforms
     #if !defined(IOS_TARGET) && !defined(__APPLE__)
-    // These function pointers are only populated on non-iOS platforms
+    // These function pointers are populated with MSHookFunction
     static int (*original_stat)(const char* path, struct stat* buf);
     static int (*original_access)(const char* path, int mode);
     static FILE* (*original_fopen)(const char* path, const char* mode);
@@ -33,39 +33,38 @@ namespace iOS {
     static int (*original_fork)(void);
     static int (*original_execve)(const char* path, char* const argv[], char* const envp[]);
     #else
-    // On iOS, we create stub functions instead of function pointers
-    // We'll redefine the "original_*" names to be actual functions
-    // This avoids undefined identifiers in the other methods
-    static int original_stat(const char* path, struct stat* buf) { 
-        return ::stat(path, (struct ::stat*)buf); // Direct call, no hook on iOS - explicitly cast to global stat struct
+    // For iOS, define function implementations that call the system functions directly
+    // This avoids using function pointers which are populated via MSHookFunction
+    static int original_stat(const char* path, struct stat* buf) {
+        return ::stat(path, buf);
     }
     
     static int original_access(const char* path, int mode) {
-        return access(path, mode); // Direct call, no hook on iOS
+        return ::access(path, mode);
     }
     
     static FILE* original_fopen(const char* path, const char* mode) {
-        return fopen(path, mode); // Direct call, no hook on iOS
+        return ::fopen(path, mode);
     }
     
     static char* original_getenv(const char* name) {
-        return getenv(name); // Direct call, no hook on iOS
+        return ::getenv(name);
     }
     
     static int original_system(const char* command) {
-        // system() is not available on iOS, so just log and return success
+        // system() is often unavailable on iOS, just log and return success
         std::cout << "iOS: system() call would execute: " << (command ? command : "null") << std::endl;
-        return 0; // Pretend it succeeded
+        return 0;
     }
     
     static int original_fork(void) {
-        // fork() usually won't work on iOS, so return error
+        // fork() usually fails on iOS, return error
         errno = EPERM;
         return -1;
     }
     
     static int original_execve(const char* path, char* const argv[], char* const envp[]) {
-        // execve() often won't work on iOS apps, so log and return error
+        // execve() might not work as expected on iOS, log and return error
         std::cout << "iOS: execve() call would execute: " << (path ? path : "null") << std::endl;
         errno = EPERM;
         return -1;

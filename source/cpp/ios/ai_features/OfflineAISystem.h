@@ -72,7 +72,6 @@ private:
     std::vector<AIRequest> m_requestHistory;  // Request history for learning
     std::vector<AIResponse> m_responseHistory; // Response history for learning
     std::unordered_map<std::string, std::string> m_templateCache; // Script template cache
-    std::unordered_map<std::string, std::string> m_scriptTemplates; // Script templates for generation
     uint64_t m_totalMemoryUsage;              // Total memory usage in bytes
     uint64_t m_maxMemoryAllowed;              // Maximum allowed memory in bytes
     ResponseCallback m_responseCallback;      // Response callback
@@ -84,7 +83,6 @@ private:
     void OptimizeMemoryUsage();
     bool IsModelLoaded(const std::string& modelName) const;
     void* GetModel(const std::string& modelName) const;
-    void LoadScriptTemplates();
     AIResponse ProcessScriptGeneration(const AIRequest& request);
     AIResponse ProcessScriptDebugging(const AIRequest& request);
     AIResponse ProcessGeneralQuery(const AIRequest& request);

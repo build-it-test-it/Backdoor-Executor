@@ -607,20 +607,6 @@ bool OfflineAISystem::LoadModel(const std::string& modelName, int priority) {
     return true;
 }
 
-// Get script templates - implementation for declaration in header
-std::unordered_map<std::string, std::string> OfflineAISystem::GetScriptTemplates() const {
-    return m_scriptTemplates;
-}
-
-// Load script templates - implementation for declaration in header
-void OfflineAISystem::LoadScriptTemplates() {
-    // This would load templates from files
-    // For now, just populate with some built-in templates
-    m_scriptTemplates["esp"] = "-- Basic ESP Script\nlocal esp = {}\n\n-- Implementation goes here\n\nreturn esp";
-    m_scriptTemplates["aimbot"] = "-- Basic Aimbot\nlocal aimbot = {}\n\n-- Implementation goes here\n\nreturn aimbot";
-    m_scriptTemplates["speed"] = "-- Speed Hack\nlocal speed = {}\n\n-- Implementation goes here\n\nreturn speed";
-}
-
 // Unload model
 void OfflineAISystem::UnloadModel(const std::string& modelName) {
     auto it = m_modelCache.find(modelName);
@@ -678,7 +664,7 @@ bool OfflineAISystem::IsModelLoaded(const std::string& modelName) const {
 void* OfflineAISystem::GetModel(const std::string& modelName) const {
     auto it = m_modelCache.find(modelName);
     if (it != m_modelCache.end()) {
-        // Direct access to pointer instead of using get()
+        // Direct access to pointer instead of using get() since we're storing raw pointers now
         return it->second;
     }
     return nullptr;
@@ -887,7 +873,12 @@ print("Aimbot loaded. Hold right mouse button to aim. Press Y to toggle.")
 )";
 }
 
-// Get cached templates
+// Get script templates
+std::unordered_map<std::string, std::string> OfflineAISystem::GetScriptTemplates() const {
+    return m_scriptTemplates;
+}
+
+// Get template cache
 std::unordered_map<std::string, std::string> OfflineAISystem::GetTemplateCache() const {
     return m_templateCache;
 }

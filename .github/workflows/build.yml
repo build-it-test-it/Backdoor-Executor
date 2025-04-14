@@ -21,13 +21,29 @@ jobs:
       run: |
         echo "Installing dependencies..."
         # Install Homebrew packages
-        brew install lua cmake pkg-config
-        brew install luarocks openssl sqlite3
+        brew install cmake pkg-config
+        brew install openssl sqlite3
         brew install libzip json-c
         
         # Install iOS development dependencies
         brew install llvm
         brew install libomp
+        
+        # Install Lua with development headers and ensure availability
+        brew install lua
+        brew unlink lua && brew link --force lua
+        
+        # Check Lua installation
+        echo "Lua installation details:"
+        brew info lua
+        echo "Lua headers location:"
+        find /usr/local/Cellar/lua -name "lua.h" || echo "lua.h not found in Homebrew Cellar"
+        echo "Lua library location:"
+        find /usr/local/Cellar/lua -name "liblua*.dylib" -o -name "liblua*.a" || echo "liblua not found in Homebrew Cellar"
+        
+        # Create a symlink to make Lua easier to find
+        ln -sf /usr/local/Cellar/lua/*/include/lua*.h /usr/local/include/ || echo "Failed to create lua.h symlink"
+        ln -sf /usr/local/Cellar/lua/*/lib/liblua.* /usr/local/lib/ || echo "Failed to create liblua symlink"
         
         # Install LuaRocks libraries
         luarocks install luafilesystem
@@ -36,6 +52,17 @@ jobs:
         mkdir -p Resources/AIData/LocalModels
         mkdir -p Resources/AIData/Vulnerabilities
         mkdir -p lib
+        mkdir -p cmake
+        
+        # Copy our custom FindLua.cmake file into the cmake directory
+        cp $GITHUB_WORKSPACE/cmake/FindLua.cmake cmake/ || echo "No FindLua.cmake to copy"
+        
+        # Show current environment for debugging
+        echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+        echo "Lua location in PATH:"
+        which lua
+        echo "Lua version:"
+        lua -v
 
     - name: Install Dobby (Optional)
       id: install-dobby

@@ -16,10 +16,18 @@
 #include <mach/mach_types.h>
 #include <libkern/OSTypes.h>
 
-// Define compatibility typedefs for iOS
+// Define compatibility typedefs for iOS only if not already defined
+#if !defined(mach_vm_address_t) && !__has_include(<mach/mach_vm.h>)
 typedef vm_address_t mach_vm_address_t;
+#endif
+
+#if !defined(mach_vm_size_t) && !__has_include(<mach/mach_vm.h>)
 typedef vm_size_t mach_vm_size_t;
+#endif
+
+#if !defined(mach_vm_info_t) && !__has_include(<mach/mach_vm.h>)
 typedef vm_region_info_t mach_vm_info_t;
+#endif
 
 // Define compatibility wrappers for missing functions
 #ifndef mach_vm_region_defined

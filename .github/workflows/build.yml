@@ -52,70 +52,54 @@ jobs:
         # Handle CMake modules with better error checking
         echo "Setting up CMake modules..."
         
-        # Create FindLuaFileSystem.cmake directly in the cmake directory
-        # This avoids file copying issues with pre-existing files
-        cat > cmake/FindLuaFileSystem.cmake << 'EOF'
-# FindLuaFileSystem.cmake
-# This module allows compilation of lfs.c specifically using our own Lua headers
-
-# Create a target for lfs.c that ensures it can find the Luau headers
-function(add_lfs_target)
-    # Don't add it twice
-    if(TARGET lfs_obj)
-        return()
-    endif()
-    
-    message(STATUS "Setting up LuaFileSystem with native Luau headers")
-    
-    # Create an object library for lfs.c
-    add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
-    
-    # Set include directories for just this file
-    # The source directory is needed for relative includes like "cpp/luau/lua.h"
-    target_include_directories(lfs_obj PRIVATE
-        ${CMAKE_SOURCE_DIR}/source         # Main source directory for relative includes
-        ${CMAKE_SOURCE_DIR}/source/cpp     # For cpp/luau/lua.h path style
-        ${CMAKE_SOURCE_DIR}/source/cpp/luau # For direct lua.h access
-        ${CMAKE_SOURCE_DIR}                # For absolute paths
-    )
-    
-    # Add a define to use the internal Luau headers
-    target_compile_definitions(lfs_obj PRIVATE 
-        LFS_USE_INTERNAL_LUAU=1
-        LUAU_FASTFLAG_LUAERROR=1          # Handle missing dependencies
-    )
-    
-    # Ensure the compiler knows this is C
-    set_target_properties(lfs_obj PROPERTIES
-        C_STANDARD 99
-        POSITION_INDEPENDENT_CODE ON
-    )
-    
-    message(STATUS "LFS using internal Luau headers from ${CMAKE_SOURCE_DIR}/source/cpp/luau")
-endfunction()
-EOF
-        echo "Created FindLuaFileSystem.cmake directly"
+        # Create simplified Find*.cmake files for building
+        # First, create FindLuaFileSystem.cmake
+        echo "# FindLuaFileSystem.cmake - Using internal Luau headers" > cmake/FindLuaFileSystem.cmake
+        echo "# Create a target for lfs.c that ensures it can find the Luau headers" >> cmake/FindLuaFileSystem.cmake
+        echo "function(add_lfs_target)" >> cmake/FindLuaFileSystem.cmake
+        echo "    if(TARGET lfs_obj)" >> cmake/FindLuaFileSystem.cmake
+        echo "        return()" >> cmake/FindLuaFileSystem.cmake
+        echo "    endif()" >> cmake/FindLuaFileSystem.cmake
+        echo "" >> cmake/FindLuaFileSystem.cmake
+        echo "    message(STATUS \"Setting up LuaFileSystem with native Luau headers\")" >> cmake/FindLuaFileSystem.cmake
+        echo "" >> cmake/FindLuaFileSystem.cmake
+        echo "    add_library(lfs_obj OBJECT \${CMAKE_SOURCE_DIR}/source/lfs.c)" >> cmake/FindLuaFileSystem.cmake
+        echo "" >> cmake/FindLuaFileSystem.cmake
+        echo "    target_include_directories(lfs_obj PRIVATE" >> cmake/FindLuaFileSystem.cmake
+        echo "        \${CMAKE_SOURCE_DIR}/source" >> cmake/FindLuaFileSystem.cmake
+        echo "        \${CMAKE_SOURCE_DIR}/source/cpp" >> cmake/FindLuaFileSystem.cmake
+        echo "        \${CMAKE_SOURCE_DIR}/source/cpp/luau" >> cmake/FindLuaFileSystem.cmake
+        echo "        \${CMAKE_SOURCE_DIR}" >> cmake/FindLuaFileSystem.cmake
+        echo "    )" >> cmake/FindLuaFileSystem.cmake
+        echo "" >> cmake/FindLuaFileSystem.cmake
+        echo "    target_compile_definitions(lfs_obj PRIVATE " >> cmake/FindLuaFileSystem.cmake
+        echo "        LFS_USE_INTERNAL_LUAU=1" >> cmake/FindLuaFileSystem.cmake
+        echo "        LUAU_FASTFLAG_LUAERROR=1" >> cmake/FindLuaFileSystem.cmake
+        echo "    )" >> cmake/FindLuaFileSystem.cmake
+        echo "" >> cmake/FindLuaFileSystem.cmake
+        echo "    set_target_properties(lfs_obj PROPERTIES" >> cmake/FindLuaFileSystem.cmake
+        echo "        C_STANDARD 99" >> cmake/FindLuaFileSystem.cmake
+        echo "        POSITION_INDEPENDENT_CODE ON" >> cmake/FindLuaFileSystem.cmake
+        echo "    )" >> cmake/FindLuaFileSystem.cmake
+        echo "" >> cmake/FindLuaFileSystem.cmake
+        echo "    message(STATUS \"Using internal Luau headers from \${CMAKE_SOURCE_DIR}/source/cpp/luau\")" >> cmake/FindLuaFileSystem.cmake
+        echo "endfunction()" >> cmake/FindLuaFileSystem.cmake
         
-        # For debugging only - show the existing Luau headers and our CMake module
-        echo "Available Luau headers:"
-        find $GITHUB_WORKSPACE/source/cpp/luau -name "*.h" | sort
+        # Then create FindLua.cmake
+        echo "# FindLua.cmake - Using internal Luau headers" > cmake/FindLua.cmake
+        echo "# This is a minimal finder that points to internal Luau headers" >> cmake/FindLua.cmake
+        echo "" >> cmake/FindLua.cmake
+        echo "set(LUA_INCLUDE_DIR \"\${CMAKE_SOURCE_DIR}/source/cpp/luau\")" >> cmake/FindLua.cmake
+        echo "set(LUA_LIBRARIES \"\")" >> cmake/FindLua.cmake
+        echo "set(LUA_FOUND TRUE)" >> cmake/FindLua.cmake
+        echo "" >> cmake/FindLua.cmake
+        echo "message(STATUS \"Using internal Luau headers from \${LUA_INCLUDE_DIR}\")" >> cmake/FindLua.cmake
         
+        echo "Created CMake module files"
+        
+        # For debugging - show what we've created
         echo "CMake directory contents:"
         ls -la cmake/
-        
-        # Create FindLua.cmake directly too
-        cat > cmake/FindLua.cmake << 'EOF'
-# FindLua.cmake - Using internal Luau headers
-# This is a minimal finder that just points to our internal Luau headers
-
-# Set paths to internal Luau
-set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
-set(LUA_LIBRARIES "")
-set(LUA_FOUND TRUE)
-
-message(STATUS "Using internal Luau headers from ${LUA_INCLUDE_DIR}")
-EOF
-        echo "Created FindLua.cmake directly"
         
         # Show current environment for debugging
         echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"

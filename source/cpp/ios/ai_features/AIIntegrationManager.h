@@ -82,7 +82,7 @@ private:
     void ReportStatus(const StatusUpdate& status);
     
     // Get optimal online mode
-    AIConfig::OnlineMode GetOptimalOnlineMode() const;
+    HybridAISystem::OnlineMode GetOptimalOnlineMode() const;
     
 public:
     /**
@@ -203,13 +203,13 @@ public:
      * @brief Set online mode
      * @param mode Online mode
      */
-    void SetOnlineMode(AIConfig::OnlineMode mode);
+    void SetOnlineMode(HybridAISystem::OnlineMode mode);
     
     /**
      * @brief Get online mode
      * @return Current online mode
      */
-    AIConfig::OnlineMode GetOnlineMode() const;
+    HybridAISystem::OnlineMode GetOnlineMode() const;
     
     /**
      * @brief Set model quality

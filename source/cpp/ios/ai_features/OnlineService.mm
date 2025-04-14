@@ -22,23 +22,30 @@
 
 @end
 
-// Define stubs for NetworkReachability in case SystemConfiguration framework is not available
-#if defined(SCNetworkReachabilityCreateWithAddress_STUB)
-static void* SCNetworkReachabilityCreateWithAddress_STUB(void* allocator, const struct sockaddr* address) {
+// Define stubs for NetworkReachability functions - ensure they are exported properly
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// These need to be global symbols, not static
+void* SCNetworkReachabilityCreateWithAddress_STUB(void* allocator, const struct sockaddr* address) {
     return NULL;
 }
-static bool SCNetworkReachabilityGetFlags_STUB(void* target, unsigned int* flags) {
+Boolean SCNetworkReachabilityGetFlags_STUB(void* target, unsigned int* flags) {
     if (flags) *flags = 0;
-    return true;
+    return 1;
 }
-static bool SCNetworkReachabilitySetCallback_STUB(void* target, void* callback, void* context) {
-    return true;
+Boolean SCNetworkReachabilitySetCallback_STUB(void* target, void* callback, void* context) {
+    return 1;
 }
-static bool SCNetworkReachabilityScheduleWithRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
-    return true;
+Boolean SCNetworkReachabilityScheduleWithRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
+    return 1;
 }
-static bool SCNetworkReachabilityUnscheduleFromRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
-    return true;
+Boolean SCNetworkReachabilityUnscheduleFromRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
+    return 1;
+}
+
+#ifdef __cplusplus
 }
 #endif
 

@@ -135,6 +135,7 @@ namespace iOS {
         return results;
     }
     
+    // Helper to resolve branch targets in ARM64 instructions
     mach_vm_address_t PatternScanner::ResolveBranchTarget(mach_vm_address_t instructionAddress) {
         // Read the instruction
         uint32_t instruction;

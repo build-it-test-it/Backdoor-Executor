@@ -263,6 +263,32 @@ namespace AIFeatures {
          * @return Vector of example script descriptions
          */
         static std::vector<std::string> GetExampleScriptDescriptions();
+        
+        /**
+         * @brief Release unused resources to save memory
+         */
+        void ReleaseUnusedResources() {
+            // Clear history beyond necessary size
+            if (m_conversationHistory.size() > m_maxHistorySize) {
+                TrimConversationHistory();
+            }
+        }
+        
+        /**
+         * @brief Get memory usage of this component
+         * @return Memory usage in bytes
+         */
+        uint64_t GetMemoryUsage() const {
+            // Estimate memory usage based on history size and other components
+            uint64_t total = 0;
+            // Each message takes approximately 1KB
+            total += m_conversationHistory.size() * 1024;
+            // Templates take approximately 2KB each
+            total += m_scriptTemplates.size() * 2048;
+            // Base usage is approximately 10MB
+            total += 10 * 1024 * 1024;
+            return total;
+        }
     };
 
 } // namespace AIFeatures

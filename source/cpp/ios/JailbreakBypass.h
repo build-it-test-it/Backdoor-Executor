@@ -9,6 +9,7 @@
 // Include platform-specific headers
 #if defined(__APPLE__) || defined(IOS_TARGET)
 #include "MethodSwizzling.h"
+#include <sys/stat.h> // Include full definition of struct stat to avoid forward declaration issues
 #endif
 
 namespace iOS {

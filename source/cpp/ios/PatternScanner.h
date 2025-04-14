@@ -4,7 +4,11 @@
 #include <vector>
 #include <optional>
 #include <cstdint>
+// Include MemoryAccess.h first as it contains the mach_vm typedefs and compatibility wrappers
 #include "MemoryAccess.h"
+
+// MemoryAccess.h should already have defined all necessary typedefs
+// No additional typedefs needed here
 
 namespace iOS {
     /**

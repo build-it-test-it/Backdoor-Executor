@@ -104,9 +104,25 @@ public:
     /**
      * @brief Generate a script based on description
      * @param description Script description
+     * @param context Optional context information
      * @return Generated script
      */
-    GeneratedScript GenerateScript(const std::string& description);
+    GeneratedScript GenerateScript(const std::string& description, const std::string& context = "");
+    
+    /**
+     * @brief Analyze a script for bugs or improvements
+     * @param script Script to analyze
+     * @return Analysis result
+     */
+    std::string AnalyzeScript(const std::string& script);
+    
+    /**
+     * @brief Generate a response to a general query
+     * @param query User's query
+     * @param context Optional context information
+     * @return Generated response
+     */
+    std::string GenerateResponse(const std::string& query, const std::string& context = "");
     
     /**
      * @brief Add a script template

@@ -16,9 +16,13 @@ enable_language(OBJCXX)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum iOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for iOS")
 
-# Set iOS TARGET definition for proper conditional compilation
+# Set iOS TARGET definition and other platform-specific defines
 if(APPLE)
     add_definitions(-DIOS_TARGET)
+    add_definitions(-DTARGET_OS_IPHONE=1)
+    add_definitions(-DTARGET_OS_MAC=1)
+    # This ensures vm_region_64 is properly recognized
+    add_definitions(-D_DARWIN_C_SOURCE)
 endif()
 
 # Find Lua - try multiple approaches
@@ -84,6 +88,9 @@ find_library(CORE_GRAPHICS_LIBRARY CoreGraphics REQUIRED)
 find_library(CORE_FOUNDATION_LIBRARY CoreFoundation REQUIRED)
 find_library(JAVASCRIPT_CORE_LIBRARY JavaScriptCore REQUIRED)
 find_library(SECURITY_LIBRARY Security REQUIRED)
+
+# Add JavaScriptCore to the compiler flags to ensure it's properly included
+add_definitions(-DJAVASCRIPT_CORE_AVAILABLE=1)
 
 # Specify the output directory for the library
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
@@ -261,4 +268,17 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
         -fvisibility=hidden
         -fvisibility-inlines-hidden
     )
+else()
+    # Debug build flags
+    target_compile_options(roblox_executor PRIVATE
+        -g
+    )
 endif()
+
+# Add error reporting flags to show more details during build
+target_compile_options(roblox_executor PRIVATE
+    -ferror-limit=0        # No limit on number of errors to show
+    -fcolor-diagnostics    # Use color in diagnostics
+    -fdiagnostics-show-category=name    # Show category name
+    -fdiagnostics-absolute-paths        # Show absolute paths
+)

@@ -71,7 +71,7 @@ bool AIIntegrationManager::Initialize(const std::string& apiKey, StatusCallback 
 // Initialize components
 void AIIntegrationManager::InitializeComponents() {
     try {
-        // Create and initialize online service
+        // Create and initialize online service with configured API values
         ReportStatus(StatusUpdate("Initializing network services...", 0.1f));
         
         m_onlineService = std::make_shared<OnlineService>();
@@ -97,7 +97,7 @@ void AIIntegrationManager::InitializeComponents() {
             m_online = false;
         }
         
-        // Create and initialize hybrid AI system
+        // Create and initialize hybrid AI system with online capabilities for model training
         ReportStatus(StatusUpdate("Initializing AI system...", 0.2f));
         
         m_hybridAI = std::make_shared<HybridAISystem>();

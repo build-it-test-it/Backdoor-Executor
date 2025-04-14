@@ -20,14 +20,16 @@ namespace AdvancedBypass {
     
     // Destructor
     HttpClient::~HttpClient() {
-        // Release NSURLSession and configuration
+        // Release NSURLSession and configuration (manual memory management)
         if (m_session) {
-            NSURLSession* session = (__bridge_transfer NSURLSession*)m_session;
+            NSURLSession* session = (NSURLSession*)m_session;
+            [session release];
             m_session = nullptr;
         }
         
         if (m_sessionConfig) {
-            NSURLSessionConfiguration* config = (__bridge_transfer NSURLSessionConfiguration*)m_sessionConfig;
+            NSURLSessionConfiguration* config = (NSURLSessionConfiguration*)m_sessionConfig;
+            [config release];
             m_sessionConfig = nullptr;
         }
     }
@@ -51,12 +53,14 @@ namespace AdvancedBypass {
                 @"Accept-Language": @"en-US,en;q=0.9"
             };
             
-            // Store configuration
-            m_sessionConfig = (__bridge_retained void*)config;
+            // Store configuration (manual retain)
+            m_sessionConfig = (void*)config;
+            [config retain];
             
-            // Create session
+            // Create session (manual retain)
             NSURLSession* session = [NSURLSession sessionWithConfiguration:config];
-            m_session = (__bridge_retained void*)session;
+            m_session = (void*)session;
+            [session retain];
             
             m_initialized = true;
             return true;
@@ -370,7 +374,7 @@ namespace AdvancedBypass {
     }
     
     // Normalize URL for caching
-    std::string HttpClient::NormalizeUrl(const std::string& url) {
+    std::string HttpClient::NormalizeUrl(const std::string& url) const {
         @autoreleasepool {
             NSURL* nsUrl = [NSURL URLWithString:[NSString stringWithUTF8String:url.c_str()]];
             if (!nsUrl) {

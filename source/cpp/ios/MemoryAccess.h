@@ -1,16 +1,58 @@
 #pragma once
 
 #include <mach/mach.h>
-// mach_vm.h is not supported on iOS, use alternative headers
+
+// Define platform-specific includes
 #if !defined(IOS_TARGET) && !defined(__APPLE__)
+// Non-iOS includes
 #include <mach/mach_vm.h>
 #else
-// Add additional headers needed for iOS compatibility
+// iOS-specific includes - more comprehensive set
 #include <mach/vm_types.h>
 #include <mach/vm_prot.h>
 #include <mach/vm_map.h>
 #include <mach/vm_region.h>
+#include <mach/vm_statistics.h>
+#include <mach/mach_types.h>
+#include <libkern/OSTypes.h>
+
+// Define compatibility typedefs for iOS only if not already defined
+#if !defined(mach_vm_address_t) && !__has_include(<mach/mach_vm.h>)
+typedef vm_address_t mach_vm_address_t;
 #endif
+
+#if !defined(mach_vm_size_t) && !__has_include(<mach/mach_vm.h>)
+typedef vm_size_t mach_vm_size_t;
+#endif
+
+#if !defined(mach_vm_info_t) && !__has_include(<mach/mach_vm.h>)
+typedef vm_region_info_t mach_vm_info_t;
+#endif
+
+// Define compatibility wrappers for missing functions
+#ifndef mach_vm_region_defined
+#define mach_vm_region_defined
+static inline kern_return_t mach_vm_region(
+    vm_map_t target_task,
+    mach_vm_address_t *address,
+    mach_vm_size_t *size,
+    vm_region_flavor_t flavor,
+    vm_region_info_t info,
+    mach_msg_type_number_t *infoCnt,
+    mach_port_t *object_name)
+{
+    // Forward to vm_region_64 on iOS
+    return vm_region_64(
+        target_task,
+        (vm_address_t*)address,
+        (vm_size_t*)size,
+        flavor,
+        info,
+        infoCnt,
+        object_name);
+}
+#endif // mach_vm_region_defined
+#endif // iOS block
 
 #include <mach/vm_map.h>
 #include <mach-o/dyld.h>

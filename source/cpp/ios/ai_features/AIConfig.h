@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <functional>
 #import <Foundation/Foundation.h>
+#include "HybridAISystem.h" // Include for OnlineMode type
 
 namespace iOS {
 namespace AIFeatures {
@@ -33,6 +34,55 @@ public:
         Scheduled,      // Learn on a schedule (e.g., daily)
         Disabled        // No learning
     };
+    
+    // Model quality enum
+    enum class ModelQuality {
+        Low,           // Lower quality models (faster, less memory)
+        Medium,        // Medium quality models (balanced)
+        High           // Higher quality models (slower, more memory)
+    };
+    
+    /**
+     * @brief Set model quality
+     * @param quality Model quality
+     */
+    void SetModelQuality(ModelQuality quality) { 
+        std::string qualityStr;
+        switch (quality) {
+            case ModelQuality::Low:
+                qualityStr = "low";
+                break;
+            case ModelQuality::Medium:
+                qualityStr = "medium";
+                break;
+            case ModelQuality::High:
+                qualityStr = "high";
+                break;
+            default:
+                qualityStr = "medium";
+                break;
+        }
+        SetOption("model_quality", qualityStr);
+    }
+    
+    /**
+     * @brief Get model quality
+     * @return Model quality
+     */
+    ModelQuality GetModelQuality() const {
+        std::string qualityStr = GetOption("model_quality", "medium");
+        
+        if (qualityStr == "low") {
+            return ModelQuality::Low;
+        } else if (qualityStr == "high") {
+            return ModelQuality::High;
+        } else {
+            return ModelQuality::Medium;
+        }
+    }
+    
+    // For compatibility - use HybridAISystem's OnlineMode
+    typedef HybridAISystem::OnlineMode OnlineMode;
     
 private:
     // Singleton instance
@@ -83,6 +133,72 @@ public:
      * @return True if successful
      */
     bool Initialize();
+    
+    /**
+     * @brief Check if initialized
+     * @return True if initialized
+     */
+    bool IsInitialized() const { return !m_dataPath.empty(); }
+    
+    /**
+     * @brief Set API key
+     * @param apiKey API key
+     */
+    void SetAPIKey(const std::string& apiKey) { SetOption("api_key", apiKey); }
+    
+    /**
+     * @brief Get API key
+     * @return API key
+     */
+    std::string GetAPIKey() const { return GetOption("api_key"); }
+    
+    /**
+     * @brief Set API endpoint
+     * @param endpoint API endpoint
+     */
+    void SetAPIEndpoint(const std::string& endpoint) { SetOption("api_endpoint", endpoint); }
+    
+    /**
+     * @brief Get API endpoint
+     * @return API endpoint
+     */
+    std::string GetAPIEndpoint() const { return GetOption("api_endpoint"); }
+    
+    /**
+     * @brief Set whether to encrypt communication
+     * @param encrypt Whether to encrypt
+     */
+    void SetEncryptCommunication(bool encrypt) { SetOption("encrypt_communication", encrypt ? "1" : "0"); }
+    
+    /**
+     * @brief Get whether to encrypt communication
+     * @return Whether to encrypt
+     */
+    bool GetEncryptCommunication() const { return GetOption("encrypt_communication", "1") == "1"; }
+    
+    /**
+     * @brief Set model path
+     * @param path Model path
+     */
+    void SetModelPath(const std::string& path) { SetOption("model_path", path); }
+    
+    /**
+     * @brief Get model path
+     * @return Model path
+     */
+    std::string GetModelPath() const { return GetOption("model_path"); }
+    
+    /**
+     * @brief Set online mode
+     * @param mode Online mode
+     */
+    void SetOnlineMode(OnlineMode mode);
+    
+    /**
+     * @brief Get online mode
+     * @return Online mode
+     */
+    OnlineMode GetOnlineMode() const;
     
     /**
      * @brief Set data path

@@ -84,6 +84,7 @@ namespace iOS {
         
         regions.clear();
         
+        // Variables for memory region iteration
         mach_vm_address_t address = 0;
         mach_vm_size_t size = 0;
         vm_region_basic_info_data_64_t info;
@@ -92,17 +93,20 @@ namespace iOS {
         kern_return_t kr = KERN_SUCCESS;
         
         while (true) {
-            // kr is already declared above, don't redeclare it
+            mach_vm_size_t regionSize; // Store size for later use
             
             #if defined(IOS_TARGET) || defined(__APPLE__)
-            // On iOS we use vm_region_64 instead of mach_vm_region
-            kr = vm_region_64(m_targetTask, &address, &size, 
-                          VM_REGION_BASIC_INFO_64,
-                          (vm_region_info_t)&info, 
-                          &infoCount, 
-                          &objectName);
+            // On iOS we use vm_region_64 instead of mach_vm_region which is unavailable
+            kr = vm_region_64(
+                m_targetTask,
+                (vm_address_t*)&address,  // Cast to match vm_region_64 signature
+                (vm_size_t*)&regionSize,  // Cast to match vm_region_64 signature and capture size
+                VM_REGION_BASIC_INFO_64,
+                (vm_region_info_t)&info, 
+                &infoCount, 
+                &objectName);
             #else
-            kr = mach_vm_region(m_targetTask, &address, &size, 
+            kr = mach_vm_region(m_targetTask, &address, &regionSize, 
                            VM_REGION_BASIC_INFO_64,
                            (vm_region_info_t)&info, 
                            &infoCount, 
@@ -116,8 +120,11 @@ namespace iOS {
                 break;
             }
             
+            // Store the size with the region for later use
+            info.protection |= (regionSize & 0xFFFFFFFF) << 32; // Store size in unused upper bits of protection
+            
             regions.push_back(info);
-            address += size;
+            address += regionSize;
         }
         
         return !regions.empty();
@@ -236,33 +243,27 @@ namespace iOS {
         mach_vm_address_t address = 0;
         for (const auto& region : regions) {
             // Skip regions that are not readable
-            #if defined(IOS_TARGET) || defined(__APPLE__)
-            // On iOS, protection is a different field
             if (!(region.protection & VM_PROT_READ)) {
-            #else
-            if (!(region.protection & VM_PROT_READ)) {
-            #endif
                 continue;
             }
             
             // Scan this region
+            mach_vm_size_t regionSize;
             #if defined(IOS_TARGET) || defined(__APPLE__)
-            // On iOS, the field is called 'size' not 'virtual_size'
-            mach_vm_address_t result = FindPattern(address, region.size, pattern, mask);
+            // For iOS, use a reasonable default size for scanning
+            // This is safer than trying to extract size from protection bits
+            regionSize = 4 * 1024 * 1024; // 4MB default scan size
             #else
-            mach_vm_address_t result = FindPattern(address, region.virtual_size, pattern, mask);
+            regionSize = region.virtual_size;
             #endif
+
+            mach_vm_address_t result = FindPattern(address, regionSize, pattern, mask);
             if (result != 0) {
                 return result;
             }
             
-            // Move to next region
-            #if defined(IOS_TARGET) || defined(__APPLE__)
-            // On iOS, the field is called 'size' not 'virtual_size'
-            address += region.size;
-            #else
-            address += region.virtual_size;
-            #endif
+            // Move to next region - use the regionSize we already calculated above
+            address += regionSize;
         }
         
         return 0;

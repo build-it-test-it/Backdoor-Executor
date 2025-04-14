@@ -19,6 +19,9 @@ namespace AdvancedBypass {
             return false;
         }
         
+        // Declare result variable at function scope so it's visible throughout
+        ExecutionIntegration::ExecutionResult result;
+        
         try {
             // Create HTTP client
             std::shared_ptr<HttpClient> httpClient = std::make_shared<HttpClient>();
@@ -30,41 +33,40 @@ namespace AdvancedBypass {
             // Get HTTP functions code
             std::string httpFunctionsCode = HttpClient::GetHttpFunctionsCode();
             
-            // Create native HTTP GET function for Lua
-            std::string httpGetCode = R"(
-                -- Define native HTTP GET function
-                function _httpGet(url, cache)
-                    -- This function will be replaced by the C++ implementation
-                    -- Placeholder implementation for testing
-                    return "HTTP GET: " .. url .. " (cache: " .. tostring(cache) .. ")"
-                end
-                
-                -- Define native HTTP GET async function for Lua
-                function _httpGetAsync(url, callback)
-                    -- This function will be replaced by the C++ implementation
-                    -- Placeholder implementation for testing
-                    local result = "HTTP GET Async: " .. url
-                    callback(true, result)
-                end
-                
-                -- Define native HTTP POST function for Lua
-                function _httpPost(url, data, contentType, compress)
-                    -- This function will be replaced by the C++ implementation
-                    -- Placeholder implementation for testing
-                    return "HTTP POST: " .. url .. " (data: " .. tostring(data) .. ")"
-                end
-                
-                -- Define native HTTP POST async function for Lua
-                function _httpPostAsync(url, data, contentType, compress, callback)
-                    -- This function will be replaced by the C++ implementation
-                    -- Placeholder implementation for testing
-                    local result = "HTTP POST Async: " .. url .. " (data: " .. tostring(data) .. ")"
-                    callback(true, result)
-                end
-            )";
+            // Create native HTTP GET function for Lua - use standard string with escaped newlines
+            std::string httpGetCode = 
+                "-- Define native HTTP GET function\n"
+                "function _httpGet(url, cache)\n"
+                "    -- This function will be replaced by the C++ implementation\n"
+                "    -- Placeholder implementation for testing\n"
+                "    return \"HTTP GET: \" .. url .. \" (cache: \" .. tostring(cache) .. \")\"\n"
+                "end\n"
+                "\n"
+                "-- Define native HTTP GET async function for Lua\n"
+                "function _httpGetAsync(url, callback)\n"
+                "    -- This function will be replaced by the C++ implementation\n"
+                "    -- Placeholder implementation for testing\n"
+                "    local result = \"HTTP GET Async: \" .. url\n"
+                "    callback(true, result)\n"
+                "end\n"
+                "\n"
+                "-- Define native HTTP POST function for Lua\n"
+                "function _httpPost(url, data, contentType, compress)\n"
+                "    -- This function will be replaced by the C++ implementation\n"
+                "    -- Placeholder implementation for testing\n"
+                "    return \"HTTP POST: \" .. url .. \" (data: \" .. tostring(data) .. \")\"\n"
+                "end\n"
+                "\n"
+                "-- Define native HTTP POST async function for Lua\n"
+                "function _httpPostAsync(url, data, contentType, compress, callback)\n"
+                "    -- This function will be replaced by the C++ implementation\n"
+                "    -- Placeholder implementation for testing\n"
+                "    local result = \"HTTP POST Async: \" .. url .. \" (data: \" .. tostring(data) .. \")\"\n"
+                "    callback(true, result)\n"
+                "end";
             
             // Inject HTTP functions into Lua environment
-            ExecutionIntegration::ExecutionResult result = executionIntegration->Execute(httpGetCode + "\n" + httpFunctionsCode);
+            result = executionIntegration->Execute(httpGetCode + "\n" + httpFunctionsCode);
             if (!result.m_success) {
                 std::cerr << "HttpIntegration: Failed to inject HTTP functions: " << result.m_error << std::endl;
                 return false;

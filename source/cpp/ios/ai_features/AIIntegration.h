@@ -175,7 +175,7 @@ public:
     std::shared_ptr<ScriptAssistant> GetScriptAssistant() {
         if (!m_integration) return nullptr;
         
-        void* ptr = GetScriptAssistant(m_integration);
+        void* ptr = ::GetScriptAssistant(m_integration);
         return ptr ? *static_cast<std::shared_ptr<ScriptAssistant>*>(ptr) : nullptr;
     }
     
@@ -187,7 +187,7 @@ public:
     std::shared_ptr<SignatureAdaptation> GetSignatureAdaptation() {
         if (!m_integration) return nullptr;
         
-        void* ptr = GetSignatureAdaptation(m_integration);
+        void* ptr = ::GetSignatureAdaptation(m_integration);
         return ptr ? *static_cast<std::shared_ptr<SignatureAdaptation>*>(ptr) : nullptr;
     }
     

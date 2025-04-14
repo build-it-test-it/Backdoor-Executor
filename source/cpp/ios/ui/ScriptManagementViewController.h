@@ -7,6 +7,27 @@
 #include <unordered_map>
 #include "ScriptEditorViewController.h"
 
+// Forward declare Objective-C classes and types
+#if defined(__OBJC__)
+#import <CoreGraphics/CGGeometry.h>
+@class UIColor;
+#else
+// For C++ code, define opaque types
+#ifndef OBJC_OBJECT_DEFINED
+#define OBJC_OBJECT_DEFINED
+typedef struct objc_object objc_object;
+#endif
+typedef objc_object UIColor;
+// CGPoint definition for C++
+#ifndef CGPOINT_DEFINED
+#define CGPOINT_DEFINED
+typedef struct {
+    float x;
+    float y;
+} CGPoint;
+#endif
+#endif
+
 namespace iOS {
 namespace UI {
 

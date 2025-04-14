@@ -273,10 +273,11 @@ jobs:
         cmake -S . -B build \
           -DCMAKE_OSX_ARCHITECTURES="arm64" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
-          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_SYSTEM_NAME=iOS \
           -DENABLE_AI_FEATURES=ON \
           -DENABLE_LOCAL_TRAINING=ON \
+          -DCMAKE_CXX_FLAGS="-ferror-limit=0 -fcolor-diagnostics -fdiagnostics-show-category=name" \
           ${EXTRA_CMAKE_ARGS}
         
         # Print config and diagnostics with expanded debugging

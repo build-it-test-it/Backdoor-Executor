@@ -53,7 +53,7 @@ namespace AdvancedBypass {
                         const std::unordered_map<std::string, std::string>& headers,
                         const std::string& body, int timeout, CompletionCallback callback);
         bool ValidateUrl(const std::string& url);
-        std::string NormalizeUrl(const std::string& url);
+        std::string NormalizeUrl(const std::string& url) const;
         bool ShouldUseCache(const std::string& url, const std::string& method);
         void AddToCacheIfNeeded(const std::string& url, const RequestResult& result);
         RequestResult GetFromCacheIfAvailable(const std::string& url);

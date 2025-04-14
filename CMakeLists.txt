@@ -32,10 +32,39 @@ find_library(SECURITY_LIBRARY Security REQUIRED)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 # Check for Dobby dependency (optional)
-find_package(Dobby QUIET)
-if(NOT Dobby_FOUND)
-    message(STATUS "Dobby library not found. Building without hooking functionality.")
+option(USE_DOBBY "Use Dobby for function hooking" ON)
+
+if(USE_DOBBY)
+    # Check if Dobby_DIR is set (from the workflow)
+    if(DEFINED ENV{DOBBY_DIR})
+        set(Dobby_DIR $ENV{DOBBY_DIR})
+        message(STATUS "Using Dobby from DOBBY_DIR environment variable: ${Dobby_DIR}")
+    endif()
+    
+    # Try to find the Dobby package
+    find_package(Dobby QUIET)
+    
+    # If not found through find_package but DOBBY_DIR is set, set up manually
+    if(NOT Dobby_FOUND AND DEFINED Dobby_DIR)
+        message(STATUS "Setting up Dobby manually from ${Dobby_DIR}")
+        set(Dobby_INCLUDE_DIRS "${Dobby_DIR}/include")
+        set(Dobby_LIBRARIES "${Dobby_DIR}/lib/libdobby.a")
+        set(Dobby_FOUND TRUE)
+    endif()
+    
+    # Final check
+    if(Dobby_FOUND)
+        message(STATUS "Dobby library found. Building with hooking functionality.")
+        add_definitions(-DHOOKING_AVAILABLE=1)
+    else()
+        message(STATUS "Dobby library not found. Building without hooking functionality.")
+        add_definitions(-DNO_DOBBY_HOOKS)
+        add_definitions(-DHOOKING_AVAILABLE=0)
+    endif()
+else()
+    message(STATUS "Dobby support disabled. Building without hooking functionality.")
     add_definitions(-DNO_DOBBY_HOOKS)
+    add_definitions(-DHOOKING_AVAILABLE=0)
 endif()
 
 # Set AI feature options - now using local training only

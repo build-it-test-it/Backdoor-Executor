@@ -32,24 +32,40 @@ jobs:
         # Install LuaRocks libraries
         luarocks install luafilesystem
         
-        # Install Dobby library (for hooking functionality)
-        # First try to use brew, but if it fails, use direct download
-        brew install dobby || true
-        
-        if [ ! -d "/usr/local/include/dobby" ]; then
-          echo "Dobby not installed via Homebrew, downloading from source..."
-          git clone --depth=1 https://github.com/jmpews/Dobby.git
-          cd Dobby
-          mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DDOBBY_BUILD_SHARED_LIBRARY=ON
-          make -j4
-          sudo make install
-          cd ../..
-        fi
-        
-        # Create AI data directories
+        # Create directories for project resources
         mkdir -p Resources/AIData/LocalModels
         mkdir -p Resources/AIData/Vulnerabilities
+        mkdir -p lib
+
+    - name: Install Dobby (Optional)
+      id: install-dobby
+      continue-on-error: true
+      run: |
+        echo "Building Dobby from source..."
+        git clone --depth=1 https://github.com/jmpews/Dobby.git
+        cd Dobby
+        mkdir -p build && cd build
+        
+        # Configure for iOS
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DDOBBY_BUILD_SHARED_LIBRARY=OFF \
+          -DDOBBY_BUILD_STATIC_LIBRARY=ON
+        
+        # Build Dobby
+        cmake --build . --config Release
+        
+        # Create directory structure for CMake to find Dobby
+        mkdir -p $GITHUB_WORKSPACE/external/dobby/lib
+        mkdir -p $GITHUB_WORKSPACE/external/dobby/include
+        
+        # Copy the library and header files
+        cp libdobby.a $GITHUB_WORKSPACE/external/dobby/lib/
+        cp -r ../include/* $GITHUB_WORKSPACE/external/dobby/include/
+        
+        # Set env variable for CMake to find Dobby
+        echo "DOBBY_DIR=$GITHUB_WORKSPACE/external/dobby" >> $GITHUB_ENV
+        echo "Dobby installation completed successfully"
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -64,6 +80,16 @@ jobs:
         # Create build directory
         mkdir -p build
         
+        # Set additional CMake args if Dobby is installed
+        EXTRA_CMAKE_ARGS=""
+        if [ -d "$DOBBY_DIR" ]; then
+          echo "Dobby found at $DOBBY_DIR, enabling Dobby support"
+          EXTRA_CMAKE_ARGS="-DDobby_DIR=$DOBBY_DIR -DUSE_DOBBY=ON"
+        else
+          echo "Dobby not found, building without hooking functionality"
+          EXTRA_CMAKE_ARGS="-DNO_DOBBY_HOOKS=ON"
+        fi
+        
         # Configure CMake for iOS build with additional options
         cmake -S . -B build \
           -DCMAKE_OSX_ARCHITECTURES="arm64" \
@@ -71,11 +97,12 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_SYSTEM_NAME=iOS \
           -DENABLE_AI_FEATURES=ON \
-          -DENABLE_LOCAL_TRAINING=ON
+          -DENABLE_LOCAL_TRAINING=ON \
+          ${EXTRA_CMAKE_ARGS}
         
         # Print config
         echo "CMake configuration:"
-        cat build/CMakeCache.txt | grep -E "AI_FEATURES|LOCAL_TRAINING|DOBBY"
+        cat build/CMakeCache.txt | grep -E "AI_FEATURES|LOCAL_TRAINING|DOBBY|NO_DOBBY"
         
         # Build the dynamic library
         cmake --build build --config Release -j4

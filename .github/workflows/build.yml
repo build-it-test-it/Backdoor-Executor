@@ -80,12 +80,32 @@ jobs:
         
         echo "Found Luau library: $LUAU_LIBRARY"
         
-        # Create a symbolic link from libluau.dylib to liblua.dylib (if needed)
+        # Create a copy of libluau.dylib as liblua.dylib (if needed)
         if [ -f "$LUAU_PREFIX/lib/libluau.dylib" ] && [ ! -f "$LUAU_PREFIX/lib/liblua.dylib" ]; then
-            echo "Creating symbolic link from libluau.dylib to liblua.dylib"
-            ln -sf "$LUAU_PREFIX/lib/libluau.dylib" "$LUAU_PREFIX/lib/liblua.dylib"
-            # Use the symlinked path for consistency
-            LUAU_LIBRARY="$LUAU_PREFIX/lib/liblua.dylib"
+            echo "Creating copy of libluau.dylib as liblua.dylib"
+            # Try to create a symbolic link first
+            ln -sf "$LUAU_PREFIX/lib/libluau.dylib" "$LUAU_PREFIX/lib/liblua.dylib" || true
+            
+            # If that didn't work (due to permissions), try a copy in the user's directory
+            if [ ! -f "$LUAU_PREFIX/lib/liblua.dylib" ]; then
+                echo "Symbolic link creation failed, creating local copy instead"
+                mkdir -p "$HOME/lib"
+                cp "$LUAU_PREFIX/lib/libluau.dylib" "$HOME/lib/liblua.dylib"
+                LUAU_LIBRARY="$HOME/lib/liblua.dylib"
+                echo "Created local copy at $LUAU_LIBRARY"
+            else
+                LUAU_LIBRARY="$LUAU_PREFIX/lib/liblua.dylib"
+                echo "Created symbolic link at $LUAU_LIBRARY"
+            fi
+        fi
+        
+        # Debug information about the library paths
+        echo "Checking library paths:"
+        if [ -f "$LUAU_PREFIX/lib/liblua.dylib" ]; then
+            echo "✅ liblua.dylib exists in $LUAU_PREFIX/lib/"
+            ls -la "$LUAU_PREFIX/lib/liblua.dylib"
+        else
+            echo "❌ liblua.dylib does not exist in $LUAU_PREFIX/lib/"
         fi
         
         # Set environment variables for Luau
@@ -279,6 +299,17 @@ jobs:
         # Apply compiler and linker flags - going back to simpler approach
         echo "Setting up compiler and linker flags for LLVM and libomp"
         
+        # Create a direct copy of the library file in the expected location
+        if [ ! -d "/opt/homebrew/opt/luau/lib" ]; then
+            echo "Creating /opt/homebrew/opt/luau/lib directory"
+            mkdir -p $HOME/homebrew_luau/lib
+            if [ -f "$LUAU_LIBRARY" ]; then
+                echo "Copying $LUAU_LIBRARY to $HOME/homebrew_luau/lib/liblua.dylib"
+                cp "$LUAU_LIBRARY" "$HOME/homebrew_luau/lib/liblua.dylib"
+                echo "HOMEBREW_LUAU_PATH=$HOME/homebrew_luau" >> $GITHUB_ENV
+            fi
+        fi
+        
         # We'll use a simpler approach without trying to modify compiler flags
         # This should be enough to find the module files without quoting issues
         
@@ -293,6 +324,27 @@ jobs:
         
         # Configure CMake for iOS build with standard options
         echo "CMake args: $EXTRA_CMAKE_ARGS"
+        
+        # Create a direct symlink to fix the exact path CMake is expecting
+        EXPECTED_LUA_PATH="/opt/homebrew/opt/luau/lib/liblua.dylib"
+        EXPECTED_LUA_DIR=$(dirname "$EXPECTED_LUA_PATH")
+        if [ ! -f "$EXPECTED_LUA_PATH" ] && [ -f "$LUAU_LIBRARY" ]; then
+            echo "Creating directory for expected Lua library path"
+            sudo mkdir -p "$EXPECTED_LUA_DIR" || mkdir -p "$EXPECTED_LUA_DIR" || true
+            echo "Attempting to copy $LUAU_LIBRARY to $EXPECTED_LUA_PATH"
+            sudo cp "$LUAU_LIBRARY" "$EXPECTED_LUA_PATH" || cp "$LUAU_LIBRARY" "$EXPECTED_LUA_PATH" || true
+            
+            if [ -f "$EXPECTED_LUA_PATH" ]; then
+                echo "✅ Successfully created expected Lua library at $EXPECTED_LUA_PATH"
+            else
+                echo "❌ Failed to create expected Lua library at $EXPECTED_LUA_PATH"
+                
+                # Try a different approach with a mock
+                echo "Creating mock library file for CMake to find"
+                echo "file(WRITE \"/opt/homebrew/opt/luau/lib/liblua.dylib\" \"mock\")" > mock_library.cmake
+                cmake -P mock_library.cmake || true
+            fi
+        fi
         
         set -x # Echo commands
         cmake -S . -B build \

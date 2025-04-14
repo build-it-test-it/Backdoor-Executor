@@ -20,7 +20,7 @@ extern "C" {
     }
     
     __attribute__((visibility("default"), used, weak))
-    int SCNetworkReachabilitySetCallback_STUB(void* target, void* callback, void* context) {
+    int SCNetworkReachabilitySetCallback_STUB(void* target, void (*callback)(void*, int, void*), void* context) {
         return 1;
     }
     

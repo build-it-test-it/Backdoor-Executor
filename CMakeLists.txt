@@ -421,14 +421,18 @@ else()
     )
 endif()
 
-# Explicitly reference iOS symbols to prevent optimization
-target_compile_options(roblox_executor PRIVATE
-    "-Wl,-u,_SCNetworkReachabilityCreateWithAddress_STUB"
-    "-Wl,-u,_SCNetworkReachabilityGetFlags_STUB"
-    "-Wl,-u,_SCNetworkReachabilityScheduleWithRunLoop_STUB"
-    "-Wl,-u,_SCNetworkReachabilitySetCallback_STUB"
-    "-Wl,-u,_SCNetworkReachabilityUnscheduleFromRunLoop_STUB"
-)
+# Explicitly reference iOS symbols to prevent optimization - move to linker flags
+# (previously was causing "linker input unused" warnings)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -u _SCNetworkReachabilityCreateWithAddress_STUB")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -u _SCNetworkReachabilityGetFlags_STUB")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -u _SCNetworkReachabilityScheduleWithRunLoop_STUB")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -u _SCNetworkReachabilitySetCallback_STUB")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -u _SCNetworkReachabilityUnscheduleFromRunLoop_STUB")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u _SCNetworkReachabilityCreateWithAddress_STUB")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u _SCNetworkReachabilityGetFlags_STUB")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u _SCNetworkReachabilityScheduleWithRunLoop_STUB")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u _SCNetworkReachabilitySetCallback_STUB")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u _SCNetworkReachabilityUnscheduleFromRunLoop_STUB")
 
 # Include directories - ensure Lua headers are available
 target_include_directories(roblox_executor PRIVATE 

@@ -37,7 +37,7 @@ extern "C" {
     }
 
     __attribute__((used, visibility("default")))
-    Boolean SCNetworkReachabilitySetCallback_STUB(SCNetworkReachabilityRef target, SCNetworkReachabilityCallback callback, SCNetworkReachabilityContext* context) {
+    Boolean SCNetworkReachabilitySetCallback_STUB(SCNetworkReachabilityRef target, SCNetworkReachabilityCallBack callback, SCNetworkReachabilityContext* context) {
         return 1;
     }
 

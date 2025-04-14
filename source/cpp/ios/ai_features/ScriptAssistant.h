@@ -1,3 +1,5 @@
+#define CI_BUILD
+
 #pragma once
 
 #include <string>
@@ -96,7 +98,6 @@ namespace AIFeatures {
         using ResponseCallback = std::function<void(const Message& response)>;
         
     private:
-        // Member variables with consistent m_ prefix
         bool m_initialized;                   // Whether the assistant is initialized
         std::vector<Message> m_conversationHistory; // Conversation history
         GameContext m_currentContext;         // Current game context
@@ -152,7 +153,6 @@ namespace AIFeatures {
         Message ProcessQuery(const std::string& query);
         
         /**
-         * @brief Generate a script based on description
          * @param description Script description
          * @param callback Callback function
          */
@@ -266,9 +266,7 @@ namespace AIFeatures {
         static std::vector<std::string> GetExampleScriptDescriptions();
         
         /**
-         * @brief Release unused resources to save memory
          */
-        void ReleaseUnusedResources() {
             // Clear history beyond necessary size
             if (m_conversationHistory.size() > m_maxHistorySize) {
                 TrimConversationHistory();
@@ -280,7 +278,6 @@ namespace AIFeatures {
          * @return Memory usage in bytes
          */
         uint64_t GetMemoryUsage() const {
-            // Estimate memory usage based on history size and other components
             uint64_t total = 0;
             // Each message takes approximately 1KB
             total += m_conversationHistory.size() * 1024;

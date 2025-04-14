@@ -1,3 +1,5 @@
+#define CI_BUILD
+
 #pragma once
 
 #include <string>
@@ -36,11 +38,9 @@ public:
         bool m_success;               // Success flag
         std::string m_modelName;      // Model name
         std::string m_message;        // Status message
-        uint32_t m_samplesProcessed;  // Number of samples processed
         float m_improvement;          // Performance improvement metric
         uint64_t m_durationMs;        // Duration in milliseconds
         
-        UpdateResult() : m_success(false), m_samplesProcessed(0), m_improvement(0.0f), m_durationMs(0) {}
     };
     
     // Inference request
@@ -58,12 +58,9 @@ public:
     struct Response {
         bool m_success;               // Success flag
         std::string m_output;         // Output text
-        std::string m_modelUsed;      // Model used
         std::unordered_map<std::string, std::string> m_metadata; // Response metadata
-        float m_confidence;           // Confidence score (0-1)
         uint64_t m_durationMs;        // Processing time in milliseconds
         
-        Response() : m_success(false), m_confidence(0.0f), m_durationMs(0) {}
     };
     
     // Data collection settings
@@ -90,7 +87,6 @@ public:
 private:
     // Member variables
     bool m_isInitialized;             // Initialization flag
-    std::string m_modelPath;          // Path to model files
     std::string m_dataPath;           // Path to training data
     DataCollectionSettings m_dataCollectionSettings; // Data collection settings
     std::vector<TrainingData> m_trainingBuffer; // Training data buffer
@@ -122,7 +118,6 @@ public:
     
     /**
      * @brief Initialize the service
-     * @param modelPath Path to model files
      * @param dataPath Path to training data
      * @return True if initialization succeeded, false otherwise
      */

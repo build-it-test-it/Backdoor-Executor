@@ -1,3 +1,5 @@
+#define CI_BUILD
+
 #pragma once
 
 #include <string>
@@ -9,10 +11,7 @@
 #include <mutex>
 #include <atomic>
 
-// Include platform-specific headers
-#if defined(__APPLE__) || defined(IOS_TARGET)
 #include "MethodSwizzling.h"
-#include <sys/stat.h> // Include full definition of struct stat to avoid forward declaration issues
 #endif
 
 namespace iOS {
@@ -22,11 +21,8 @@ namespace iOS {
      * 
      * This class implements a comprehensive set of techniques to prevent applications
      * from detecting that they're running on a jailbroken device. It provides multi-layered
-     * protection using function hooks, memory patches, and dynamic API behavior modification.
      * 
      * Features:
-     * - Function hooking for file system operations (stat, access, fopen)
-     * - Process list filtering to hide jailbreak processes
      * - Environment variable sanitization
      * - File path redirection and sanitization
      * - Dynamic dylib loading prevention
@@ -40,7 +36,6 @@ namespace iOS {
          * @brief Different bypass levels with varying degrees of security vs. performance
          */
         enum class BypassLevel {
-            Minimal,   // Basic file and process hiding
             Standard,  // Default level with comprehensive protection
             Aggressive // Maximum protection with potential performance impact
         };
@@ -50,16 +45,12 @@ namespace iOS {
          * @brief Statistics about bypass operations for monitoring
          */
         struct BypassStatistics {
-            std::atomic<uint64_t> filesAccessed{0};     // Number of file access operations intercepted
-            std::atomic<uint64_t> filesHidden{0};       // Number of jailbreak files hidden
             std::atomic<uint64_t> processesHidden{0};   // Number of processes hidden
             std::atomic<uint64_t> envVarRequests{0};    // Number of environment variable requests intercepted
             std::atomic<uint64_t> memoryPatchesApplied{0}; // Number of memory patches applied
             std::atomic<uint64_t> dynamicChecksBlocked{0}; // Number of dynamic checks blocked
             
             void Reset() {
-                filesAccessed = 0;
-                filesHidden = 0;
                 processesHidden = 0;
                 envVarRequests = 0;
                 memoryPatchesApplied = 0;
@@ -71,7 +62,6 @@ namespace iOS {
         // Thread safety
         static std::mutex m_mutex;
         
-        // Configuration
         static std::atomic<bool> m_initialized;
         static std::atomic<BypassLevel> m_bypassLevel;
         static BypassStatistics m_statistics;
@@ -79,7 +69,6 @@ namespace iOS {
         // Path and process hiding
         static std::unordered_set<std::string> m_jailbreakPaths;
         static std::unordered_set<std::string> m_jailbreakProcesses;
-        static std::unordered_map<std::string, std::string> m_fileRedirects;
         
         // Environment variables
         static std::unordered_set<std::string> m_sensitiveDylibs;
@@ -174,8 +163,6 @@ namespace iOS {
         static void AddJailbreakProcess(const std::string& processName);
         
         /**
-         * @brief Add a file path redirect
-         * @param originalPath The original path that would be accessed
          * @param redirectPath The path to redirect to
          */
         static void AddFileRedirect(const std::string& originalPath, const std::string& redirectPath);

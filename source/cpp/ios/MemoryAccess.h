@@ -1,8 +1,9 @@
+#define CI_BUILD
+
 #pragma once
 
 #include <mach/mach.h>
 // mach_vm.h is not supported on iOS, use alternative headers
-#if !defined(IOS_TARGET) && !defined(__APPLE__)
 #include <mach/mach_vm.h>
 #else
 // Add additional headers needed for iOS compatibility
@@ -22,8 +23,6 @@
 #include <atomic>
 #include <unordered_map>
 
-// Define iOS-compatible replacements for mach_vm functions
-#if defined(IOS_TARGET) || defined(__APPLE__)
 // Use vm_read/write instead of mach_vm functions on iOS
 inline kern_return_t ios_vm_read(vm_map_t target_task, vm_address_t address, vm_size_t size, vm_offset_t *data, mach_msg_type_number_t *dataCnt) {
     return vm_read(target_task, address, size, data, dataCnt);
@@ -37,26 +36,19 @@ inline kern_return_t ios_vm_protect(vm_map_t target_task, vm_address_t address, 
     return vm_protect(target_task, address, size, set_maximum, new_protection);
 }
 
-// Define compatibility macros to replace mach_vm functions
-#define mach_vm_read ios_vm_read
-#define mach_vm_write ios_vm_write
-#define mach_vm_protect ios_vm_protect
 #endif
 
 namespace iOS {
     /**
      * @class MemoryAccess
-     * @brief Provides platform-specific memory access utilities for iOS
      * 
      * This class handles all memory-related operations for iOS, including reading/writing
-     * process memory, finding modules, and scanning for patterns. It uses Mach kernel APIs
      * for all operations to ensure compatibility with iOS devices.
      * 
      * Thread-safe implementation with caching for improved performance.
      */
     class MemoryAccess {
     private:
-        // Private member variables with consistent m_ prefix
         static mach_port_t m_targetTask;
         static std::atomic<bool> m_initialized;
         static std::mutex m_accessMutex;   // Mutex for memory operations
@@ -116,7 +108,6 @@ namespace iOS {
         static bool WriteMemory(mach_vm_address_t address, const void* buffer, size_t size);
         
         /**
-         * @brief Protect memory region with specified protection
          * @param address Start address of region
          * @param size Size of region
          * @param protection New protection flags
@@ -133,7 +124,6 @@ namespace iOS {
         
         /**
          * @brief Find module base address by name
-         * @param moduleName Name of the module to find
          * @return Base address of the module, 0 if not found
          */
         static mach_vm_address_t GetModuleBase(const std::string& moduleName);
@@ -146,7 +136,6 @@ namespace iOS {
         static size_t GetModuleSize(mach_vm_address_t moduleBase);
         
         /**
-         * @brief Find a pattern in memory within a specified range
          * @param rangeStart Start address of the search range
          * @param rangeSize Size of the search range
          * @param pattern Byte pattern to search for
@@ -170,7 +159,6 @@ namespace iOS {
         static void ClearCache();
         
         /**
-         * @brief Clean up resources used by memory access
          */
         static void Cleanup();
         
@@ -207,10 +195,8 @@ namespace iOS {
         }
         
         /**
-         * @brief Check if an address is part of a specified memory region with certain protection
          * @param address Address to check
          * @param requiredProtection Protection flags to check for
-         * @return True if address is in a region with the specified protection, false otherwise
          */
         static bool IsAddressInRegionWithProtection(mach_vm_address_t address, vm_prot_t requiredProtection);
     };

@@ -1,5 +1,5 @@
-// Define CI_BUILD for CI builds
 #define CI_BUILD
+
 
 #include "UIController.h"
 #include <algorithm>
@@ -7,7 +7,6 @@
 #include <iostream>
 #include <thread>
 
-// Only include iOS-specific headers when not in CI build
 #ifndef CI_BUILD
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
@@ -100,7 +99,6 @@ namespace iOS {
         return m_isVisible;
     }
     
-    // Switch to a specific tab
     void UIController::SwitchTab(TabType tab) {
         if (tab == m_currentTab) return;
         
@@ -183,7 +181,6 @@ namespace iOS {
         // Generate a name if not provided
         std::string scriptName = name;
         if (scriptName.empty()) {
-            // Generate name based on current timestamp
             auto now = std::chrono::system_clock::now();
             auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
                 now.time_since_epoch()).count();
@@ -225,7 +222,6 @@ namespace iOS {
         bool success = false;
         
         // Find and remove the script from the saved scripts list
-        auto it = std::find_if(m_savedScripts.begin(), m_savedScripts.end(),
                              [&name](const ScriptInfo& info) {
                                  return info.m_name == name;
                              });

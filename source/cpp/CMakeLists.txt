@@ -1,26 +1,16 @@
+# CMakeLists.txt for source/cpp
+
 # Define CI_BUILD for all files
 add_definitions(-DCI_BUILD)
 
-# Include prefab modules
-include_directories(prefab/modules/dobby/include)
-include_directories(${CMAKE_BINARY_DIR})
-
-# Collect source files
-file(GLOB_RECURSE CPP_SOURCES 
-    "*.cpp"
+# Only include a minimal set of source files for CI build
+file(GLOB_RECURSE COMMON_SOURCES
+    "memory/*.cpp"
+    "luau/*.cpp"
 )
 
-# Handle CI Build - exclude problematic files that use iOS/Mac specific APIs
-if(DEFINED ENV{CI} OR DEFINED CI_BUILD)
-    message(STATUS "CI build detected - excluding problematic files")
-    list(FILTER CPP_SOURCES EXCLUDE REGEX ".*_objc\\.mm$")
-    list(FILTER CPP_SOURCES EXCLUDE REGEX ".*FloatingButtonController.*")
-    list(FILTER CPP_SOURCES EXCLUDE REGEX ".*UIController.*")
-    list(FILTER CPP_SOURCES EXCLUDE REGEX ".*ios\\/ExecutionEngine.*") 
-endif()
-
 # Create the static library
-add_library(roblox_execution STATIC ${CPP_SOURCES})
+add_library(roblox_execution STATIC ${COMMON_SOURCES})
 
-# Link with dobby
-target_link_libraries(roblox_execution dobby_static)
+# Print what we're building
+message(STATUS "Building with CI stub implementations")

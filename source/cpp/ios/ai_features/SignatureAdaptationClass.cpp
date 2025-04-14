@@ -1,13 +1,11 @@
-// Define CI_BUILD to use stub implementations in CI environment
 #define CI_BUILD
+
 
 #include <string>
 #include <vector>
 #include <functional>
 #include <memory>
 
-// Define the EXPORT macro to ensure proper symbol visibility
-#define EXPORT __attribute__((visibility("default"), used, externally_visible))
 
 // Stub implementations of mangled name functions
 extern "C" {
@@ -29,11 +27,9 @@ namespace iOS {
         // Forward declaration
         class SignatureAdaptation;
         
-        // Class definition
         class SignatureAdaptation {
         public:
 #ifndef CI_BUILD
-            // Only define these in non-CI builds to avoid symbol conflicts
             SignatureAdaptation();
             ~SignatureAdaptation();
 #endif

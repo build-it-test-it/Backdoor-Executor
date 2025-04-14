@@ -227,6 +227,7 @@ find_library(CORE_GRAPHICS_LIBRARY CoreGraphics REQUIRED)
 find_library(CORE_FOUNDATION_LIBRARY CoreFoundation REQUIRED)
 find_library(JAVASCRIPT_CORE_LIBRARY JavaScriptCore REQUIRED)
 find_library(SECURITY_LIBRARY Security REQUIRED)
+find_library(SYSTEM_CONFIGURATION_LIBRARY SystemConfiguration REQUIRED)
 
 # Add JavaScriptCore to the compiler flags to ensure it's properly included
 add_definitions(-DJAVASCRIPT_CORE_AVAILABLE=1)
@@ -282,6 +283,14 @@ if(USE_DOBBY)
             # Create a static library for Dobby stub
             add_library(dobby_stub STATIC "${CMAKE_BINARY_DIR}/dobby_stub.c")
             add_library(ios_stubs STATIC "${CMAKE_SOURCE_DIR}/ios_stubs.cpp")
+            target_include_directories(ios_stubs PRIVATE 
+                "${CMAKE_SOURCE_DIR}/source/cpp/ios"
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+            )
+            set_target_properties(ios_stubs PROPERTIES
+                POSITION_INDEPENDENT_CODE ON
+                LINKER_LANGUAGE CXX
+            )
             set(Dobby_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/source/cpp/ios")
             set(Dobby_LIBRARIES dobby_stub)
             set(Dobby_FOUND TRUE)
@@ -433,6 +442,7 @@ target_link_libraries(roblox_executor PRIVATE
     "-framework CoreFoundation"
     "-framework JavaScriptCore"
     "-framework Security"
+    "-framework SystemConfiguration"
 )
 
 # Ensure the stub library is built before the main target

@@ -1,31 +1,32 @@
 # FindLuaFileSystem.cmake
-# This module allows compilation of lfs.c specifically
+# This module allows compilation of lfs.c specifically using our own Lua headers
 
-# Create a target for lfs.c that ensures it can find lua.h
+# Create a target for lfs.c that ensures it can find the Luau headers
 function(add_lfs_target)
     # Don't add it twice
     if(TARGET lfs_obj)
         return()
     endif()
     
-    # Get the Lua include directories
-    get_directory_property(LUA_INCLUDES DIRECTORY ${CMAKE_SOURCE_DIR} INCLUDE_DIRECTORIES)
+    message(STATUS "Setting up LuaFileSystem with native Luau headers")
     
     # Create an object library for lfs.c
     add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
     
     # Set include directories for just this file
+    # The source directory is needed for relative includes like "cpp/luau/lua.h"
     target_include_directories(lfs_obj PRIVATE
-        ${LUA_INCLUDE_DIR}
-        $ENV{LUA_INCLUDE_DIR}
-        /opt/homebrew/opt/lua/include
-        /opt/homebrew/include
-        /usr/local/include
-        ${LUA_INCLUDES}
+        ${CMAKE_SOURCE_DIR}/source         # Main source directory for relative includes
+        ${CMAKE_SOURCE_DIR}/source/cpp     # For cpp/luau/lua.h path style
+        ${CMAKE_SOURCE_DIR}/source/cpp/luau # For direct lua.h access
+        ${CMAKE_SOURCE_DIR}                # For absolute paths
     )
     
-    # Add a define to use quotes instead of brackets for includes
-    target_compile_definitions(lfs_obj PRIVATE LFS_USE_INCLUDE_QUOTES)
+    # Add a define to use the internal Luau headers
+    target_compile_definitions(lfs_obj PRIVATE 
+        LFS_USE_INTERNAL_LUAU=1
+        LUAU_FASTFLAG_LUAERROR=1          # Handle missing dependencies
+    )
     
     # Ensure the compiler knows this is C
     set_target_properties(lfs_obj PROPERTIES
@@ -33,7 +34,5 @@ function(add_lfs_target)
         POSITION_INDEPENDENT_CODE ON
     )
     
-    # Print diagnostic info
-    message(STATUS "LFS include directories: ${LUA_INCLUDE_DIR}")
-    message(STATUS "LFS compile definitions: LFS_USE_INCLUDE_QUOTES")
+    message(STATUS "LFS using internal Luau headers from ${CMAKE_SOURCE_DIR}/source/cpp/luau")
 endfunction()

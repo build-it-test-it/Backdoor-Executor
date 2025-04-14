@@ -86,9 +86,14 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #else
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
+// Use the Lua headers from our source tree
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h" 
+
+// Define missing lauxlib symbols we need
+#ifndef luaL_register
+extern void luaL_register(lua_State* L, const char* libname, const luaL_Reg* l);
+#endif
 #endif
 
 #include "lfs.h"

@@ -146,17 +146,17 @@ endif()
 option(ENABLE_AI_FEATURES "Enable AI features" ON)
 option(ENABLE_LOCAL_TRAINING "Enable local AI model training" ON)
 
-# Include our custom LuaFileSystem finder
+# Include our custom LuaFileSystem finder using our internal Luau headers
 include(cmake/FindLuaFileSystem.cmake)
 
-# Do not include lfs.c directly, we'll handle it separately
-# Main C++ sources
+# Main C++ sources - explicitly add the Luau sources
 file(GLOB_RECURSE CPP_SOURCES 
     source/library.cpp
     source/cpp/*.cpp
 )
 
-# Add the lfs target
+# Add LuaFileSystem using our custom finder that uses internal Luau headers
+message(STATUS "Using internal Luau headers instead of external Lua")
 add_lfs_target()
 
 # Objective-C++ sources

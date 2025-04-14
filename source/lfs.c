@@ -86,11 +86,18 @@
 #include <stdio.h>
 #include <string.h>
 
-// Include Luau headers from Homebrew
-// Homebrew Luau uses standard Lua naming for headers
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
+// Include Luau headers - use the ones included in the project
+// since we're having issues with finding the Homebrew ones
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
+
+// Define missing structure for luaL_Reg if needed
+#ifndef LUAAPI
+typedef struct luaL_Reg {
+    const char* name;
+    lua_CFunction func;
+} luaL_Reg;
+#endif
 
 #include "lfs.h"
 

@@ -86,12 +86,12 @@ jobs:
         echo "LUA_INCLUDE_DIR=$LUAU_PREFIX/include" >> $GITHUB_ENV
         echo "LUA_LIBRARIES=$LUAU_LIBRARY" >> $GITHUB_ENV
         
-        # Set compiler flags to include Luau headers
-        echo "CFLAGS=-I$LUAU_PREFIX/include" >> $GITHUB_ENV
-        echo "CXXFLAGS=-I$LUAU_PREFIX/include" >> $GITHUB_ENV
+        # Set compiler flags to include Luau headers - include both Homebrew and project headers
+        echo "CFLAGS=-I$LUAU_PREFIX/include -I$GITHUB_WORKSPACE -I$GITHUB_WORKSPACE/source" >> $GITHUB_ENV
+        echo "CXXFLAGS=-I$LUAU_PREFIX/include -I$GITHUB_WORKSPACE -I$GITHUB_WORKSPACE/source" >> $GITHUB_ENV
         
-        # Also pass these to subsequent commands
-        export LUA_INCLUDE_DIR=$LUAU_PREFIX/include
+        # Also pass these to subsequent commands - use project headers as fallback
+        export LUA_INCLUDE_DIR="$GITHUB_WORKSPACE/source/cpp/luau"
         export LUA_LIBRARIES=$LUAU_LIBRARY
         
         # Create directories for project resources (only once)

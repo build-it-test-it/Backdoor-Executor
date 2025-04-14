@@ -7,6 +7,22 @@
 #include <unordered_map>
 #include "../ai_features/ScriptAssistant.h"
 
+// Forward declare Objective-C classes
+#if defined(__OBJC__)
+@class UIColor;
+@class UIViewController;
+@class UITextView;
+#else
+// For C++ code, define opaque types
+#ifndef OBJC_OBJECT_DEFINED
+#define OBJC_OBJECT_DEFINED
+typedef struct objc_object objc_object;
+#endif
+typedef objc_object UIColor;
+typedef objc_object UIViewController;
+typedef objc_object UITextView;
+#endif
+
 namespace iOS {
 namespace UI {
 

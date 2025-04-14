@@ -404,8 +404,8 @@ void AIConfig::SetOnlineMode(OnlineMode mode) {
  * @return Online mode
  */
 AIConfig::OnlineMode AIConfig::GetOnlineMode() const {
-    // Get from options with default value - use offline_only as default
-    std::string modeStr = GetOption("online_mode", "offline_only");
+    // Get from options with default value - use auto as default for online training
+    std::string modeStr = GetOption("online_mode", "auto");
     
     // Convert string to enum value
     if (modeStr == "auto") {
@@ -419,7 +419,7 @@ AIConfig::OnlineMode AIConfig::GetOnlineMode() const {
     } else if (modeStr == "online_only") {
         return OnlineMode::OnlineOnly;
     } else {
-        return OnlineMode::OfflineOnly; // Default to offline only
+        return OnlineMode::Auto; // Default to auto for best network usage
     }
 }
 
@@ -438,7 +438,7 @@ void AIConfig::AutoDetectOptimalSettings() {
         if ([device respondsToSelector:@selector(systemFreeSize)]) {
             // We can't use systemFreeSize directly as it's not available
             // Use a reasonable default value based on device model
-            uint64_t freeMemory = 2 * 1024 * 1024 * 1024; // Default to 2GB
+            uint64_t freeMemory = 2ULL * 1024ULL * 1024ULL * 1024ULL; // Default to 2GB
             
             // Set max memory usage based on available memory
             // Use up to 25% of available memory, with upper limit

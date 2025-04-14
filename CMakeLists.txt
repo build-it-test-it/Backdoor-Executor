@@ -89,6 +89,9 @@ find_library(CORE_FOUNDATION_LIBRARY CoreFoundation REQUIRED)
 find_library(JAVASCRIPT_CORE_LIBRARY JavaScriptCore REQUIRED)
 find_library(SECURITY_LIBRARY Security REQUIRED)
 
+# Add JavaScriptCore to the compiler flags to ensure it's properly included
+add_definitions(-DJAVASCRIPT_CORE_AVAILABLE=1)
+
 # Specify the output directory for the library
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 

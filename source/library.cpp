@@ -1,4 +1,4 @@
-#include <lua.hpp>         // Lua core
+#include "cpp/luau/lua.hpp"  // Lua core (using local Luau compatibility header)
 #include <lauxlib.h>      // Lua auxiliary functions
 #include <lualib.h>       // Lua standard libraries
 #include <lfs.h>          // LuaFileSystem for file handling

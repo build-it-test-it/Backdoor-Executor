@@ -368,6 +368,7 @@ OfflineAISystem::AIResponse OfflineAISystem::ProcessScriptDebugging(const AIRequ
         std::regex varRegex("\\b([a-zA-Z][a-zA-Z0-9_]*)\\s*=");
         std::regex useRegex("\\b([a-zA-Z][a-zA-Z0-9_]*)\\b");
         
+        // Define variable sets before using them
         std::set<std::string> definedVars;
         std::set<std::string> usedVars;
         std::set<std::string> builtinVars = {
@@ -602,6 +603,20 @@ OfflineAISystem::AIResponse OfflineAISystem::ProcessGeneralQuery(const AIRequest
 bool OfflineAISystem::LoadModel(const std::string& modelName, int priority) {
     // Models are now created and trained locally, so we don't need to load them from files
     return true;
+}
+
+// Get script templates - implementation for declaration in header
+std::unordered_map<std::string, std::string> OfflineAISystem::GetScriptTemplates() const {
+    return m_scriptTemplates;
+}
+
+// Load script templates - implementation for declaration in header
+void OfflineAISystem::LoadScriptTemplates() {
+    // This would load templates from files
+    // For now, just populate with some built-in templates
+    m_scriptTemplates["esp"] = "-- Basic ESP Script\nlocal esp = {}\n\n-- Implementation goes here\n\nreturn esp";
+    m_scriptTemplates["aimbot"] = "-- Basic Aimbot\nlocal aimbot = {}\n\n-- Implementation goes here\n\nreturn aimbot";
+    m_scriptTemplates["speed"] = "-- Speed Hack\nlocal speed = {}\n\n-- Implementation goes here\n\nreturn speed";
 }
 
 // Unload model
@@ -869,13 +884,8 @@ print("Aimbot loaded. Hold right mouse button to aim. Press Y to toggle.")
 )";
 }
 
-// Get script templates
-std::unordered_map<std::string, std::string> OfflineAISystem::GetScriptTemplates() const {
-    return m_templateCache;
-}
-
-// Get a list of script templates
-std::unordered_map<std::string, std::string> OfflineAISystem::GetScriptTemplates() const {
+// Get cached templates
+std::unordered_map<std::string, std::string> OfflineAISystem::GetTemplateCache() const {
     return m_templateCache;
 }
 

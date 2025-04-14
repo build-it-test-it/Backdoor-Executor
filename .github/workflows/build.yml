@@ -136,21 +136,21 @@ jobs:
         fi
 
     - name: Upload dynamic library
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: roblox-executor-ios
         path: output/libmylibrary.dylib
         if-no-files-found: error
 
     - name: Upload debug symbols
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: debug-symbols
         path: output/libmylibrary.dSYM.zip
         if-no-files-found: warn
 
     - name: Upload resources
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: resources
         path: output/Resources/

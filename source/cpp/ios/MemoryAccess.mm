@@ -245,8 +245,9 @@ namespace iOS {
             // Scan this region
             mach_vm_size_t regionSize;
             #if defined(IOS_TARGET) || defined(__APPLE__)
-            // On iOS, the field is called 'size' not 'virtual_size'
-            regionSize = region.size;
+            // On iOS, we need to use the protection field as the size info is not directly accessible
+            // or use the 'size' variable that was set by vm_region_64
+            regionSize = size;
             #else
             regionSize = region.virtual_size;
             #endif

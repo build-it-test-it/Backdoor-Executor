@@ -320,7 +320,16 @@ static int get_dir(lua_State * L)
 */
 static FILE *check_file(lua_State * L, int idx, const char *funcname)
 {
-#if LUA_VERSION_NUM == 501
+/* Detect Luau by checking for the LUA_VECTOR_SIZE macro which is specific to Luau */
+#ifdef LUA_VECTOR_SIZE
+  /* For Luau, we use a similar implementation to Lua 5.1 since Luau is based on it */
+  FILE **fh = (FILE **) luaL_checkudata(L, idx, "FILE*");
+  if (*fh == NULL) {
+    luaL_error(L, "%s: closed file", funcname);
+    return 0;
+  } else
+    return *fh;
+#elif LUA_VERSION_NUM == 501
   FILE **fh = (FILE **) luaL_checkudata(L, idx, "FILE*");
   if (*fh == NULL) {
     luaL_error(L, "%s: closed file", funcname);
@@ -335,7 +344,13 @@ static FILE *check_file(lua_State * L, int idx, const char *funcname)
   } else
     return fh->f;
 #else
-#error unsupported Lua version
+  /* Fallback implementation for when version detection fails */
+  FILE **fh = (FILE **) luaL_checkudata(L, idx, "FILE*");
+  if (*fh == NULL) {
+    luaL_error(L, "%s: closed file", funcname);
+    return 0;
+  } else
+    return *fh;
 #endif
 }
 

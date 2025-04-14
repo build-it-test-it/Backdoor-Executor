@@ -4,7 +4,36 @@
 #include <memory>
 
 // Attributes to ensure symbols are exported and not optimized away
-#define EXPORT __attribute__((visibility("default"), used))
+#define EXPORT __attribute__((visibility("default"), used, externally_visible))
+
+// Add weak implementations of SystemConfiguration functions
+extern "C" {
+    __attribute__((visibility("default"), used, weak))
+    void* SCNetworkReachabilityCreateWithAddress_STUB(void* allocator, const struct sockaddr* address) {
+        return NULL;
+    }
+    
+    __attribute__((visibility("default"), used, weak))
+    int SCNetworkReachabilityGetFlags_STUB(void* target, unsigned int* flags) {
+        if (flags) *flags = 0;
+        return 1;
+    }
+    
+    __attribute__((visibility("default"), used, weak))
+    int SCNetworkReachabilitySetCallback_STUB(void* target, void* callback, void* context) {
+        return 1;
+    }
+    
+    __attribute__((visibility("default"), used, weak))
+    int SCNetworkReachabilityScheduleWithRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
+        return 1;
+    }
+    
+    __attribute__((visibility("default"), used, weak))
+    int SCNetworkReachabilityUnscheduleFromRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
+        return 1;
+    }
+}
 
 // Forward declare all the classes we need to implement
 // This ensures the symbols are available at link time

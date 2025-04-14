@@ -421,6 +421,15 @@ else()
     )
 endif()
 
+# Explicitly reference iOS symbols to prevent optimization
+target_compile_options(roblox_executor PRIVATE
+    "-Wl,-u,_SCNetworkReachabilityCreateWithAddress_STUB"
+    "-Wl,-u,_SCNetworkReachabilityGetFlags_STUB"
+    "-Wl,-u,_SCNetworkReachabilityScheduleWithRunLoop_STUB"
+    "-Wl,-u,_SCNetworkReachabilitySetCallback_STUB"
+    "-Wl,-u,_SCNetworkReachabilityUnscheduleFromRunLoop_STUB"
+)
+
 # Include directories - ensure Lua headers are available
 target_include_directories(roblox_executor PRIVATE 
     ${LUA_INCLUDE_DIR}
@@ -467,8 +476,11 @@ if(USE_DOBBY AND Dobby_FOUND)
     endif()
 endif()
 
-# Link against iOS stubs and ensure it has higher priority in linking
-target_link_libraries(roblox_executor PRIVATE "-force_load" $<TARGET_FILE:ios_stubs>)
+# Link against iOS stubs with multiple approaches to ensure symbols are found
+target_link_libraries(roblox_executor PRIVATE 
+    "-force_load" $<TARGET_FILE:ios_stubs>
+    "-all_load" # Force all symbols to be loaded from all libraries
+)
 
 # Create required directories for AI data
 if(ENABLE_AI_FEATURES)

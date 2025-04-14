@@ -22,32 +22,35 @@
 
 @end
 
-// Define stubs for NetworkReachability functions - ensure they are exported properly
-#ifdef __cplusplus
+// Global stubs for SystemConfiguration functions
 extern "C" {
-#endif
+    // These functions must be exported with exact type signatures
+    __attribute__((used, visibility("default")))
+    SCNetworkReachabilityRef SCNetworkReachabilityCreateWithAddress_STUB(CFAllocatorRef allocator, const struct sockaddr* address) {
+        return (SCNetworkReachabilityRef)calloc(1, sizeof(void*));
+    }
 
-// These need to be global symbols, not static
-void* SCNetworkReachabilityCreateWithAddress_STUB(void* allocator, const struct sockaddr* address) {
-    return NULL;
-}
-Boolean SCNetworkReachabilityGetFlags_STUB(void* target, unsigned int* flags) {
-    if (flags) *flags = 0;
-    return 1;
-}
-Boolean SCNetworkReachabilitySetCallback_STUB(void* target, void* callback, void* context) {
-    return 1;
-}
-Boolean SCNetworkReachabilityScheduleWithRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
-    return 1;
-}
-Boolean SCNetworkReachabilityUnscheduleFromRunLoop_STUB(void* target, void* runLoop, void* runLoopMode) {
-    return 1;
-}
+    __attribute__((used, visibility("default")))
+    Boolean SCNetworkReachabilityGetFlags_STUB(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags* flags) {
+        if (flags) *flags = 0;
+        return 1;
+    }
 
-#ifdef __cplusplus
+    __attribute__((used, visibility("default")))
+    Boolean SCNetworkReachabilitySetCallback_STUB(SCNetworkReachabilityRef target, SCNetworkReachabilityCallback callback, SCNetworkReachabilityContext* context) {
+        return 1;
+    }
+
+    __attribute__((used, visibility("default")))
+    Boolean SCNetworkReachabilityScheduleWithRunLoop_STUB(SCNetworkReachabilityRef target, CFRunLoopRef runLoop, CFStringRef runLoopMode) {
+        return 1;
+    }
+
+    __attribute__((used, visibility("default")))
+    Boolean SCNetworkReachabilityUnscheduleFromRunLoop_STUB(SCNetworkReachabilityRef target, CFRunLoopRef runLoop, CFStringRef runLoopMode) {
+        return 1;
+    }
 }
-#endif
 
 @implementation NetworkReachability
 

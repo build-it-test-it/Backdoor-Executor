@@ -63,11 +63,13 @@ private:
                                         error:nil];
         }
         
-        // Register for memory warnings
-        [[NSNotificationCenter defaultCenter] addObserver:[AIMemoryObserver sharedObserver]
-                                                 selector:@selector(didReceiveMemoryWarning:)
-                                                     name:UIApplicationDidReceiveMemoryWarningNotification
-                                                   object:nil];
+        // Register for memory warnings - use NSNotificationCenter and block-based API
+        [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification
+                                                          object:nil
+                                                           queue:[NSOperationQueue mainQueue]
+                                                      usingBlock:^(NSNotification *note) {
+                                                          [self handleMemoryWarning];
+                                                      }];
     }
     
 public:
@@ -86,7 +88,7 @@ public:
      * @brief Destructor
      */
     ~AIIntegration() {
-        [[NSNotificationCenter defaultCenter] removeObserver:[AIMemoryObserver sharedObserver]];
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
     }
     
     /**
@@ -562,28 +564,16 @@ AIIntegration* AIIntegration::s_instance = nullptr;
 } // namespace AIFeatures
 } // namespace iOS
 
-// Objective-C class for handling memory warnings
-@interface AIMemoryObserver : NSObject
-+ (instancetype)sharedObserver;
-- (void)didReceiveMemoryWarning:(NSNotification*)notification;
+// Memory warning handling using category on AIIntegration
+@interface AIIntegration : NSObject
+- (void)handleMemoryWarning;
 @end
 
-@implementation AIMemoryObserver
-
-+ (instancetype)sharedObserver {
-    static AIMemoryObserver* sharedObserver = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        sharedObserver = [[self alloc] init];
-    });
-    return sharedObserver;
-}
-
-- (void)didReceiveMemoryWarning:(NSNotification*)notification {
+@implementation AIIntegration
+- (void)handleMemoryWarning {
     // Forward to C++ implementation
     iOS::AIFeatures::AIIntegration::GetSharedInstance()->HandleMemoryWarning();
 }
-
 @end
 
 // Expose C functions for integration
@@ -613,12 +603,18 @@ void SetupAIWithUI(void* integration, void* viewController) {
 
 void* GetScriptAssistant(void* integration) {
     auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
-    return &aiIntegration->GetScriptAssistant();
+    // Store in a static variable to avoid returning address of temporary
+    static std::shared_ptr<iOS::AIFeatures::ScriptAssistant> scriptAssistant;
+    scriptAssistant = aiIntegration->GetScriptAssistant();
+    return &scriptAssistant;
 }
 
 void* GetSignatureAdaptation(void* integration) {
     auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
-    return &aiIntegration->GetSignatureAdaptation();
+    // Store in a static variable to avoid returning address of temporary
+    static std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> signatureAdaptation;
+    signatureAdaptation = aiIntegration->GetSignatureAdaptation();
+    return &signatureAdaptation;
 }
 
 uint64_t GetAIMemoryUsage(void* integration) {
@@ -671,7 +667,10 @@ void DebugScript(void* integration, const char* script, void (*callback)(const c
 
 void* GetVulnerabilityViewController(void* integration) {
     auto aiIntegration = static_cast<iOS::AIFeatures::AIIntegration*>(integration);
-    return &aiIntegration->GetVulnerabilityViewController();
+    // Store in a static variable to avoid returning address of temporary
+    static std::shared_ptr<iOS::UI::VulnerabilityViewController> vulnerabilityViewController;
+    vulnerabilityViewController = aiIntegration->GetVulnerabilityViewController();
+    return &vulnerabilityViewController;
 }
 
 bool ScanForVulnerabilities(void* integration, const char* gameId, const char* gameName,

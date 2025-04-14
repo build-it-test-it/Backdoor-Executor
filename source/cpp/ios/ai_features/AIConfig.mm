@@ -367,6 +367,62 @@ void AIConfig::ResetToDefaults() {
     SaveConfig();
 }
 
+/**
+ * @brief Set online mode
+ * @param mode Online mode
+ */
+void AIConfig::SetOnlineMode(OnlineMode mode) {
+    // Convert enum value to string representation
+    std::string modeStr;
+    switch (mode) {
+        case OnlineMode::Auto:
+            modeStr = "auto";
+            break;
+        case OnlineMode::PreferOffline:
+            modeStr = "prefer_offline";
+            break;
+        case OnlineMode::PreferOnline:
+            modeStr = "prefer_online";
+            break;
+        case OnlineMode::OfflineOnly:
+            modeStr = "offline_only";
+            break;
+        case OnlineMode::OnlineOnly:
+            modeStr = "online_only";
+            break;
+        default:
+            modeStr = "auto";
+            break;
+    }
+    
+    // Save to options
+    SetOption("online_mode", modeStr);
+}
+
+/**
+ * @brief Get online mode
+ * @return Online mode
+ */
+AIConfig::OnlineMode AIConfig::GetOnlineMode() const {
+    // Get from options with default value
+    std::string modeStr = GetOption("online_mode", "auto");
+    
+    // Convert string to enum value
+    if (modeStr == "auto") {
+        return OnlineMode::Auto;
+    } else if (modeStr == "prefer_offline") {
+        return OnlineMode::PreferOffline;
+    } else if (modeStr == "prefer_online") {
+        return OnlineMode::PreferOnline;
+    } else if (modeStr == "offline_only") {
+        return OnlineMode::OfflineOnly;
+    } else if (modeStr == "online_only") {
+        return OnlineMode::OnlineOnly;
+    } else {
+        return OnlineMode::Auto;
+    }
+}
+
 // Save changes
 bool AIConfig::Save() {
     return SaveConfig();

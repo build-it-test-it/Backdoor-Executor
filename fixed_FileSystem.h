@@ -20,7 +20,7 @@ namespace iOS {
         std::string m_path;
         FileType m_type;
         size_t m_size;
-        time_t m_modificationTime;  // Fixed name to match constructor
+        time_t m_modificationTime;
         bool m_isReadable;
         bool m_isWritable;
         
@@ -41,9 +41,37 @@ namespace iOS {
             m_isWritable(isWritable) {}
     };
     
-    // FileSystem class declaration
+    // FileSystem class declaration - expanded to match implementation
     class FileSystem {
+    private:
+        // Static member variables
+        static std::string m_documentsPath;
+        static std::string m_workspacePath;
+        static std::string m_scriptsPath;
+        static std::string m_logPath;
+        static std::string m_configPath;
+        static bool m_initialized;
+        
+        // Helper functions
+        static bool CreateDirectoryInternal(const std::string& path);
+        static bool EnsureDirectoryExists(const std::string& path);
+        static bool Exists(const std::string& path);
+        static std::string SanitizePath(const std::string& path);
+        static bool CreateDefaultScript();
+        static bool CreateDefaultConfig();
+        
     public:
+        // Initialization
+        static bool Initialize(const std::string& appName = "RobloxExecutor");
+        
+        // Path getters
+        static std::string GetDocumentsPath();
+        static std::string GetWorkspacePath();
+        static std::string GetScriptsPath();
+        static std::string GetLogPath();
+        static std::string GetConfigPath();
+        
+        // Standard file operations
         static bool FileExists(const std::string& path);
         static bool DirectoryExists(const std::string& path);
         static bool CreateDirectory(const std::string& path);

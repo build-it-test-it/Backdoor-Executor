@@ -1,5 +1,13 @@
+// Force C99 mode to ensure compatibility
+#define _XOPEN_SOURCE 600
+
 // Include our compatibility fixes to ensure macros are defined
 #include "cpp/luau_fixes.h"
+
+// Define fallbacks for any missing functions
+#ifndef chdir_error
+#define chdir_error strerror(errno)
+#endif
 
 
 

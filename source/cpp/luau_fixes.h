@@ -5,7 +5,20 @@
 #ifndef LUAU_FIXES_H
 #define LUAU_FIXES_H
 
-// Define essential macros before including Lua headers
+// First we define typedefs to avoid circular dependencies
+struct lua_State;
+typedef int (*lua_CFunction)(struct lua_State* L);
+
+// Define LUA_NORETURN properly (it's used in l_noret definition)
+#ifdef __GNUC__
+#define LUA_NORETURN __attribute__((__noreturn__))
+#elif defined(_MSC_VER)
+#define LUA_NORETURN __declspec(noreturn)
+#else
+#define LUA_NORETURN
+#endif
+
+// Define essential macros needed by Lua headers
 #ifndef LUA_API
 #define LUA_API extern
 #endif
@@ -19,12 +32,7 @@
 #define LUA_PRINTF_ATTR(fmt, args)
 #endif
 
-// l_noret is used to mark functions that don't return
-#ifndef l_noret
-#define l_noret void
-#endif
-
-// Include the actual lua header after macros are defined
+// Include the lua headers after macros are defined
 #include "luau/lua.h"
 #include "luau/lualib.h"
 
@@ -32,18 +40,30 @@
 extern "C" {
 #endif
 
-// Function declarations
+// Function implementations to be provided in luau_fixes.cpp
 int lua_pcall_impl(lua_State* L, int nargs, int nresults, int errfunc);
 void luaL_error_impl(lua_State* L, const char* fmt, ...);
-l_noret luaL_typeerrorL(lua_State* L, int narg, const char* tname);
-l_noret luaL_argerrorL(lua_State* L, int narg, const char* extramsg);
 const char* lua_pushfstringL(lua_State* L, const char* fmt, ...);
 void* lua_newuserdatatagged(lua_State* L, size_t sz, int tag);
 
-// Create compatibility macros for any missing functions
+// Provide implementations for the error functions
+// We should prefer to forward declare these rather than redefine them
 #ifndef LUAU_FIXES_IMPLEMENTATION
 #define lua_pcall lua_pcall_impl
 #define luaL_error luaL_error_impl
+#endif
+
+// Custom implementations - implemented in luau_fixes.cpp
+void fixLuaFunction_typeerror(lua_State* L, int narg, const char* tname);
+void fixLuaFunction_argerror(lua_State* L, int narg, const char* extramsg);
+
+// Override the existing macro to call our implementation
+#ifndef LUAU_FIXES_IMPLEMENTATION
+#undef luaL_typeerror
+#define luaL_typeerror(L, narg, tname) fixLuaFunction_typeerror(L, narg, tname)
+
+#undef luaL_argerror
+#define luaL_argerror(L, narg, extramsg) fixLuaFunction_argerror(L, narg, extramsg)
 #endif
 
 #ifdef __cplusplus

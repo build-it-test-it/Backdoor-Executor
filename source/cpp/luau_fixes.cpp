@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 // Define the real implementations of the required functions
 
@@ -32,25 +33,28 @@ void luaL_error_impl(lua_State* L, const char* fmt, ...) {
     // In a real implementation, this would call lua_error
 }
 
-// Implementation of typeerror function
-l_noret luaL_typeerrorL(lua_State* L, int narg, const char* tname) {
+// Implementation of typeerror function - redefined to avoid LUA_NORETURN issues
+void fixLuaFunction_typeerror(lua_State* L, int narg, const char* tname) {
     fprintf(stderr, "[luaL_typeerror] Expected %s at argument %d\n", tname, narg);
     // In a real implementation this would throw a Lua error
+    exit(1); // Exit since this would normally not return
 }
 
-// Implementation of argerror function
-l_noret luaL_argerrorL(lua_State* L, int narg, const char* extramsg) {
+// Implementation of argerror function - redefined to avoid LUA_NORETURN issues
+void fixLuaFunction_argerror(lua_State* L, int narg, const char* extramsg) {
     fprintf(stderr, "[luaL_argerror] Bad argument %d: %s\n", narg, extramsg);
     // In a real implementation this would throw a Lua error
+    exit(1); // Exit since this would normally not return
 }
 
-// Additional helper functions that may be needed for linking
+// Helper function for string formatting in Lua
 const char* lua_pushfstringL(lua_State* L, const char* fmt, ...) {
     // Simple implementation that just returns the format string
     // In a real implementation this would format and push a string
     return fmt;
 }
 
+// Helper function for userdata
 void* lua_newuserdatatagged(lua_State* L, size_t sz, int tag) {
     // Allocate memory and return a pointer
     void* ptr = malloc(sz);
@@ -59,6 +63,9 @@ void* lua_newuserdatatagged(lua_State* L, size_t sz, int tag) {
     return ptr;
 }
 
+// Add implementations for any other required functions
+
+// Basic stack manipulation
 int lua_type(lua_State* L, int idx) {
     // Just return nil type
     return 0; // LUA_TNIL
@@ -76,4 +83,4 @@ void lua_pushnumber(lua_State* L, double n) {
     // Implementation would push number on the Lua stack
 }
 
-// Add any other needed function implementations here
+// Other needed function implementations can be added here

@@ -38,6 +38,27 @@
 #undef l_noret
 #endif
 
+// Missing configuration constants from luaconf.h
+#ifndef LUAI_USER_ALIGNMENT_T
+#define LUAI_USER_ALIGNMENT_T double
+#endif
+
+#ifndef LUA_EXTRA_SIZE
+#define LUA_EXTRA_SIZE 0
+#endif
+
+#ifndef LUA_SIZECLASSES
+#define LUA_SIZECLASSES 32
+#endif
+
+#ifndef LUA_MEMORY_CATEGORIES
+#define LUA_MEMORY_CATEGORIES 8
+#endif
+
+#ifndef LUA_UTAG_LIMIT
+#define LUA_UTAG_LIMIT 8
+#endif
+
 // Additional compatibility macros
 #ifndef lua_check
 #define lua_check(e) ((void)0)
@@ -50,6 +71,7 @@
 // Forward declaration of lua_State to avoid including it
 #ifndef lua_State
 typedef struct lua_State lua_State;
+struct luaL_Reg;
 #endif
 
 // Forward-declare critical functions that might cause linking issues
@@ -59,6 +81,10 @@ extern "C" {
 
 // Forward declaration of string formatting function - must match exactly the declaration in lua.h
 LUA_API LUA_PRINTF_ATTR(2, 3) const char* lua_pushfstringL(lua_State* L, const char* fmt, ...);
+
+// Forward declarations of other common Lua API functions
+LUALIB_API int luaL_loadbuffer(lua_State* L, const char* buff, size_t sz, const char* name);
+LUALIB_API void luaL_register(lua_State* L, const char* libname, const struct luaL_Reg* l);
 
 #ifdef __cplusplus
 }

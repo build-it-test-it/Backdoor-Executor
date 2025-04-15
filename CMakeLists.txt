@@ -12,7 +12,6 @@ add_definitions(-DCI_BUILD)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output)
 
 # Include directories
 include_directories(
@@ -78,8 +77,9 @@ extern \"C\" {
 # Build directly as a dynamic library
 add_library(roblox_executor SHARED ${CMAKE_BINARY_DIR}/ios_executor.cpp)
 
-# Set output as a dylib with the expected name
+# Set output directly in the output directory
 set_target_properties(roblox_executor PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/output"
     OUTPUT_NAME "libmylibrary"
     PREFIX ""
     SUFFIX ".dylib"
@@ -93,20 +93,10 @@ if(APPLE)
   )
 endif()
 
-# Copy the library to the output directory
-add_custom_command(TARGET roblox_executor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:roblox_executor> ${OUTPUT_DIRECTORY}/libmylibrary.dylib
-    COMMENT "Copying library to output directory for workflow check"
-)
+# Create AI data directories - do this directly rather than as a custom command
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/output/Resources/AIData)
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/output/Resources/AIData/LocalModels)
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/output/Resources/AIData/Vulnerabilities)
+file(WRITE ${CMAKE_SOURCE_DIR}/output/Resources/AIData/config.json "{\"version\":\"1.0.0\",\"aiEnabled\":true}")
 
-# Create AI data directories
-add_custom_command(TARGET roblox_executor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}/Resources/AIData
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}/Resources/AIData/LocalModels
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}/Resources/AIData/Vulnerabilities
-    COMMAND ${CMAKE_COMMAND} -E echo "{\"version\":\"1.0.0\",\"aiEnabled\":true}" > ${OUTPUT_DIRECTORY}/Resources/AIData/config.json
-    COMMENT "Creating AI directories and config"
-)
-
-message(STATUS "Using real implementation targeting iOS Roblox")
+message(STATUS "Using real implementation targeting iOS Roblox with direct output")

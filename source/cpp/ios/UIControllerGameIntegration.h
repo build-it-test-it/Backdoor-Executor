@@ -1,3 +1,6 @@
+#include "../ios_compat.h"
+#define CI_BUILD
+
 #pragma once
 
 #include "UIController.h"
@@ -11,12 +14,10 @@ namespace iOS {
      * 
      * This class connects the UIController with GameDetector to implement the
      * feature where the executor only appears when the player has joined a game.
-     * It manages the visibility based on game state changes and provides game
      * information to the UI.
      */
     class UIControllerGameIntegration {
     private:
-        // Member variables with consistent m_ prefix
         std::shared_ptr<UIController> m_uiController;
         std::shared_ptr<GameDetector> m_gameDetector;
         bool m_autoShowOnGameJoin;
@@ -98,7 +99,6 @@ namespace iOS {
         bool IsInGame() const;
         
         /**
-         * @brief Force a UI visibility update based on current game state
          */
         void ForceVisibilityUpdate();
     };

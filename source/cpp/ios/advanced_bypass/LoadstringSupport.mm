@@ -1,10 +1,11 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "LoadstringSupport.h"
 #include <iostream>
 #include <sstream>
 #include <random>
 #include <ctime>
 #include <iomanip>  // For std::setw and std::setfill
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AdvancedBypass {

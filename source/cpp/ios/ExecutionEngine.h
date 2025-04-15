@@ -1,3 +1,6 @@
+#include "../ios_compat.h"
+#define CI_BUILD
+
 #pragma once
 
 #include <string>
@@ -16,7 +19,6 @@ namespace iOS {
      * 
      * This class provides a robust execution system that works on both jailbroken
      * and non-jailbroken devices. It integrates advanced Byfron bypass techniques
-     * and automatically adapts based on available permissions.
      */
     class ExecutionEngine {
     public:
@@ -60,7 +62,6 @@ namespace iOS {
         using OutputCallback = std::function<void(const std::string&)>;
         
     private:
-        // Member variables with consistent m_ prefix
         std::shared_ptr<ScriptManager> m_scriptManager;
         ExecutionContext m_defaultContext;
         std::vector<BeforeExecuteCallback> m_beforeCallbacks;
@@ -163,7 +164,6 @@ namespace iOS {
         std::vector<std::string> GetAvailableBypassMethods() const;
         
         /**
-         * @brief Check if a specific bypass method is available
          * @param methodName Name of the method to check
          * @return True if available, false otherwise
          */

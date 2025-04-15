@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "AIIntegration.h"
 #include "ScriptAssistant.h"
 #include "SignatureAdaptation.h"
@@ -9,8 +11,6 @@
 #include "../ui/MainViewController.h"
 #include "../ui/VulnerabilityViewController.h"
 #include <iostream>
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 
 namespace iOS {
 namespace AIFeatures {

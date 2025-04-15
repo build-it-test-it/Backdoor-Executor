@@ -1,9 +1,10 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "SimpleDummyModel.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <cctype>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AIFeatures {

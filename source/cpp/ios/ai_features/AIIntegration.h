@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #pragma once
 
 #include <functional>

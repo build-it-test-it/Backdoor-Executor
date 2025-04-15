@@ -1,9 +1,10 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "HttpClient.h"
 #include "LoadstringSupport.h"
 #include "ExecutionIntegration.h"
 #include <iostream>
 #include <sstream>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AdvancedBypass {

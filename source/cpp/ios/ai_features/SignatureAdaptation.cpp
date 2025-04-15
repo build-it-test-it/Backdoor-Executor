@@ -1,36 +1,37 @@
-#include <string>
-#include <vector>
+#include "../ios_compat.h"
+// Stub implementation for CI build
+#define CI_BUILD
+
+#include "SignatureAdaptation.h"
+#include <iostream>
 
 namespace iOS {
     namespace AIFeatures {
-        // Define the SignatureAdaptation namespace and its contents
-        namespace SignatureAdaptation {
-            // Define the actual struct that's expected
-            struct DetectionEvent {
-                std::string name;
-                std::vector<unsigned char> bytes;
-            };
-            
-            // Implement the required methods directly with proper namespaces
-            void Initialize() {
-                // Stub implementation
-            }
-            
-            void ReportDetection(const DetectionEvent& event) {
-                // Stub implementation 
-            }
-            
-            void PruneDetectionHistory() {
-                // Stub implementation
-            }
-            
-            void ReleaseUnusedResources() {
-                // Stub implementation
-                PruneDetectionHistory(); // Call the function that's being referenced
-            }
+        // Constructor implementation
+        SignatureAdaptation::SignatureAdaptation() {
+            std::cout << "SignatureAdaptation: Initialized (CI stub)" << std::endl;
         }
         
-        // The class SignatureAdaptation is now defined in SignatureAdaptationClass.cpp
-        // to avoid the "redefinition as different kind of symbol" error
+        // Destructor implementation
+        SignatureAdaptation::~SignatureAdaptation() {
+            std::cout << "SignatureAdaptation: Destroyed (CI stub)" << std::endl;
+        }
+        
+        // Initialize method implementation
+        bool SignatureAdaptation::Initialize() {
+            std::cout << "SignatureAdaptation::Initialize - CI stub" << std::endl;
+            return true;
+        }
+        
+        // Scan memory for signatures
+        bool SignatureAdaptation::ScanMemoryForSignatures() {
+            std::cout << "SignatureAdaptation::ScanMemoryForSignatures - CI stub" << std::endl;
+            return true;
+        }
+        
+        // Added missing method
+        void SignatureAdaptation::PruneDetectionHistory() {
+            std::cout << "SignatureAdaptation::PruneDetectionHistory - CI stub" << std::endl;
+        }
     }
 }

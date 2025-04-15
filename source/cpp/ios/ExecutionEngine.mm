@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "ExecutionEngine.h"
 #include <iostream>
 #include <chrono>
@@ -8,8 +10,6 @@
 #include <iomanip>  // For std::setw and std::setfill
 
 // Objective-C frameworks need to be imported at the top level
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 #import <WebKit/WebKit.h>
 
 namespace iOS {

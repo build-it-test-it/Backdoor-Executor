@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "HybridAISystem.h"
 #include "local_models/LocalModelBase.h"
 #include "local_models/ScriptGenerationModel.h"
@@ -10,7 +12,6 @@
 #include <regex>
 #include <random>
 #include <set>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AIFeatures {

@@ -1,3 +1,6 @@
+#include "../ios_compat.h"
+#define CI_BUILD
+
 #pragma once
 
 #include <string>
@@ -48,16 +51,12 @@ public:
         std::vector<std::string> m_suggestions; // Suggested actions
         uint64_t m_processingTime;   // Processing time in milliseconds
         std::string m_errorMessage;  // Error message if failed
-        bool m_usedOnlineMode;       // Whether online mode was used
         
-        AIResponse() : m_success(false), m_processingTime(0), m_usedOnlineMode(false) {}
         
         AIResponse(bool success, const std::string& content = "", 
                   const std::string& scriptCode = "", uint64_t processingTime = 0,
-                  const std::string& errorMessage = "", bool usedOnlineMode = false)
             : m_success(success), m_content(content), m_scriptCode(scriptCode),
               m_processingTime(processingTime), m_errorMessage(errorMessage),
-              m_usedOnlineMode(usedOnlineMode) {}
     };
     
     // Online mode enum
@@ -73,15 +72,12 @@ public:
     using ResponseCallback = std::function<void(const AIResponse&)>;
     
 private:
-    // Member variables with consistent m_ prefix
     bool m_initialized;                       // Initialization flag
     bool m_localModelsLoaded;                 // Local models loaded flag
     bool m_isInLowMemoryMode;                 // Low memory mode flag
     bool m_networkConnected;                  // Network connectivity flag
     OnlineMode m_onlineMode;                  // Current online mode
     std::string m_apiEndpoint;                // API endpoint for online processing
-    std::string m_apiKey;                     // API key for authentication
-    std::string m_modelPath;                  // Path to local model files
     
     // Local models
     void* m_scriptAssistantModel;             // Opaque pointer to script assistant model
@@ -141,9 +137,7 @@ public:
     
     /**
      * @brief Initialize the AI system
-     * @param modelPath Path to model files
      * @param apiEndpoint Optional API endpoint for online processing
-     * @param apiKey Optional API key for authentication
      * @param progressCallback Function to call with initialization progress (0.0-1.0)
      * @return True if initialization succeeded, false otherwise
      */
@@ -216,7 +210,6 @@ public:
     void SetAPIEndpoint(const std::string& endpoint);
     
     /**
-     * @brief Set API key for authentication
      * @param apiKey API key
      */
     void SetAPIKey(const std::string& apiKey);

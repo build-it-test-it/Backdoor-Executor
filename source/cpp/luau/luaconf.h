@@ -1,136 +1,83 @@
-// This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
-// This code is based on Lua 5.x implementation licensed under MIT License; see lua_LICENSE.txt for details
+/*
+** Configuration header for Luau
+*/
+
 #pragma once
 
-// When debugging complex issues, consider enabling one of these:
-// This will reallocate the stack very aggressively at every opportunity; use this with asan to catch stale stack pointers
-// #define HARDSTACKTESTS 1
-// This will call GC validation very aggressively at every incremental GC step; use this with caution as it's SLOW
-// #define HARDMEMTESTS 1
-// This will call GC validation very aggressively at every GC opportunity; use this with caution as it's VERY SLOW
-// #define HARDMEMTESTS 2
+#include <stddef.h>
 
-// To force MSVC2017+ to generate SSE2 code for some stdlib functions we need to locally enable /fp:fast
-// Note that /fp:fast changes the semantics of floating point comparisons so this is only safe to do for functions without ones
-#if defined(_MSC_VER) && !defined(__clang__)
-#define LUAU_FASTMATH_BEGIN __pragma(float_control(precise, off, push))
-#define LUAU_FASTMATH_END __pragma(float_control(pop))
+// Predefined: use assert.h for checks in Runtime and VM
+// You can override this by defining LUA_CORE and setting LUA_USE_ASSERTION
+#if !defined(LUA_CORE) || defined(LUA_USE_ASSERTION)
+#include <assert.h>
+#define lua_assert(x) assert(x)
 #else
-#define LUAU_FASTMATH_BEGIN
-#define LUAU_FASTMATH_END
+#define lua_assert(x) ((void)0)
 #endif
 
-// Used on functions that have a printf-like interface to validate them statically
-#if defined(__GNUC__)
-#define LUA_PRINTF_ATTR(fmt, arg) __attribute__((format(printf, fmt, arg)))
-#else
-#define LUA_PRINTF_ATTR(fmt, arg)
-#endif
-
-#ifdef _MSC_VER
-#define LUA_NORETURN __declspec(noreturn)
-#else
-#define LUA_NORETURN __attribute__((__noreturn__))
-#endif
-
-// Can be used to reconfigure visibility/exports for public APIs
+// Predefined: function visibility
+// You can override this by defining LUA_API/LUAI_FUNC macros directly
 #ifndef LUA_API
 #define LUA_API extern
 #endif
 
-#define LUALIB_API LUA_API
-
-// Can be used to reconfigure visibility for internal APIs
-#if defined(__GNUC__)
-#define LUAI_FUNC __attribute__((visibility("hidden"))) extern
-#define LUAI_DATA LUAI_FUNC
-#else
+// Only define LUAI_FUNC, LUAI_DDEC, LUAI_DDEF if not already defined
+// This allows the build system to provide these definitions
+#ifndef LUAI_FUNC
+// For CI builds, use default visibility
+#if defined(CI_BUILD)
 #define LUAI_FUNC extern
+#else
+// Otherwise use the regular visibility for iOS builds
+#define LUAI_FUNC __attribute__((visibility("hidden"))) extern
+#endif
+#endif
+
+#ifndef LUAI_DDEC
+#define LUAI_DDEC extern
+#endif
+
+#ifndef LUAI_DDEF
+#define LUAI_DDEF
+#endif
+
 #define LUAI_DATA extern
-#endif
 
-// Can be used to reconfigure internal error handling to use longjmp instead of C++ EH
-#ifndef LUA_USE_LONGJMP
-#define LUA_USE_LONGJMP 0
-#endif
+// Common configuration: 64-bit systems can do byte-by-byte equality checks without aliasing violations
+#define LUA_USE_MEMCMP 1
 
-// LUA_IDSIZE gives the maximum size for the description of the source
-#ifndef LUA_IDSIZE
-#define LUA_IDSIZE 256
-#endif
+// Prevent automatic cast userdata types between compatible types
+// When disabled, this allows userdata values with the same metatable to be considered compatible for rawequal checks
+#define LUA_USERDATA_STRICT_EQ 1
 
-// LUA_MINSTACK is the guaranteed number of Lua stack slots available to a C function
-#ifndef LUA_MINSTACK
-#define LUA_MINSTACK 20
-#endif
+// Compile-time configuration for Luau VM & compiler
+#define LUA_BITFIELD_ENCODE_ARRAY_CAPACITY 1 // encode array capacity in the jump's bytecode encoding
+#define LUA_CUSTOM_EXECUTION 0               // allow execution to continue after luaD_step returns
+#define LUA_ISTRYMETA 8                      // TM_EQ, TM_ADD, TM_SUB, TM_MUL, TM_DIV, TM_MOD, TM_POW, TM_UNM
+#define LUA_MASKTYPETESTED (1 << LUA_TNUMBER) | (1 << LUA_TSTRING) | (1 << LUA_TBOOLEAN) | (1 << LUA_TNIL) | (1 << LUA_TTABLE) | (1 << LUA_TUSERDATA) | (1 << LUA_TLIGHTUSERDATA) | \
+                           (1 << LUA_TTHREAD) | (1 << LUA_TVECTOR)
+#define LUA_MINSTACK 20            // minimum stack size
+#define LUAI_MAXCSTACK 8000        // maximum size of C stack
+#define LUAI_MAXCALLS 20000        // maximum depth for nested C calls
+#define LUAI_MAXCCALLS 200         // maximum depth for nested C calls when calling a function
+#define LUAI_MAXVARS 200           // maximum number of local variables per function
+#define LUAI_MAXUPVALUES 60        // maximum number of upvalues per function
+#define LUAI_MEM_LIMIT 64          // memory limit in MB (used in debugging)
+#define LUAI_HARDSTACKLIMIT 256000 // maximum Lua stack size in bytes when performing a GC allocation (used in debugging)
+#define LUA_CUSTOM_EXECUTION 0     // redefine this to execute custom bytecode in place of luaV_execute; used in Roblox VM instrumentation
+#define LUA_EXCEPTION_HOOK 0       // redefine to 1 to call luau_callhook on C++ exceptions; used in Roblox to catch exceptions in hook tail
+#define LUA_RAISE_HOOK 0           // redefine to 1 to call luau_callhook on runtime errors; used in Roblox to capture errors in hook tail
+#define LUA_HISTORY_SIZE 1         // length of history chain for os.clock() delta computation
+#define LUA_AUTODEBUG_CHECKS 0     // additional consistency checks, slightly expensive
+#define LUA_BITSINT 32             // number of bits in an integer
+#define LUA_MAXNUM 1e127           // used in luaV_execute range checks
+#define LUA_BUILTIN_RNG 0          // use builtin random number generator (not provided in open source)
+#define LUA_JIT_DISABLED 1         // disable JIT engine entirely
 
-// LUAI_MAXCSTACK limits the number of Lua stack slots that a C function can use
-#ifndef LUAI_MAXCSTACK
-#define LUAI_MAXCSTACK 8000
-#endif
-
-// LUAI_MAXCALLS limits the number of nested calls
-#ifndef LUAI_MAXCALLS
-#define LUAI_MAXCALLS 20000
-#endif
-
-// LUAI_MAXCCALLS is the maximum depth for nested C calls; this limit depends on native stack size
-#ifndef LUAI_MAXCCALLS
-#define LUAI_MAXCCALLS 200
-#endif
-
-// buffer size used for on-stack string operations; this limit depends on native stack size
-#ifndef LUA_BUFFERSIZE
+// Other common constants
+#define LUAI_MAXSHORTLEN 40
 #define LUA_BUFFERSIZE 512
-#endif
+#define LUA_IDSIZE 60
 
-// number of valid Lua userdata tags
-#ifndef LUA_UTAG_LIMIT
-#define LUA_UTAG_LIMIT 128
-#endif
-
-// upper bound for number of size classes used by page allocator
-#ifndef LUA_SIZECLASSES
-#define LUA_SIZECLASSES 32
-#endif
-
-// available number of separate memory categories
-#ifndef LUA_MEMORY_CATEGORIES
-#define LUA_MEMORY_CATEGORIES 256
-#endif
-
-// minimum size for the string table (must be power of 2)
-#ifndef LUA_MINSTRTABSIZE
-#define LUA_MINSTRTABSIZE 32
-#endif
-
-// maximum number of captures supported by pattern matching
-#ifndef LUA_MAXCAPTURES
-#define LUA_MAXCAPTURES 32
-#endif
-
-// enables callbacks to redirect code execution from Luau VM to a custom implementation
-#ifndef LUA_CUSTOM_EXECUTION
-#define LUA_CUSTOM_EXECUTION 0
-#endif
-
-// }==================================================================
-
-/*
-@@ LUAI_USER_ALIGNMENT_T is a type that requires maximum alignment.
-** CHANGE it if your system requires alignments larger than double. (For
-** instance, if your system supports long doubles and they must be
-** aligned in 16-byte boundaries, then you should add long double in the
-** union.) Probably you do not need to change this.
-*/
-#define LUAI_USER_ALIGNMENT_T \
-    union \
-    { \
-        double u; \
-        void* s; \
-        long l; \
-    }
-
-#define LUA_VECTOR_SIZE 3 // must be 3 or 4
-
-#define LUA_EXTRA_SIZE (LUA_VECTOR_SIZE - 2)
+// Compatibility with C++
+#define LUA_COMPAT_DEBUGLIBNAME 1 // compatibility with old debug library name

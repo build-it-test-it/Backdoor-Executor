@@ -1,0 +1,42 @@
+# Define CI_BUILD for all compiler instances
+add_definitions(-DCI_BUILD)
+
+cmake_minimum_required(VERSION 3.13)  # Updated for better iOS support
+
+# Project name
+project(RobloxExecutor VERSION 1.0.0 LANGUAGES CXX C)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Include build directory for our stub headers
+include_directories(${CMAKE_BINARY_DIR})
+
+# Add subdirectories
+add_subdirectory(source/cpp)
+
+# Set output directory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Create the dynamic library
+add_library(roblox_executor SHARED
+    source/library.cpp
+    source/lfs.c
+)
+
+# Link with roblox_execution library
+target_link_libraries(roblox_executor roblox_execution)
+
+# Set output name
+set_target_properties(roblox_executor PROPERTIES
+    OUTPUT_NAME "roblox_executor"
+    PREFIX ""
+)
+
+# Print build information
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
+message(STATUS "Output directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")

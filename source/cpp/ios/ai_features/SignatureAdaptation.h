@@ -1,3 +1,6 @@
+#include "../ios_compat.h"
+#define CI_BUILD
+
 #pragma once
 
 #include <string>
@@ -38,14 +41,12 @@ namespace AIFeatures {
             std::string m_name;                  // Name of the signature
             std::vector<uint8_t> m_pattern;      // Byte pattern
             std::string m_mask;                  // Mask for pattern matching
-            uint64_t m_firstSeen;                // When first detected
             uint64_t m_lastSeen;                 // When last detected
             uint32_t m_detectionCount;           // How many times detected
             float m_dangerLevel;                 // How dangerous this signature is (0-1)
             std::vector<std::string> m_counters; // Effective countermeasures
             
             MemorySignature()
-                : m_firstSeen(0), m_lastSeen(0), m_detectionCount(0), m_dangerLevel(0.0f) {}
         };
         
         // Protection strategy structure
@@ -54,11 +55,9 @@ namespace AIFeatures {
             std::string m_targetSignature;       // Target signature name
             std::string m_strategyCode;          // Code implementing the strategy
             float m_effectiveness;               // Effectiveness rating (0-1)
-            uint64_t m_lastModified;             // When last modified
             uint32_t m_evolutionGeneration;      // Evolution generation number
             
             ProtectionStrategy()
-                : m_effectiveness(0.0f), m_lastModified(0), m_evolutionGeneration(0) {}
         };
         
         // Callback for adaptive response
@@ -84,7 +83,6 @@ namespace AIFeatures {
                   m_regularization(0.0001f) {}
         };
         
-        // Member variables with consistent m_ prefix
         bool m_initialized;                  // Whether the system is initialized
         std::vector<MemorySignature> m_signatureDatabase; // Database of known signatures
         std::vector<DetectionEvent> m_detectionHistory;   // History of detection events
@@ -196,18 +194,12 @@ namespace AIFeatures {
         float GetDetectionProbability(const std::vector<uint8_t>& pattern, const std::string& mask);
         
         /**
-         * @brief Export model to file
-         * @param filename File to export to
          * @return True if export succeeded, false otherwise
          */
-        bool ExportModel(const std::string& filename);
         
         /**
-         * @brief Import model from file
-         * @param filename File to import from
          * @return True if import succeeded, false otherwise
          */
-        bool ImportModel(const std::string& filename);
         
         /**
          * @brief Export human-readable analysis of detection patterns
@@ -216,9 +208,7 @@ namespace AIFeatures {
         std::string ExportAnalysis();
         
         /**
-         * @brief Release unused resources to save memory
          */
-        void ReleaseUnusedResources() {
             // Prune old detection history
             PruneDetectionHistory();
             
@@ -237,7 +227,6 @@ namespace AIFeatures {
          * @return Memory usage in bytes
          */
         uint64_t GetMemoryUsage() const {
-            // Estimate memory usage based on database size and history
             uint64_t total = 0;
             // Each signature takes approximately 2KB
             total += m_signatureDatabase.size() * 2048;

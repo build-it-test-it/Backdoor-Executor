@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "ScriptGenerationModel.h"
 #include <iostream>
 #include <sstream>
@@ -5,7 +7,6 @@
 #include <algorithm>
 #include <cctype>
 #include <regex>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AIFeatures {

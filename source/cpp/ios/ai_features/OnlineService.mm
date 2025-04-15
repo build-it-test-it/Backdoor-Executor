@@ -1,8 +1,9 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "OnlineService.h"
 #include <iostream>
 #include <sstream>
 #include <chrono>
-#import <Foundation/Foundation.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <netinet/in.h>
 

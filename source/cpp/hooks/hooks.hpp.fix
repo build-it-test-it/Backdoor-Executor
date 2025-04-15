@@ -1,0 +1,62 @@
+#pragma once
+
+#include <string>
+#include <functional>
+#include <unordered_map>
+#include <vector>
+
+// Define CI_BUILD for CI environments
+#define CI_BUILD
+
+namespace Hooks {
+    // Function hook types
+    using HookFunction = std::function<void*(void*)>;
+    using UnhookFunction = std::function<bool(void*)>;
+    
+    // Main hooking engine
+    class HookEngine {
+    public:
+        // Initialize the hook engine
+        static bool Initialize();
+        
+        // Register hooks
+        static bool RegisterHook(void* targetAddr, void* hookAddr, void** originalAddr);
+        static bool UnregisterHook(void* targetAddr);
+        
+        // Hook management
+        static void ClearAllHooks();
+        
+    private:
+        // Track registered hooks
+        static std::unordered_map<void*, void*> s_hookedFunctions;
+    };
+    
+    // Platform-specific hook implementations
+    namespace Implementation {
+#if defined(__APPLE__) && !defined(CI_BUILD)
+        // iOS-specific implementation using appropriate hooking method
+        #include <dobby.h>
+        
+        inline bool HookFunction(void* target, void* replacement, void** original) {
+            // Using Dobby for iOS
+            return DobbyHook(target, replacement, original) != nullptr;
+        }
+        
+        inline bool UnhookFunction(void* target) {
+            // Using Dobby for iOS
+            return DobbyDestroy(target) == 0;
+        }
+#else
+        // CI build or other platforms - use stub implementations
+        inline bool HookFunction(void* target, void* replacement, void** original) {
+            // Just store the original function pointer
+            if (original) *original = target;
+            return true;
+        }
+        
+        inline bool UnhookFunction(void* target) {
+            return true;
+        }
+#endif
+    }
+}

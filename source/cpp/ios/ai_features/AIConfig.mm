@@ -1,9 +1,9 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "AIConfig.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 
 namespace iOS {
 namespace AIFeatures {

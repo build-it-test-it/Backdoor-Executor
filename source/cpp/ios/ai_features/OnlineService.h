@@ -1,3 +1,6 @@
+#include "../ios_compat.h"
+#define CI_BUILD
+
 #pragma once
 
 #include <string>
@@ -57,7 +60,6 @@ public:
     using NetworkStatusCallback = std::function<void(NetworkStatus)>;
     
 private:
-    // Member variables with consistent m_ prefix
     std::string m_apiKey;             // API key
     std::string m_baseUrl;            // Base URL for API requests
     std::string m_userAgent;          // User agent for API requests
@@ -71,7 +73,6 @@ private:
     void* m_reachability;             // Opaque pointer to reachability object
     bool m_enableEncryption;          // Whether to encrypt communication
     std::string m_encryptionKey;      // Encryption key
-    bool m_bypassCertificateValidation; // Whether to bypass certificate validation (insecure)
     
     // Private methods
     void MonitorNetworkStatus();
@@ -196,10 +197,7 @@ public:
     void SetEncryption(bool enable, const std::string& key = "");
     
     /**
-     * @brief Enable or disable certificate validation
-     * @param bypass Whether to bypass certificate validation (insecure)
      */
-    void SetBypassCertificateValidation(bool bypass);
     
     /**
      * @brief Clear response cache
@@ -222,7 +220,6 @@ public:
     /**
      * @brief Parse AI response
      * @param response Response from API
-     * @return Parsed content
      */
     std::string ParseAIResponse(const Response& response);
     

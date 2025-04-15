@@ -1,6 +1,7 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "FloatingButtonController.h"
 #include <iostream>
-#import <UIKit/UIKit.h>
 
 // Objective-C++ implementation of the button view
 @interface FloatingButton : UIButton

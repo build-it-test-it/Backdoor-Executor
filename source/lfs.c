@@ -1,6 +1,5 @@
-// Using the Luau headers directly from the source/cpp/luau directory
-#include "cpp/luau/lua.h"
-#include "cpp/luau/lualib.h"
+// Include our compatibility fixes to ensure macros are defined
+#include "cpp/luau_fixes.h"
 
 
 

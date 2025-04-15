@@ -217,7 +217,7 @@ namespace iOS {
                 m_uiController->SetButtonVisible(!m_showButtonOnlyInGame);
                 break;
                 
-            case GameState::NotRunning:
+// Removed duplicate case GameState::NotRunning
             case GameState::Unknown:
                 m_uiController->SetButtonVisible(false);
                 break;

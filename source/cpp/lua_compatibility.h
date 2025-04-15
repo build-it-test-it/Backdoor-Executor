@@ -1,6 +1,12 @@
 // lua_compatibility.h - Essential macros for Lua compatibility
 #pragma once
 
+// Include standard headers for size_t
+#include <stddef.h>  // For size_t in C
+#ifdef __cplusplus
+#include <cstddef>   // For size_t in C++
+#endif
+
 // Define essential compatibility macros for Lua/Luau headers
 // These MUST be defined before including any Lua headers
 

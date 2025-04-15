@@ -1,0 +1,383 @@
+// Fixed FileSystem implementation to match header
+#include "FileSystem.h"
+#include <fstream>
+#include <iostream>
+#include <cerrno>
+#include <cstring>
+#include <sys/stat.h>
+#include <dirent.h>
+
+#ifdef __OBJC__
+#import <Foundation/Foundation.h>
+#endif
+
+namespace iOS {
+    // Static member initialization
+    std::string FileSystem::m_documentsPath = "";
+    std::string FileSystem::m_workspacePath = "";
+    std::string FileSystem::m_scriptsPath = "";
+    std::string FileSystem::m_logPath = "";
+    std::string FileSystem::m_configPath = "";
+    bool FileSystem::m_initialized = false;
+    
+    // Initialize the file system with paths
+    bool FileSystem::Initialize(const std::string& appName) {
+        if (m_initialized) {
+            return true;
+        }
+        
+        try {
+            // Get the documents path from iOS
+            #ifdef __OBJC__
+            NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+            if ([paths count] > 0) {
+                NSString* docPath = [paths objectAtIndex:0];
+                m_documentsPath = [docPath UTF8String];
+            } else {
+                return false;
+            }
+            #else
+            // Fallback for non-Objective-C
+            m_documentsPath = "/Documents";
+            #endif
+            
+            // Set up the other paths
+            m_workspacePath = JoinPaths(m_documentsPath, appName);
+            if (!EnsureDirectoryExists(m_workspacePath)) {
+                return false;
+            }
+            
+            m_scriptsPath = JoinPaths(m_workspacePath, "Scripts");
+            if (!EnsureDirectoryExists(m_scriptsPath)) {
+                return false;
+            }
+            
+            m_logPath = JoinPaths(m_workspacePath, "Logs");
+            if (!EnsureDirectoryExists(m_logPath)) {
+                return false;
+            }
+            
+            m_configPath = JoinPaths(m_workspacePath, "Config");
+            if (!EnsureDirectoryExists(m_configPath)) {
+                return false;
+            }
+            
+            // Create default files if needed
+            if (!CreateDefaultScript()) {
+                return false;
+            }
+            
+            if (!CreateDefaultConfig()) {
+                return false;
+            }
+            
+            m_initialized = true;
+            return true;
+        } catch (const std::exception& e) {
+            return false;
+        }
+    }
+    
+    // Path getters
+    std::string FileSystem::GetDocumentsPath() {
+        return m_documentsPath;
+    }
+    
+    std::string FileSystem::GetWorkspacePath() {
+        return m_workspacePath;
+    }
+    
+    std::string FileSystem::GetScriptsPath() {
+        return m_scriptsPath;
+    }
+    
+    std::string FileSystem::GetLogPath() {
+        return m_logPath;
+    }
+    
+    std::string FileSystem::GetConfigPath() {
+        return m_configPath;
+    }
+    
+    // Directory operations
+    bool FileSystem::CreateDirectory(const std::string& path) {
+        std::string safePath = SanitizePath(path);
+        
+        return CreateDirectoryInternal(safePath);
+    }
+    
+    bool FileSystem::CreateDirectoryInternal(const std::string& path) {
+        #ifdef __OBJC__
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSString* nsPath = [NSString stringWithUTF8String:path.c_str()];
+        
+        NSError* error = nil;
+        BOOL success = [fileManager createDirectoryAtPath:nsPath
+                                withIntermediateDirectories:YES
+                                                 attributes:nil
+                                                      error:&error];
+        return success;
+        #else
+        // Simple implementation for non-Objective-C
+        return mkdir(path.c_str(), 0755) == 0 || errno == EEXIST;
+        #endif
+    }
+    
+    bool FileSystem::EnsureDirectoryExists(const std::string& path) {
+        if (Exists(path)) {
+            if (DirectoryExists(path)) {
+                return true;
+            }
+            // It exists but is not a directory
+            return false;
+        }
+        
+        return CreateDirectory(path);
+    }
+    
+    // Basic file operations
+    bool FileSystem::WriteFile(const std::string& path, const std::string& content) {
+        std::string safePath = SanitizePath(path);
+        
+        // Make sure the directory exists
+        std::string dirPath = GetDirectoryName(safePath);
+        if (!dirPath.empty() && !EnsureDirectoryExists(dirPath)) {
+            return false;
+        }
+        
+        // Open the file for writing
+        std::ofstream file(safePath, std::ios::out | std::ios::binary);
+        if (!file.is_open()) {
+            return false;
+        }
+        
+        // Write the content
+        file.write(content.c_str(), content.size());
+        bool success = file.good();
+        file.close();
+        
+        return success;
+    }
+    
+    bool FileSystem::AppendToFile(const std::string& path, const std::string& content) {
+        std::string safePath = SanitizePath(path);
+        
+        // Make sure the directory exists
+        std::string dirPath = GetDirectoryName(safePath);
+        if (!dirPath.empty() && !EnsureDirectoryExists(dirPath)) {
+            return false;
+        }
+        
+        // Open the file for appending
+        std::ofstream file(safePath, std::ios::out | std::ios::app | std::ios::binary);
+        if (!file.is_open()) {
+            return false;
+        }
+        
+        // Write the content
+        file.write(content.c_str(), content.size());
+        bool success = file.good();
+        file.close();
+        
+        return success;
+    }
+    
+    std::string FileSystem::ReadFile(const std::string& path) {
+        std::string safePath = SanitizePath(path);
+        
+        // Check if the file exists
+        if (!FileExists(safePath)) {
+            return "";
+        }
+        
+        // Open the file for reading
+        std::ifstream file(safePath, std::ios::in | std::ios::binary);
+        if (!file.is_open()) {
+            return "";
+        }
+        
+        // Read the entire file
+        std::string content;
+        file.seekg(0, std::ios::end);
+        content.resize(file.tellg());
+        file.seekg(0, std::ios::beg);
+        file.read(&content[0], content.size());
+        file.close();
+        
+        return content;
+    }
+    
+    bool FileSystem::FileExists(const std::string& path) {
+        std::string safePath = SanitizePath(path);
+        
+        #ifdef __OBJC__
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSString* nsPath = [NSString stringWithUTF8String:safePath.c_str()];
+        
+        BOOL isDir = NO;
+        BOOL exists = [fileManager fileExistsAtPath:nsPath isDirectory:&isDir];
+        return exists && !isDir;
+        #else
+        // Simple implementation for non-Objective-C
+        struct stat st;
+        return stat(safePath.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+        #endif
+    }
+    
+    bool FileSystem::DirectoryExists(const std::string& path) {
+        std::string safePath = SanitizePath(path);
+        
+        #ifdef __OBJC__
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSString* nsPath = [NSString stringWithUTF8String:safePath.c_str()];
+        
+        BOOL isDir = NO;
+        BOOL exists = [fileManager fileExistsAtPath:nsPath isDirectory:&isDir];
+        return exists && isDir;
+        #else
+        // Simple implementation for non-Objective-C
+        struct stat st;
+        return stat(safePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+        #endif
+    }
+    
+    bool FileSystem::Exists(const std::string& path) {
+        std::string safePath = SanitizePath(path);
+        
+        #ifdef __OBJC__
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSString* nsPath = [NSString stringWithUTF8String:safePath.c_str()];
+        
+        return [fileManager fileExistsAtPath:nsPath];
+        #else
+        // Simple implementation for non-Objective-C
+        struct stat st;
+        return stat(safePath.c_str(), &st) == 0;
+        #endif
+    }
+    
+    bool FileSystem::DeleteFile(const std::string& path) {
+        std::string safePath = SanitizePath(path);
+        
+        #ifdef __OBJC__
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSString* nsPath = [NSString stringWithUTF8String:safePath.c_str()];
+        
+        NSError* error = nil;
+        BOOL success = [fileManager removeItemAtPath:nsPath error:&error];
+        return success;
+        #else
+        // Simple implementation for non-Objective-C
+        return remove(safePath.c_str()) == 0;
+        #endif
+    }
+    
+    bool FileSystem::RenameFile(const std::string& oldPath, const std::string& newPath) {
+        std::string safeOldPath = SanitizePath(oldPath);
+        std::string safeNewPath = SanitizePath(newPath);
+        
+        #ifdef __OBJC__
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSString* nsOldPath = [NSString stringWithUTF8String:safeOldPath.c_str()];
+        NSString* nsNewPath = [NSString stringWithUTF8String:safeNewPath.c_str()];
+        
+        NSError* error = nil;
+        BOOL success = [fileManager moveItemAtPath:nsOldPath toPath:nsNewPath error:&error];
+        return success;
+        #else
+        // Simple implementation for non-Objective-C
+        return rename(safeOldPath.c_str(), safeNewPath.c_str()) == 0# Let's create a more targeted fix focusing on the specific issues in FileSystem.mm
+echo "Creating targeted fixes for FileSystem.mm..."
+
+# Let's check if the file exists
+ls -la source/cpp/ios/FileSystem.mm || echo "FileSystem.mm not found"
+
+# Check if our FileSystem.mm.fixed file was created
+ls -la source/cpp/ios/FileSystem.mm.fixed || echo "FileSystem.mm.fixed not found"
+
+# Create a targeted fix script
+cat > fix_filesystem_targeted.sh << 'EOF'
+#!/bin/bash
+# Targeted fixes for FileSystem.mm based on the error messages
+
+# Make sure the file exists
+if [ ! -f "source/cpp/ios/FileSystem.mm" ]; then
+  echo "Error: source/cpp/ios/FileSystem.mm not found"
+  exit 1
+fi
+
+# Create a backup
+cp source/cpp/ios/FileSystem.mm source/cpp/ios/FileSystem.mm.bak
+
+# 1. Fix CombinePaths to JoinPaths
+echo "Fixing CombinePaths references..."
+sed -i 's/CombinePaths/JoinPaths/g' source/cpp/ios/FileSystem.mm
+
+# 2. Fix CreateFile to WriteFile (with special handling for the 3-param version)
+echo "Fixing CreateFile references..."
+# First fix the function definition
+sed -i 's/bool FileSystem::CreateFile(const std::string& path, const std::string& content)/bool FileSystem::WriteFile(const std::string& path, const std::string& content)/g' source/cpp/ios/FileSystem.mm
+
+# 3. Fix FileSystem::FileInfo scope issues
+echo "Fixing FileInfo scope issues..."
+sed -i 's/FileSystem::FileInfo/FileInfo/g' source/cpp/ios/FileSystem.mm
+
+# 4. Fix FileType::Regular to FileType::File
+echo "Fixing FileType enum values..."
+sed -i 's/FileType::Regular/FileType::File/g' source/cpp/ios/FileSystem.mm
+sed -i 's/FileType::Symlink/FileType::File/g' source/cpp/ios/FileSystem.mm
+
+# 5. Fix FileInfo constructor issue (removing the 'name' parameter)
+echo "Fixing FileInfo constructor calls..."
+# This is trickier since we need to modify the constructor call pattern
+# Let's find the lines with the FileInfo constructor calls
+grep -n "return FileInfo(" source/cpp/ios/FileSystem.mm
+
+# 6. Fix any 'GetFileType' reference that's missing in the header
+echo "Fixing GetFileType references..."
+sed -i 's/if (GetFileType(path) == FileType::Directory)/if (GetFileInfo(path).m_type == FileType::Directory)/g' source/cpp/ios/FileSystem.mm
+
+# 7. Fix the WriteFile with 3 parameters
+echo "Fixing WriteFile with 3 parameters..."
+# Let's find the line with WriteFile that has 3 parameters
+grep -n "WriteFile.*append" source/cpp/ios/FileSystem.mm
+# For now, let's just modify the call site to use 2 parameters
+sed -i 's/WriteFile(safePath, content, false)/WriteFile(safePath, content)/g' source/cpp/ios/FileSystem.mm
+
+# 8. Fix Delete to DeleteFile
+echo "Fixing Delete references..."
+sed -i 's/bool FileSystem::Delete/bool FileSystem::DeleteFile/g' source/cpp/ios/FileSystem.mm
+
+# 9. Fix Rename to RenameFile
+echo "Fixing Rename references..."
+sed -i 's/bool FileSystem::Rename/bool FileSystem::RenameFile/g' source/cpp/ios/FileSystem.mm
+
+# 10. Fix any remaining issues with function definitions
+echo "Fixing remaining function definition issues..."
+# Add implementations for missing functions if needed
+
+# 11. Fix the FileInfo constructor call with 7 parameters
+# This is more complex and might need a custom fix
+grep -n -A3 "return FileInfo" source/cpp/ios/FileSystem.mm
+
+# Let's make a more targeted fix for this specific issue if it exists
+if grep -q "return FileInfo.*name" source/cpp/ios/FileSystem.mm; then
+  echo "Fixing FileInfo constructor with name parameter..."
+  # Find the line where this happens
+  FILEINFO_LINE=$(grep -n "return FileInfo.*name" source/cpp/ios/FileSystem.mm | cut -d: -f1)
+  if [ ! -z "$FILEINFO_LINE" ]; then
+    # Extract the line
+    FILEINFO_CALL=$(sed -n "${FILEINFO_LINE}p" source/cpp/ios/FileSystem.mm)
+    # Remove the "name" parameter
+    # This is a simplistic approach - may need manual fixing
+    NEW_CALL=$(echo "$FILEINFO_CALL" | sed 's/FileInfo(\([
+^
+,]*\), \([
+^
+,]*\), /FileInfo(\1, /g')
+    # Replace the line
+    sed -i "${FILEINFO_LINE}s/.*/$NEW_CALL/" source/cpp/ios/FileSystem.mm
+  fi
+fi
+
+echo "Targeted fixes applied to FileSystem.mm"

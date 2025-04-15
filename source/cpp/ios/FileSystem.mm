@@ -37,28 +37,28 @@ namespace iOS {
             m_documentsPath = [documentsDir UTF8String];
             
             // Create workspace directory
-            m_workspacePath = CombinePaths(m_documentsPath, appName);
+            m_workspacePath = JoinPaths(m_documentsPath, appName);
             if (!EnsureDirectoryExists(m_workspacePath)) {
                 std::cerr << "FileSystem: Failed to create workspace directory" << std::endl;
                 return false;
             }
             
             // Create scripts directory
-            m_scriptsPath = CombinePaths(m_workspacePath, "Scripts");
+            m_scriptsPath = JoinPaths(m_workspacePath, "Scripts");
             if (!EnsureDirectoryExists(m_scriptsPath)) {
                 std::cerr << "FileSystem: Failed to create scripts directory" << std::endl;
                 return false;
             }
             
             // Create log directory
-            m_logPath = CombinePaths(m_workspacePath, "Logs");
+            m_logPath = JoinPaths(m_workspacePath, "Logs");
             if (!EnsureDirectoryExists(m_logPath)) {
                 std::cerr << "FileSystem: Failed to create log directory" << std::endl;
                 return false;
             }
             
             // Create config directory
-            m_configPath = CombinePaths(m_workspacePath, "Config");
+            m_configPath = JoinPaths(m_workspacePath, "Config");
             if (!EnsureDirectoryExists(m_configPath)) {
                 std::cerr << "FileSystem: Failed to create config directory" << std::endl;
                 return false;
@@ -208,12 +208,12 @@ namespace iOS {
         
         // Extract file information
         NSString* fileType = [attributes fileType];
-        FileType type = FileType::Regular;
+        FileType type = FileType::File;
         
         if ([fileType isEqualToString:NSFileTypeDirectory]) {
             type = FileType::Directory;
         } else if ([fileType isEqualToString:NSFileTypeSymbolicLink]) {
-            type = FileType::Symlink;
+            type = FileType::File;
         } else if (![fileType isEqualToString:NSFileTypeRegular]) {
             type = FileType::Unknown;
         }
@@ -267,7 +267,7 @@ namespace iOS {
     }
     
     // Write to a file
-    bool FileSystem::WriteFile(const std::string& path, const std::string& content, bool append) {
+    bool FileSystem::WriteFile(const std::stringbool FileSystem::WriteFile(const std::string& path, const std::string& content, bool append) path, const std::stringbool FileSystem::WriteFile(const std::string& path, const std::string& content, bool append) content) {
         // Sanitize the path to ensure it's within our sandbox
         std::string safePath = SanitizePath(path);
         
@@ -310,7 +310,7 @@ namespace iOS {
     }
     
     // Delete a file or directory
-    bool FileSystem::Delete(const std::string& path) {
+    bool FileSystem::DeleteFile(const std::string& path) {
         // Sanitize the path to ensure it's within our sandbox
         std::string safePath = SanitizePath(path);
         
@@ -335,7 +335,7 @@ namespace iOS {
     }
     
     // Rename a file or directory
-    bool FileSystem::Rename(const std::string& oldPath, const std::string& newPath) {
+    bool FileSystem::RenameFile(const std::string& oldPath, const std::string& newPath) {
         // Sanitize the paths to ensure they're within our sandbox
         std::string safeOldPath = SanitizePath(oldPath);
         std::string safeNewPath = SanitizePath(newPath);
@@ -475,7 +475,7 @@ namespace iOS {
         }
         
         // Combine workspace path with relative path
-        return CombinePaths(m_workspacePath, relativePath);
+        return JoinPaths(m_workspacePath, relativePath);
     }
     
     // Check if the app has permission to access a path
@@ -522,7 +522,7 @@ namespace iOS {
         }
         
         // Combine with workspace path
-        return CombinePaths(m_workspacePath, relativePath);
+        return JoinPaths(m_workspacePath, relativePath);
     }
     
     // Get the file name from a path
@@ -536,7 +536,7 @@ namespace iOS {
     }
     
     // Combine two paths
-    std::string FileSystem::CombinePaths(const std::string& path1, const std::string& path2) {
+    std::string FileSystem::JoinPaths(const std::string& path1, const std::string& path2) {
         // Remove trailing slash from path1 if present
         std::string cleanPath1 = path1;
         if (!cleanPath1.empty() && cleanPath1.back() == '/') {
@@ -556,7 +556,7 @@ namespace iOS {
     // Create a default script in the scripts directory
     bool FileSystem::CreateDefaultScript() {
         // Default script path
-        std::string scriptPath = CombinePaths(m_scriptsPath, "WelcomeScript.lua");
+        std::string scriptPath = JoinPaths(m_scriptsPath, "WelcomeScript.lua");
         
         // Default script content
         std::string content = 
@@ -603,7 +603,7 @@ end
     // Create a default configuration file
     bool FileSystem::CreateDefaultConfig() {
         // Default config path
-        std::string configPath = CombinePaths(m_configPath, "settings.json");
+        std::string configPath = JoinPaths(m_configPath, "settings.json");
         
         // Default config content
         std::string content = 

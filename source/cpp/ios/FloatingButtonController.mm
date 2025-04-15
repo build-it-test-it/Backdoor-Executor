@@ -2,6 +2,12 @@
 #include "../ios_compat.h"
 #include "FloatingButtonController.h"
 #include <iostream>
+#include "ui/UIDesignSystem.h"
+
+// Forward declarations of helper functions
+static CALayer* createLEDGlowLayer(CGRect frame, UIColor* color, CGFloat intensity);
+static CABasicAnimation* createPulseAnimation(CGFloat duration, CGFloat intensity);
+static void applyHapticFeedback(UIImpactFeedbackStyle style);
 
 // Objective-C++ implementation of the button view
 @interface FloatingButton : UIButton
@@ -9,6 +15,19 @@
 @property (nonatomic, assign) iOS::FloatingButtonController* controller;
 @property (nonatomic, assign) BOOL draggable;
 @property (nonatomic, assign) CGPoint touchOffset;
+@property (nonatomic, strong) CALayer* glowLayer;
+@property (nonatomic, strong) CALayer* pulseLayer;
+@property (nonatomic, strong) UIColor* ledColor;
+@property (nonatomic, assign) CGFloat ledIntensity;
+@property (nonatomic, assign) BOOL usesHapticFeedback;
+@property (nonatomic, strong) UILongPressGestureRecognizer* longPressGesture;
+@property (nonatomic, strong) UIView* quickActionMenu;
+
+- (void)setupLEDEffects;
+- (void)updateLEDColor:(UIColor*)color intensity:(CGFloat)intensity;
+- (void)triggerPulseEffect;
+- (void)showQuickActionMenu;
+- (void)hideQuickActionMenu;
 
 @end
 
@@ -19,31 +38,241 @@
     if (self) {
         self.draggable = YES;
         self.layer.cornerRadius = frame.size.width / 2.0;
-        self.layer.masksToBounds = YES;
-        self.backgroundColor = [UIColor colorWithRed:0.1 green:0.6 blue:0.9 alpha:1.0];
+        self.layer.masksToBounds = NO; // Allow glow to extend outside button
+        self.backgroundColor = [UIColor colorWithRed:0.1 green:0.6 blue:0.9 alpha:0.8];
+        self.ledColor = [UIColor colorWithRed:0.2 green:0.8 blue:1.0 alpha:1.0]; // Default LED color
+        self.ledIntensity = 0.8;
+        self.usesHapticFeedback = YES;
         
         // Add an icon or text
         [self setImage:[UIImage systemImageNamed:@"terminal"] forState:UIControlStateNormal];
+        self.tintColor = [UIColor whiteColor];
         
-        // Add shadow
+        // Add shadow for depth
         self.layer.shadowColor = [UIColor blackColor].CGColor;
-        self.layer.shadowOffset = CGSizeMake(0, 2);
+        self.layer.shadowOffset = CGSizeMake(0, 3);
         self.layer.shadowOpacity = 0.5;
-        self.layer.shadowRadius = 4.0;
+        self.layer.shadowRadius = 6.0;
         
-        // Add a simple animation on creation
+        // Setup LED glow effects
+        [self setupLEDEffects];
+        
+        // Add long press gesture recognizer for quick actions
+        self.longPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+        self.longPressGesture.minimumPressDuration = 0.5;
+        [self addGestureRecognizer:self.longPressGesture];
+        
+        // Add a scale-up animation on creation
         self.transform = CGAffineTransformMakeScale(0.1, 0.1);
-        [UIView animateWithDuration:0.3
+        [UIView animateWithDuration:0.4
                               delay:0
-             usingSpringWithDamping:0.7
+             usingSpringWithDamping:0.6
               initialSpringVelocity:0.5
-                            options:UIViewAnimationOptionCurveEaseInOut
+                            options:UIViewAnimationOptionCurveEaseOut
                          animations:^{
                              self.transform = CGAffineTransformIdentity;
+                             self.glowLayer.opacity = 1.0;
                          }
-                         completion:nil];
+                         completion:^(BOOL finished) {
+                             [self triggerPulseEffect];
+                         }];
     }
     return self;
+}
+
+- (void)setupLEDEffects {
+    // Create a glow layer
+    CGRect glowFrame = CGRectInset(self.bounds, -10, -10); // Larger than button for glow effect
+    self.glowLayer = createLEDGlowLayer(glowFrame, self.ledColor, self.ledIntensity);
+    self.glowLayer.opacity = 0.0; // Start invisible
+    [self.layer insertSublayer:self.glowLayer atIndex:0]; // Place behind button content
+    
+    // Create a pulse layer (for animations)
+    self.pulseLayer = createLEDGlowLayer(glowFrame, self.ledColor, self.ledIntensity * 0.7);
+    self.pulseLayer.opacity = 0.0;
+    [self.layer insertSublayer:self.pulseLayer atIndex:0];
+    
+    // Start a subtle breathing animation
+    [self startBreathingAnimation];
+}
+
+- (void)startBreathingAnimation {
+    CABasicAnimation *breathingAnimation = [CABasicAnimation animationWithKeyPath:@"opacity"];
+    breathingAnimation.fromValue = @(0.7);
+    breathingAnimation.toValue = @(1.0);
+    breathingAnimation.duration = 2.0;
+    breathingAnimation.autoreverses = YES;
+    breathingAnimation.repeatCount = HUGE_VALF;
+    breathingAnimation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    
+    [self.glowLayer addAnimation:breathingAnimation forKey:@"breathing"];
+}
+
+- (void)updateLEDColor:(UIColor*)color intensity:(CGFloat)intensity {
+    // Update stored properties
+    self.ledColor = color;
+    self.ledIntensity = intensity;
+    
+    // Update glow layers
+    self.glowLayer.shadowColor = color.CGColor;
+    self.glowLayer.borderColor = color.CGColor;
+    
+    self.pulseLayer.shadowColor = color.CGColor;
+    self.pulseLayer.borderColor = color.CGColor;
+    
+    // Adjust the opacity based on intensity
+    self.glowLayer.shadowOpacity = intensity;
+    self.glowLayer.borderWidth = 2.0 * intensity;
+    
+    // Update the button tint to match
+    CGFloat red, green, blue, alpha;
+    [color getRed:&red green:&green blue:&blue alpha:&alpha];
+    self.backgroundColor = [UIColor colorWithRed:red * 0.7 green:green * 0.7 blue:blue * 0.7 alpha:0.8];
+}
+
+- (void)triggerPulseEffect {
+    // Create pulse animation
+    CABasicAnimation* pulseAnimation = createPulseAnimation(1.2, self.ledIntensity);
+    
+    // Apply to pulse layer
+    self.pulseLayer.opacity = 1.0;
+    [self.pulseLayer addAnimation:pulseAnimation forKey:@"pulse"];
+    
+    // Hide pulse layer after animation
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self.pulseLayer.opacity = 0.0;
+    });
+}
+
+- (void)handleLongPress:(UILongPressGestureRecognizer *)gesture {
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        if (self.usesHapticFeedback) {
+            applyHapticFeedback(UIImpactFeedbackStyleMedium);
+        }
+        [self showQuickActionMenu];
+    }
+}
+
+- (void)showQuickActionMenu {
+    // Remove existing menu if any
+    [self hideQuickActionMenu];
+    
+    // Create quick action menu
+    CGFloat menuRadius = 130.0;
+    CGFloat buttonRadius = 40.0;
+    CGPoint center = CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2);
+    
+    self.quickActionMenu = [[UIView alloc] initWithFrame:CGRectMake(
+        center.x - menuRadius, 
+        center.y - menuRadius, 
+        menuRadius * 2, 
+        menuRadius * 2)];
+    self.quickActionMenu.alpha = 0.0;
+    self.quickActionMenu.layer.cornerRadius = menuRadius;
+    
+    // Convert center to superview coordinates
+    CGPoint superviewCenter = [self convertPoint:center toView:self.superview];
+    self.quickActionMenu.center = superviewCenter;
+    
+    // Add background blur
+    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+    blurView.frame = self.quickActionMenu.bounds;
+    blurView.layer.cornerRadius = menuRadius;
+    blurView.clipsToBounds = YES;
+    [self.quickActionMenu addSubview:blurView];
+    
+    // Add action buttons in a circle
+    NSArray *actions = @[
+        @{@"icon": @"doc.text", @"tag": @(1), @"color": [UIColor systemBlueColor]},
+        @{@"icon": @"play.fill", @"tag": @(2), @"color": [UIColor systemGreenColor]},
+        @{@"icon": @"gear", @"tag": @(3), @"color": [UIColor systemOrangeColor]},
+        @{@"icon": @"xmark", @"tag": @(4), @"color": [UIColor systemRedColor]}
+    ];
+    
+    // Calculate positions in a circle
+    CGFloat angleIncrement = 2 * M_PI / actions.count;
+    CGFloat currentAngle = -M_PI / 2; // Start from top
+    
+    for (int i = 0; i < actions.count; i++) {
+        NSDictionary *action = actions[i];
+        CGFloat x = menuRadius + (menuRadius - buttonRadius) * cos(currentAngle);
+        CGFloat y = menuRadius + (menuRadius - buttonRadius) * sin(currentAngle);
+        
+        UIButton *actionButton = [UIButton buttonWithType:UIButtonTypeSystem];
+        actionButton.frame = CGRectMake(x - buttonRadius/2, y - buttonRadius/2, buttonRadius, buttonRadius);
+        actionButton.layer.cornerRadius = buttonRadius / 2;
+        actionButton.backgroundColor = [action[@"color"] colorWithAlphaComponent:0.3];
+        actionButton.tintColor = [UIColor whiteColor];
+        actionButton.tag = [action[@"tag"] integerValue];
+        
+        // Create SF Symbol image
+        UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:22 weight:UIImageSymbolWeightMedium];
+        UIImage *icon = [UIImage systemImageNamed:action[@"icon"] withConfiguration:config];
+        [actionButton setImage:icon forState:UIControlStateNormal];
+        
+        // Add glow effect
+        actionButton.layer.shadowColor = [action[@"color"] CGColor];
+        actionButton.layer.shadowOffset = CGSizeMake(0, 0);
+        actionButton.layer.shadowRadius = 10.0;
+        actionButton.layer.shadowOpacity = 0.8;
+        
+        [actionButton addTarget:self action:@selector(handleQuickAction:) forControlEvents:UIControlEventTouchUpInside];
+        
+        [self.quickActionMenu addSubview:actionButton];
+        
+        currentAngle += angleIncrement;
+    }
+    
+    // Add menu to superview
+    [self.superview addSubview:self.quickActionMenu];
+    
+    // Animate it in
+    [UIView animateWithDuration:0.3 animations:^{
+        self.quickActionMenu.alpha = 1.0;
+        self.quickActionMenu.transform = CGAffineTransformMakeScale(1.05, 1.05);
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.2 animations:^{
+            self.quickActionMenu.transform = CGAffineTransformIdentity;
+        }];
+    }];
+}
+
+- (void)hideQuickActionMenu {
+    if (self.quickActionMenu) {
+        [UIView animateWithDuration:0.2 animations:^{
+            self.quickActionMenu.alpha = 0.0;
+            self.quickActionMenu.transform = CGAffineTransformMakeScale(0.8, 0.8);
+        } completion:^(BOOL finished) {
+            [self.quickActionMenu removeFromSuperview];
+            self.quickActionMenu = nil;
+        }];
+    }
+}
+
+- (void)handleQuickAction:(UIButton *)sender {
+    if (self.usesHapticFeedback) {
+        applyHapticFeedback(UIImpactFeedbackStyleLight);
+    }
+    
+    // Hide menu first
+    [self hideQuickActionMenu];
+    
+    // Get the tag to identify which action was selected
+    NSInteger tag = sender.tag;
+    
+    // Perform action based on tag
+    if (self.controller) {
+        // In a real implementation, this would call the appropriate method on the controller
+        // For now, just trigger the pulse effect and notify the controller
+        [self triggerPulseEffect];
+        
+        // Execute last script (tag 2 is the play button)
+        if (tag == 2) {
+            // Call the tap callback which usually executes the script
+            self.controller->performTapAction();
+        }
+    }
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
@@ -51,14 +280,23 @@
     CGPoint touchPoint = [touch locationInView:self];
     self.touchOffset = touchPoint;
     
-    // Add a subtle animation
+    // Apply haptic feedback
+    if (self.usesHapticFeedback) {
+        applyHapticFeedback(UIImpactFeedbackStyleLight);
+    }
+    
+    // Add scale-down animation with glow increase
     [UIView animateWithDuration:0.1 animations:^{
         self.transform = CGAffineTransformMakeScale(0.95, 0.95);
+        self.glowLayer.opacity = 1.3; // Increase glow on touch
     }];
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     if (!self.draggable) return;
+    
+    // Hide quick action menu if it's showing
+    [self hideQuickActionMenu];
     
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInView:self.superview];
@@ -67,9 +305,12 @@
     CGPoint newCenter = CGPointMake(location.x - self.touchOffset.x + self.frame.size.width/2,
                                    location.y - self.touchOffset.y + self.frame.size.height/2);
     
-    // Keep button within screen bounds
-    newCenter.x = MAX(self.frame.size.width/2, MIN(newCenter.x, self.superview.frame.size.width - self.frame.size.width/2));
-    newCenter.y = MAX(self.frame.size.height/2, MIN(newCenter.y, self.superview.frame.size.height - self.frame.size.height/2));
+    // Keep button within screen bounds with a margin
+    CGFloat margin = 10.0;
+    newCenter.x = MAX(self.frame.size.width/2 + margin, 
+                     MIN(newCenter.x, self.superview.frame.size.width - self.frame.size.width/2 - margin));
+    newCenter.y = MAX(self.frame.size.height/2 + margin, 
+                     MIN(newCenter.y, self.superview.frame.size.height - self.frame.size.height/2 - margin));
     
     self.center = newCenter;
     
@@ -83,8 +324,9 @@
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     // Restore button size with animation
-    [UIView animateWithDuration:0.1 animations:^{
+    [UIView animateWithDuration:0.2 animations:^{
         self.transform = CGAffineTransformIdentity;
+        self.glowLayer.opacity = 1.0; // Restore normal glow
     }];
     
     // Check if this was a tap (not a drag)
@@ -95,18 +337,25 @@
     // If touch didn't move much, consider it a tap
     if (hypot(finalPoint.x - initialPoint.x, finalPoint.y - initialPoint.y) < 10) {
         if (self.controller) {
-            // Trigger tap callback
-            self.controller->SetPosition(iOS::FloatingButtonController::Position::Custom);
+            // If quick action menu is visible, hide it
+            if (self.quickActionMenu) {
+                [self hideQuickActionMenu];
+            } else {
+                // Trigger tap action and pulse effect
+                [self triggerPulseEffect];
+                self.controller->performTapAction();
+            }
         }
+    } else {
+        // This was a drag, snap to nearest edge
+        [self snapToNearestEdge];
     }
-    
-    // Snap to nearest edge if desired
-    [self snapToNearestEdge];
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     [UIView animateWithDuration:0.1 animations:^{
         self.transform = CGAffineTransformIdentity;
+        self.glowLayer.opacity = 1.0; // Restore normal glow
     }];
 }
 
@@ -156,8 +405,10 @@
         }
     }
     
-    // Notify controller to update position
+    // Notify controller to update position with animation
     if (self.controller) {
+        // Trigger a small pulse
+        [self triggerPulseEffect];
         self.controller->SetPosition(newPosition);
     }
 }
@@ -211,6 +462,9 @@ namespace iOS {
             
             // Initially hidden
             button.hidden = YES;
+            
+            // Load previous settings (may show the button if it was visible before)
+            LoadPosition();
         }
     }
     
@@ -246,7 +500,7 @@ namespace iOS {
         
         // Calculate the new position
         CGPoint newCenter;
-        CGFloat margin = 10.0f; // Margin from edges
+        CGFloat margin = 15.0f; // Margin from edges
         
         switch (m_position) {
             case Position::TopLeft:
@@ -276,7 +530,7 @@ namespace iOS {
         }
         
         // Animate the move
-        [UIView animateWithDuration:0.3
+        [UIView animateWithDuration:0.4
                               delay:0
              usingSpringWithDamping:0.7
               initialSpringVelocity:0.5
@@ -336,15 +590,18 @@ namespace iOS {
             m_size = [defaults floatForKey:@"FloatingButton_Size"];
         }
         
+        // Load visibility state - if it was visible before, show it
         if ([defaults objectForKey:@"FloatingButton_Visible"]) {
-            m_isVisible = [defaults boolForKey:@"FloatingButton_Visible"];
+            bool wasVisible = [defaults boolForKey:@"FloatingButton_Visible"];
+            if (wasVisible) {
+                Show();
+            }
         }
         
         // Apply loaded settings
         if (m_buttonView) {
             FloatingButton* button = (__bridge FloatingButton*)m_buttonView;
             button.alpha = m_opacity;
-            button.hidden = !m_isVisible;
             
             // Resize button
             CGRect frame = button.frame;
@@ -352,6 +609,9 @@ namespace iOS {
             frame.size.height = m_size;
             button.frame = frame;
             button.layer.cornerRadius = m_size / 2.0;
+            
+            // Update LED effect sizes
+            [button setupLEDEffects];
             
             UpdateButtonPosition();
         }
@@ -369,16 +629,18 @@ namespace iOS {
             button.transform = CGAffineTransformMakeScale(0.1, 0.1);
             button.alpha = 0;
             
-            [UIView animateWithDuration:0.3
+            [UIView animateWithDuration:0.4
                                   delay:0
-                 usingSpringWithDamping:0.7
+                 usingSpringWithDamping:0.6
                   initialSpringVelocity:0.5
                                 options:UIViewAnimationOptionCurveEaseOut
                              animations:^{
                                  button.transform = CGAffineTransformIdentity;
                                  button.alpha = m_opacity;
                              }
-                             completion:nil];
+                             completion:^(BOOL finished) {
+                                 [button triggerPulseEffect];
+                             }];
         }
         
         m_isVisible = true;
@@ -391,9 +653,12 @@ namespace iOS {
         
         FloatingButton* button = (__bridge FloatingButton*)m_buttonView;
         
+        // Hide any quick action menu
+        [button hideQuickActionMenu];
+        
         // Only animate if currently visible
         if (!button.hidden) {
-            [UIView animateWithDuration:0.2
+            [UIView animateWithDuration:0.3
                              animations:^{
                                  button.transform = CGAffineTransformMakeScale(0.1, 0.1);
                                  button.alpha = 0;
@@ -464,7 +729,6 @@ namespace iOS {
         SavePosition();
     }
     
-    // Get opacity
     // Implementation of performTapAction
     void FloatingButtonController::performTapAction() {
         if (m_tapCallback) {
@@ -472,8 +736,33 @@ namespace iOS {
         }
     }
     
+    // Get opacity
     float FloatingButtonController::GetOpacity() const {
         return m_opacity;
+    }
+    
+    // Set LED color and intensity
+    void FloatingButtonController::SetLEDEffect(UIColor* color, float intensity) {
+        if (m_buttonView) {
+            FloatingButton* button = (__bridge FloatingButton*)m_buttonView;
+            [button updateLEDColor:color intensity:intensity];
+        }
+    }
+    
+    // Trigger a pulse effect
+    void FloatingButtonController::TriggerPulseEffect() {
+        if (m_buttonView) {
+            FloatingButton* button = (__bridge FloatingButton*)m_buttonView;
+            [button triggerPulseEffect];
+        }
+    }
+    
+    // Set button uses haptic feedback
+    void FloatingButtonController::SetUseHapticFeedback(bool enabled) {
+        if (m_buttonView) {
+            FloatingButton* button = (__bridge FloatingButton*)m_buttonView;
+            button.usesHapticFeedback = enabled;
+        }
     }
     
     // Set size
@@ -488,6 +777,9 @@ namespace iOS {
             frame.size.height = m_size;
             button.frame = frame;
             button.layer.cornerRadius = m_size / 2.0;
+            
+            // Update LED effects for new size
+            [button setupLEDEffects];
             
             UpdateButtonPosition();
         }
@@ -524,17 +816,33 @@ namespace iOS {
 
 - (void)handleTap:(UITapGestureRecognizer *)gesture {
     if (self.controller && self.controller->IsVisible()) {
-        // Perform tap animation
-        [UIView animateWithDuration:0.1
+        // If quick action menu is visible, hide it
+        if (self.quickActionMenu) {
+            [self hideQuickActionMenu];
+            return;
+        }
+        
+        // Apply haptic feedback
+        if (self.usesHapticFeedback) {
+            applyHapticFeedback(UIImpactFeedbackStyleMedium);
+        }
+        
+        // Perform tap animation with enhanced visual feedback
+        [UIView animateWithDuration:0.15
                          animations:^{
                              self.transform = CGAffineTransformMakeScale(0.9, 0.9);
+                             self.glowLayer.opacity = 1.5; // Increase glow on tap
                          }
                          completion:^(BOOL finished) {
-                             [UIView animateWithDuration:0.1
+                             [UIView animateWithDuration:0.15
                                               animations:^{
                                                   self.transform = CGAffineTransformIdentity;
+                                                  self.glowLayer.opacity = 1.0;
                                               }
                                               completion:^(BOOL finished) {
+                                                  // Trigger pulse effect
+                                                  [self triggerPulseEffect];
+                                                  
                                                   // Call the tap callback
                                                   if (self.controller) {
                                                       self.controller->performTapAction();
@@ -545,3 +853,44 @@ namespace iOS {
 }
 
 @end
+
+// Helper functions implementation
+
+static CALayer* createLEDGlowLayer(CGRect frame, UIColor* color, CGFloat intensity) {
+    CALayer* glowLayer = [CALayer layer];
+    glowLayer.frame = frame;
+    glowLayer.cornerRadius = frame.size.width / 2.0;
+    glowLayer.backgroundColor = [UIColor clearColor].CGColor;
+    
+    // Create a subtle border
+    glowLayer.borderWidth = 2.0;
+    glowLayer.borderColor = color.CGColor;
+    
+    // Add glow using shadow
+    glowLayer.shadowColor = color.CGColor;
+    glowLayer.shadowOffset = CGSizeMake(0, 0);
+    glowLayer.shadowRadius = 10.0 * intensity;
+    glowLayer.shadowOpacity = 0.8 * intensity;
+    
+    return glowLayer;
+}
+
+static CABasicAnimation* createPulseAnimation(CGFloat duration, CGFloat intensity) {
+    CABasicAnimation* pulseAnimation = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
+    pulseAnimation.fromValue = @(1.0);
+    pulseAnimation.toValue = @(1.3);
+    pulseAnimation.duration = duration * 0.5;
+    pulseAnimation.autoreverses = YES;
+    pulseAnimation.repeatCount = 1;
+    pulseAnimation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
+    
+    return pulseAnimation;
+}
+
+static void applyHapticFeedback(UIImpactFeedbackStyle style) {
+    if (@available(iOS 10.0, *)) {
+        UIImpactFeedbackGenerator *generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:style];
+        [generator prepare];
+        [generator impactOccurred];
+    }
+}

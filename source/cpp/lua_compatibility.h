@@ -47,13 +47,18 @@
 #define luai_apicheck(L, e) lua_check(e)
 #endif
 
+// Forward declaration of lua_State to avoid including it
+#ifndef lua_State
+typedef struct lua_State lua_State;
+#endif
+
 // Forward-declare critical functions that might cause linking issues
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Forward declaration of string formatting function
-LUA_API LUA_PRINTF_ATTR(2, 3) const char* lua_pushfstringL(struct lua_State* L, const char* fmt, ...);
+// Forward declaration of string formatting function - must match exactly the declaration in lua.h
+LUA_API LUA_PRINTF_ATTR(2, 3) const char* lua_pushfstringL(lua_State* L, const char* fmt, ...);
 
 #ifdef __cplusplus
 }

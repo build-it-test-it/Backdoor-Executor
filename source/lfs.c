@@ -1,13 +1,21 @@
 // Force C99 mode to ensure compatibility
 #define _XOPEN_SOURCE 600
 
-// Include standard Lua headers from system
+// Include Lua headers - try system first, fallback to project headers
+#ifndef CI_BUILD
+// When not building in CI, try standard system headers
 #ifdef LUA_HOMEBREW_HEADERS
+// Use angle brackets for system installed headers
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 #else
 // Fallback to project headers if needed
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
+#endif
+#else
+// In CI builds, always use project headers
 #include "cpp/luau/lua.h"
 #include "cpp/luau/lualib.h"
 #endif

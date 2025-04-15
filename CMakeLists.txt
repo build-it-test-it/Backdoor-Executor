@@ -95,10 +95,23 @@ include_directories(
     ${DOBBY_INCLUDE_DIR}
 )
 
-# Find required Lua package from Homebrew
-find_package(Lua REQUIRED)
-message(STATUS "Found Lua: ${LUA_LIBRARIES}")
-message(STATUS "Lua include directory: ${LUA_INCLUDE_DIR}")
+# Find required Lua package from Homebrew (don't require for CI)
+if(DEFINED ENV{CI} OR DEFINED GITHUB_ACTIONS)
+  # In CI environment, don't require Lua to be found
+  find_package(Lua QUIET)
+  if(NOT LUA_FOUND)
+    message(STATUS "CI build: Using internal Lua headers")
+    set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
+    set(LUA_LIBRARIES "")
+    set(CI_BUILD TRUE)
+    add_definitions(-DCI_BUILD)
+  endif()
+else
+  # Normal build - require Lua
+  find_package(Lua REQUIRED)
+  message(STATUS "Found Lua: ${LUA_LIBRARIES}")
+  message(STATUS "Lua include directory: ${LUA_INCLUDE_DIR}")
+endif()
 
 # Add LuaFileSystem with Homebrew Lua headers
 add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)

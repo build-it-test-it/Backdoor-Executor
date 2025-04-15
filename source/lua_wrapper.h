@@ -1,82 +1,119 @@
 // Lua compatibility wrapper for iOS builds
-// This fixes the build errors with Lua APIs
+// This file provides compatibility without conflicts
 #pragma once
 
-#include <stddef.h>
-
-// === First: Define basic types and APIs ===
-
-// Define lua_State fully instead of just forward declaring
+// Only define these types and macros if they're not already defined
+#ifndef lua_State
 typedef struct lua_State lua_State;
+#endif
 
-// Define core API macros
+// Only define API macros if not already defined
+#ifndef LUA_API
 #define LUA_API extern
+#endif
+
+#ifndef LUALIB_API
 #define LUALIB_API extern
+#endif
+
+#ifndef LUA_PRINTF_ATTR
 #define LUA_PRINTF_ATTR(fmt, args)
+#endif
+
+#ifndef l_noret
 #define l_noret void
+#endif
 
-// Basic Lua types and constants needed for compilation
-typedef int lua_Integer;
-typedef unsigned lua_Unsigned;
-typedef double lua_Number;
-
-// Define the basic function pointers
-typedef int (*lua_CFunction)(lua_State* L);
-typedef int (*lua_Continuation)(lua_State* L, int status);
-
-// === Second: Define structures needed by LFS ===
-
-// Define the registry structure for lfs
+// Define the registry structure for lfs only if not already defined
+#ifndef luaL_Reg
 struct lfs_RegStruct {
     const char *name;
-    lua_CFunction func;
+    int (*func)(lua_State *L);
 };
 typedef struct lfs_RegStruct luaL_Reg;
+#endif
 
-// === Third: Fix problematic function declarations ===
-
-// Redeclare the problematic functions from lua.h
+// Forward declare our implementation functions
+#ifndef lua_pcall_impl_defined
+#define lua_pcall_impl_defined
 extern int lua_pcall_impl(lua_State* L, int nargs, int nresults, int errfunc);
 extern void luaL_error_impl(lua_State* L, const char* fmt, ...);
 extern void luaL_typeerrorL(lua_State* L, int narg, const char* tname);
 extern void luaL_argerrorL(lua_State* L, int narg, const char* extramsg);
-extern const char* luaL_typename(lua_State* L, int idx);
-extern int lua_gettop(lua_State* L);
-extern void lua_settop(lua_State* L, int idx);
-extern void lua_pushnil(lua_State* L);
-extern void lua_pushnumber(lua_State* L, double n);
-extern void lua_pushstring(lua_State* L, const char* s);
-extern int lua_type(lua_State* L, int idx);
+#endif
 
-// Redefine problematic functions
+// Conditionally redefine problematic functions only if not already defined
+#ifndef lua_pcall
 #define lua_pcall lua_pcall_impl
+#endif
+
+#ifndef luaL_error
 #define luaL_error luaL_error_impl
+#endif
+
+#ifndef luaL_typeerror
 #define luaL_typeerror(L, narg, tname) luaL_typeerrorL(L, narg, tname)
+#endif
+
+#ifndef luaL_argerror
 #define luaL_argerror(L, narg, extramsg) luaL_argerrorL(L, narg, extramsg)
+#endif
 
-// === Fourth: Define necessary Lua constants ===
-// These are needed to compile files that depend on lua.h
-
+// Ensure core Lua constants are defined only if not already defined
+#ifndef LUA_REGISTRYINDEX
 #define LUA_REGISTRYINDEX (-10000)
+#endif
+
+#ifndef LUA_ENVIRONINDEX
 #define LUA_ENVIRONINDEX (-10001)
+#endif
+
+#ifndef LUA_GLOBALSINDEX
 #define LUA_GLOBALSINDEX (-10002)
+#endif
 
+// Provide type constants only if not already defined
+#ifndef LUA_TNONE
 #define LUA_TNONE (-1)
-#define LUA_TNIL 0
-#define LUA_TBOOLEAN 1
-#define LUA_TLIGHTUSERDATA 2
-#define LUA_TNUMBER 3
-#define LUA_TVECTOR 4
-#define LUA_TSTRING 5
-#define LUA_TTABLE 6
-#define LUA_TFUNCTION 7
-#define LUA_TUSERDATA 8
-#define LUA_TTHREAD 9
+#endif
 
-// Common Lua macros needed by lfs.c
-#define lua_tostring(L,i) "dummy_string" // simplified
+#ifndef LUA_TNIL
+#define LUA_TNIL 0
+#endif
+
+#ifndef LUA_TBOOLEAN
+#define LUA_TBOOLEAN 1
+#endif
+
+#ifndef LUA_TLIGHTUSERDATA
+#define LUA_TLIGHTUSERDATA 2
+#endif
+
+#ifndef LUA_TNUMBER
+#define LUA_TNUMBER 3
+#endif
+
+// Don't define these macros if they're already defined by Lua
+#ifndef lua_isnumber
 #define lua_isnumber(L,n) (1)
-#define lua_pushinteger(L,n) lua_pushnumber((L), (n))
+#endif
+
+#ifndef lua_isstring
 #define lua_isstring(L,n) (1)
+#endif
+
+#ifndef lua_isnil
 #define lua_isnil(L,n) (0)
+#endif
+
+#ifndef lua_tostring
+#define lua_tostring(L,i) "dummy_string"
+#endif
+
+#ifndef lua_pushinteger
+#define lua_pushinteger(L,n) lua_pushnumber((L), (n))
+#endif
+
+#ifndef lua_pop
 #define lua_pop(L,n) lua_settop(L, -(n)-1)
+#endif

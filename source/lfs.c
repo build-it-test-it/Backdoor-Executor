@@ -1,8 +1,9 @@
-// Include our wrapper first to fix Lua compatibility issues
+// Include our compatibility wrapper
 #include "lua_wrapper.h"
 
 // Include our wrapper first to fix Lua compatibility issues
-#include "lua_wrapper.h"
+
+// Include our wrapper first to fix Lua compatibility issues
 
 /*
 ** LuaFileSystem

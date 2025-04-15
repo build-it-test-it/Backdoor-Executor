@@ -5,14 +5,21 @@
 #include <string>
 #include <functional>
 
+// Forward declaration for ObjC types
+#ifdef __OBJC__
+@class UIColor;
+#else
+typedef void UIColor;
+#endif
+
 namespace iOS {
     /**
      * @class FloatingButtonController
-     * @brief Controls a persistent floating button on the iOS screen
+     * @brief Controls a persistent floating button on the iOS screen with LED effects
      * 
      * This class manages a small button that stays on screen at all times,
-     * allowing users to quickly access the executor. The button can be moved
-     * to different screen edges and has adjustable opacity.
+     * allowing users to quickly access the executor. The button features
+     * LED glow effects, haptic feedback, and can be moved to different screen edges.
      */
     class FloatingButtonController {
     public:
@@ -64,12 +71,12 @@ namespace iOS {
         ~FloatingButtonController();
         
         /**
-         * @brief Show the floating button
+         * @brief Show the floating button with animation and LED effect
          */
         void Show();
         
         /**
-         * @brief Hide the floating button
+         * @brief Hide the floating button with animation
          */
         void Hide();
         
@@ -127,6 +134,24 @@ namespace iOS {
          * @return Current opacity
          */
         float GetOpacity() const;
+        
+        /**
+         * @brief Set the LED effect color and intensity
+         * @param color LED glow color
+         * @param intensity LED intensity (0.0 - 1.0)
+         */
+        void SetLEDEffect(UIColor* color, float intensity);
+        
+        /**
+         * @brief Trigger a pulse animation effect
+         */
+        void TriggerPulseEffect();
+        
+        /**
+         * @brief Enable/disable haptic feedback
+         * @param enabled True to enable haptic feedback, false to disable
+         */
+        void SetUseHapticFeedback(bool enabled);
         
         /**
          * @brief Set button size

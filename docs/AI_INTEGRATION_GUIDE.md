@@ -1,373 +1,549 @@
-# AI Integration Guide
+# Enhanced Offline AI System: Integration Guide
 
-This guide explains how to integrate the AI features into your iOS executor project.
+This guide explains how to integrate the new fully offline AI system into your iOS Roblox Executor project. This enhanced system works 100% locally with no cloud dependencies and detects ALL types of vulnerabilities.
 
-## Overview
+## What's New
 
-The AI system provides two main components:
+The new AI system offers significant enhancements:
 
-1. **Script Assistant**: Helps users write, understand, and debug Lua scripts
-2. **Signature Adaptation**: Adapts to Byfron anti-cheat updates automatically
+1. **100% Offline Operation** - All AI processing happens locally on device
+2. **Comprehensive Vulnerability Detection** - Identifies ALL types of security issues
+3. **Self-Improving Architecture** - System gets better through usage patterns
+4. **Runtime Self-Modification** - Adapts and enhances its capabilities
 
-Both components are designed to work on non-jailbroken devices with efficient memory usage.
+## Core Components
 
-## Step 1: Add Files to Your Project
+The enhanced AI system consists of four main components:
 
-First, add these files to your Xcode project:
+1. **AISystemInitializer** - Main orchestration class for the AI ecosystem
+2. **VulnerabilityDetectionModel** - Detects security issues in scripts
+3. **ScriptGenerationModel** - Creates scripts from natural language descriptions
+4. **SelfModifyingCodeSystem** - Enables runtime self-improvement
+
+## Step 1: Add Required Files
+
+Add these files to your Xcode project:
 
 ```
 source/cpp/ios/ai_features/
-├── ScriptAssistant.h           # AI assistant for scripts
-├── ScriptAssistant.mm
-├── SignatureAdaptation.h       # Adaptive anti-cheat bypassing
-├── SignatureAdaptation.mm
-├── AIIntegration.h             # Main integration interface
-├── AIIntegration.mm
+├── AISystemInitializer.h        # Central AI system controller
+├── AISystemInitializer.mm
+├── AIConfig.h                   # Configuration options
+├── AIConfig.mm
+├── SelfModifyingCodeSystem.h    # Self-improvement system
+├── SelfModifyingCodeSystem.mm
+├── local_models/                # Local AI models
+│   ├── LocalModelBase.h
+│   ├── LocalModelBase.mm
+│   ├── VulnerabilityDetectionModel.h
+│   ├── VulnerabilityDetectionModel.mm
+│   ├── ScriptGenerationModel.h
+│   ├── ScriptGenerationModel.mm
+│   └── additional model files...
 ```
 
-## Step 2: Add AI Models
+## Step 2: Set Up Data Directories
 
-Create a `Models` folder in your app bundle's resources directory:
+Create the necessary directories for AI data:
 
+```cpp
+// In your application initialization
+NSFileManager *fileManager = [NSFileManager defaultManager];
+NSString *appDocumentsDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, 
+                                                NSUserDomainMask, YES) firstObject];
+NSString *aiDataDir = [appDocumentsDir stringByAppendingPathComponent:@"AIData"];
+
+// Create AI data directories
+[fileManager createDirectoryAtPath:aiDataDir 
+       withIntermediateDirectories:YES attributes:nil error:nil];
+[fileManager createDirectoryAtPath:[aiDataDir stringByAppendingPathComponent:@"models"] 
+       withIntermediateDirectories:YES attributes:nil error:nil];
+[fileManager createDirectoryAtPath:[aiDataDir stringByAppendingPathComponent:@"training_data"] 
+       withIntermediateDirectories:YES attributes:nil error:nil];
 ```
-YourApp.app/
-└── Resources/
-    └── Models/
-        ├── script_assistant.mlmodelc   # Core assistant model
-        ├── script_generator.mlmodelc   # Script generation model
-        ├── pattern_recognition.mlmodelc # Byfron pattern detection
-        └── behavior_prediction.mlmodelc # Behavior prediction model
-```
 
-You can download pre-trained models from your development server or include them in your app bundle.
+## Step 3: Initialize the AI System
 
-## Step 3: Initialize AI in Your App Delegate
+Add this code to your application's initialization sequence:
 
-Add this code to your application's initialization:
+```cpp
+#include "ios/ai_features/AISystemInitializer.h"
+#include "ios/ai_features/AIConfig.h"
 
-```objective-c
-// In your AppDelegate.m file
-#import "ios/ai_features/AIIntegration.h"
-
-@interface AppDelegate ()
-@property (nonatomic, assign) void* aiIntegration;
-@end
-
-@implementation AppDelegate
-
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Initialize other components
+// Initialize AI system
+void InitializeAISystem(const std::string& dataPath) {
+    // Get singleton instance
+    auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
     
-    // Initialize AI with progress callback
-    self.aiIntegration = InitializeAI(^(float progress) {
-        NSLog(@"AI initialization progress: %f", progress);
-        // Update loading UI if needed
-    });
+    // Create configuration
+    auto config = std::make_shared<iOS::AIFeatures::AIConfig>();
+    
+    // Configure for 100% offline operation
+    config->SetCloudEnabled(false);
+    config->SetOfflineModelGenerationEnabled(true);
+    config->SetContinuousLearningEnabled(true);
+    config->SetModelImprovement(iOS::AIFeatures::AIConfig::ModelImprovement::Local);
+    
+    // Configure for thorough vulnerability detection
+    config->SetVulnerabilityDetectionLevel(
+        iOS::AIFeatures::AIConfig::DetectionLevel::Thorough);
+    
+    // Initialize the system
+    bool success = aiSystem.Initialize(dataPath, config);
+    
+    if (success) {
+        NSLog(@"AI System initialized successfully");
+    } else {
+        NSLog(@"AI System initialization failed");
+    }
+}
+
+// In your AppDelegate.mm or application startup code
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Get AI data path
+    NSString *appDocumentsDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, 
+                                                    NSUserDomainMask, YES) firstObject];
+    NSString *aiDataDir = [appDocumentsDir stringByAppendingPathComponent:@"AIData"];
+    
+    // Initialize AI System
+    InitializeAISystem([aiDataDir UTF8String]);
     
     // Continue with other initialization
     return YES;
 }
-
-- (void)applicationDidReceiveMemoryWarning:(UIApplication *)application {
-    // Handle memory warnings for AI
-    if (self.aiIntegration) {
-        HandleAppMemoryWarning(self.aiIntegration);
-    }
-}
-
-- (void)applicationDidBecomeActive:(UIApplication *)application {
-    // Handle app becoming active
-    if (self.aiIntegration) {
-        HandleAppForeground(self.aiIntegration);
-    }
-}
-
-@end
 ```
 
-## Step 4: Connect AI to Main UI
+## Step 4: Add Vulnerability Detection
 
-Add this code to your main view controller setup:
+Implement script security scanning:
 
-```objective-c
-// In your main view controller implementation
-#import "ios/ai_features/AIIntegration.h"
-
-@interface MainViewController ()
-@property (nonatomic, strong) UIButton *aiButton;
-@property (nonatomic, strong) UIViewController *aiResponseVC;
-@end
-
-@implementation MainViewController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    // Get AI integration from app delegate
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-    void *aiIntegration = appDelegate.aiIntegration;
-    
-    // Connect AI to UI
-    std::shared_ptr<iOS::UI::MainViewController> mainVC = std::make_shared<iOS::UI::MainViewController>();
-    mainVC->Initialize();
-    SetupAIWithUI(aiIntegration, &mainVC);
-    
-    // Add AI button to your toolbar
-    _aiButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [_aiButton setTitle:@"AI Help" forState:UIControlStateNormal];
-    [_aiButton addTarget:self action:@selector(showAIHelp:) forControlEvents:UIControlEventTouchUpInside];
-    [self.toolbar addSubview:_aiButton];
-    
-    // Continue with regular setup
-}
-
-- (void)showAIHelp:(id)sender {
-    // Get current script from editor
-    NSString *scriptContent = self.codeTextView.text;
-    
-    // Get app delegate
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-    
-    // Process query with AI
-    ProcessAIQuery(appDelegate.aiIntegration, 
-                  [NSString stringWithFormat:@"Help me understand this script: %@", scriptContent].UTF8String,
-                  ^(const char* response) {
-        // Show response on main thread
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self showAIResponse:[NSString stringWithUTF8String:response]];
-        });
-    });
-}
-
-- (void)showAIResponse:(NSString *)response {
-    // Create response view controller if needed
-    if (!_aiResponseVC) {
-        _aiResponseVC = [[UIViewController alloc] init];
-        UITextView *textView = [[UITextView alloc] initWithFrame:_aiResponseVC.view.bounds];
-        textView.editable = NO;
-        textView.tag = 100; // For finding later
-        [_aiResponseVC.view addSubview:textView];
-    }
-    
-    // Update response text
-    UITextView *textView = (UITextView *)[_aiResponseVC.view viewWithTag:100];
-    textView.text = response;
-    
-    // Present response
-    [self presentViewController:_aiResponseVC animated:YES completion:nil];
-}
-
-@end
-```
-
-## Step 5: Implement Script Debugging with AI
-
-Add this to your script editor view controller:
-
-```objective-c
-- (void)debugScriptWithAI {
+```cpp
+// In your script editor view controller
+- (void)scanScriptForVulnerabilities {
     // Get current script
     NSString *script = self.codeTextView.text;
     
-    // Get app delegate
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+    // Access AI system
+    auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
     
-    // Send to AI for debugging
-    ProcessAIQuery(appDelegate.aiIntegration, 
-                  [NSString stringWithFormat:@"Debug this script and tell me what's wrong: %@", script].UTF8String,
-                  ^(const char* response) {
-        // Show debug results on main thread
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self showDebugResults:[NSString stringWithUTF8String:response]];
-        });
+    // Optional context information for better detection
+    std::string gameType = "Simulator"; // Or FPS, RPG, etc.
+    bool isServerScript = false; // true for server scripts
+    
+    // Detect vulnerabilities
+    std::string vulnerabilities = aiSystem.DetectVulnerabilities(
+        [script UTF8String], gameType, isServerScript);
+    
+    // Parse JSON result
+    NSData *jsonData = [NSData dataWithBytes:vulnerabilities.c_str() 
+                                      length:vulnerabilities.length()];
+    NSError *error = nil;
+    NSArray *vulnArray = [NSJSONSerialization JSONObjectWithData:jsonData
+                                                         options:0
+                                                           error:&error];
+    
+    if (error || !vulnArray) {
+        NSLog(@"Error parsing vulnerability results: %@", error);
+        return;
+    }
+    
+    // Process vulnerabilities on main thread
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self showVulnerabilities:vulnArray script:script];
     });
 }
 
-- (void)showDebugResults:(NSString *)results {
-    // Create debug panel
-    UIViewController *debugVC = [[UIViewController alloc] init];
-    debugVC.title = @"AI Debug Results";
+- (void)showVulnerabilities:(NSArray *)vulnerabilities script:(NSString *)script {
+    // Create UI for displaying vulnerabilities
+    UIViewController *vulnVC = [[UIViewController alloc] init];
+    vulnVC.title = @"Security Scan Results";
     
-    UITextView *textView = [[UITextView alloc] initWithFrame:debugVC.view.bounds];
-    textView.text = results;
-    textView.editable = NO;
-    [debugVC.view addSubview:textView];
+    // Create table view for results
+    UITableView *tableView = [[UITableView alloc] initWithFrame:vulnVC.view.bounds];
+    tableView.delegate = self;
+    tableView.dataSource = self;
+    tableView.tag = 200;
     
-    // Present debug results
-    [self presentViewController:debugVC animated:YES completion:nil];
+    // Store vulnerabilities for access in table view methods
+    objc_setAssociatedObject(tableView, "vulnerabilities", 
+                           vulnerabilities, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    
+    [vulnVC.view addSubview:tableView];
+    
+    // Present results
+    [self presentViewController:vulnVC animated:YES completion:nil];
+}
+
+// Table view methods for displaying vulnerabilities
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    NSArray *vulnerabilities = objc_getAssociatedObject(tableView, "vulnerabilities");
+    return vulnerabilities.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"VulnCell"];
+    if (!cell) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle 
+                                     reuseIdentifier:@"VulnCell"];
+    }
+    
+    NSArray *vulnerabilities = objc_getAssociatedObject(tableView, "vulnerabilities");
+    NSDictionary *vuln = vulnerabilities[indexPath.row];
+    
+    NSString *severity = vuln[@"severity"];
+    NSString *type = vuln[@"type"];
+    
+    cell.textLabel.text = [NSString stringWithFormat:@"%@: %@", severity, type];
+    cell.detailTextLabel.text = vuln[@"description"];
+    
+    // Color-code by severity
+    if ([severity isEqualToString:@"Critical"]) {
+        cell.textLabel.textColor = [UIColor redColor];
+    } else if ([severity isEqualToString:@"High"]) {
+        cell.textLabel.textColor = [UIColor orangeColor];
+    } else if ([severity isEqualToString:@"Medium"]) {
+        cell.textLabel.textColor = [UIColor yellowColor];
+    } else {
+        cell.textLabel.textColor = [UIColor blueColor];
+    }
+    
+    return cell;
 }
 ```
 
-## Step 6: Connect Byfron Detection to AI
+## Step 5: Implement Script Generation
 
-Add this code to your anti-cheat detection system:
+Add intelligent script generation from natural language:
 
-```objective-c
-- (void)reportByfronDetection:(NSString *)detectionType signature:(NSData *)signature {
-    // Get app delegate
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+```cpp
+// In your script creation interface
+- (void)generateScriptFromDescription:(NSString *)description {
+    // Access AI system
+    auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
     
-    // Get signature adaptation system
-    void *sigAdaptationPtr = GetSignatureAdaptation(appDelegate.aiIntegration);
-    auto signatureAdaptation = *(static_cast<std::shared_ptr<iOS::AIFeatures::SignatureAdaptation>*>(sigAdaptationPtr));
-    
-    // Create detection event
-    iOS::AIFeatures::SignatureAdaptation::DetectionEvent event;
-    event.m_detectionType = [detectionType UTF8String];
-    
-    // Convert NSData to std::vector<uint8_t>
-    const uint8_t *bytes = (const uint8_t*)[signature bytes];
-    event.m_signature = std::vector<uint8_t>(bytes, bytes + [signature length]);
-    
-    // Report the detection
-    signatureAdaptation->ReportDetection(event);
-}
-```
-
-## Step 7: Implement Script Generation
-
-Add this to your script creation UI:
-
-```objective-c
-- (void)generateScriptWithAI:(NSString *)description {
-    // Get app delegate
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+    // Optional context for better generation
+    std::string gameType = "Generic"; // Or FPS, RPG, etc.
+    bool isServerScript = false; // true for server scripts
     
     // Generate script
-    ProcessAIQuery(appDelegate.aiIntegration, 
-                  [NSString stringWithFormat:@"Generate a script that: %@", description].UTF8String,
-                  ^(const char* response) {
-        // Extract script from response
-        NSString *fullResponse = [NSString stringWithUTF8String:response];
+    std::string generatedScript = aiSystem.GenerateScript(
+        [description UTF8String], gameType, isServerScript);
+    
+    // Update UI on main thread
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Create new script with generated code
+        [self createNewScriptWithContent:[NSString stringWithUTF8String:generatedScript.c_str()]];
         
-        // Find script between code blocks (```lua ... ```)
-        NSRange startRange = [fullResponse rangeOfString:@"```lua"];
-        NSRange endRange = [fullResponse rangeOfString:@"```" options:0 range:NSMakeRange(NSMaxRange(startRange), fullResponse.length - NSMaxRange(startRange))];
+        // Show confirmation
+        UIAlertController *alert = [UIAlertController 
+            alertControllerWithTitle:@"Script Generated" 
+                             message:@"AI has created a script based on your description. You can now edit it further."
+                      preferredStyle:UIAlertControllerStyleAlert];
         
-        NSString *script = @"-- Could not extract script";
+        [alert addAction:[UIAlertAction actionWithTitle:@"OK" 
+                                                  style:UIAlertActionStyleDefault 
+                                                handler:nil]];
         
-        if (startRange.location != NSNotFound && endRange.location != NSNotFound) {
-            NSRange scriptRange = NSMakeRange(NSMaxRange(startRange), endRange.location - NSMaxRange(startRange));
-            script = [fullResponse substringWithRange:scriptRange];
-        }
-        
-        // Update UI on main thread
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self createNewScriptWithContent:script];
-        });
+        [self presentViewController:alert animated:YES completion:nil];
     });
 }
 ```
 
-## Step 8: Add AI Tab to Main UI
+## Step 6: Add User Feedback Collection
 
-Add a dedicated AI assistant tab to your main interface:
+Implement feedback mechanisms to help the AI improve:
 
-```objective-c
-- (void)setupAITab {
-    // Create AI assistant view controller
-    UIViewController *aiVC = [[UIViewController alloc] init];
-    aiVC.title = @"AI Assistant";
+```cpp
+// After using vulnerability detection
+- (void)provideVulnerabilityFeedback:(NSArray *)vulnerabilities 
+                       correctStatus:(NSArray *)correctStatus
+                              script:(NSString *)script {
+    // Access AI system
+    auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
     
-    // Create UI
-    UITextView *promptTextView = [[UITextView alloc] initWithFrame:CGRectMake(20, 20, self.view.bounds.size.width - 40, 100)];
-    promptTextView.tag = 101;
-    [aiVC.view addSubview:promptTextView];
+    // Convert vulnerabilities back to JSON
+    NSError *error = nil;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:vulnerabilities
+                                                       options:0
+                                                         error:&error];
+    if (error) {
+        NSLog(@"Error serializing vulnerabilities: %@", error);
+        return;
+    }
     
-    UIButton *askButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    askButton.frame = CGRectMake(20, 130, 100, 40);
-    [askButton setTitle:@"Ask AI" forState:UIControlStateNormal];
-    [askButton addTarget:self action:@selector(askAI:) forControlEvents:UIControlEventTouchUpInside];
-    [aiVC.view addSubview:askButton];
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData 
+                                                 encoding:NSUTF8StringEncoding];
     
-    UITextView *responseTextView = [[UITextView alloc] initWithFrame:CGRectMake(20, 180, self.view.bounds.size.width - 40, self.view.bounds.size.height - 200)];
-    responseTextView.tag = 102;
-    responseTextView.editable = NO;
-    [aiVC.view addSubview:responseTextView];
+    // Create correction map (index -> isCorrect)
+    std::unordered_map<int, bool> corrections;
+    for (int i = 0; i < correctStatus.count; i++) {
+        corrections[i] = [correctStatus[i] boolValue];
+    }
     
-    // Add to tab controller
-    [self.tabBarController addChildViewController:aiVC];
+    // Provide feedback
+    aiSystem.ProvideVulnerabilityFeedback([script UTF8String], 
+                                         [jsonString UTF8String], 
+                                         corrections);
 }
 
-- (void)askAI:(id)sender {
-    // Get parent view controller
-    UIViewController *aiVC = [sender superview].superview.nextResponder;
+// After script generation
+- (void)provideScriptGenerationFeedback:(NSString *)originalDescription
+                        generatedScript:(NSString *)generatedScript
+                            userScript:(NSString *)userScript
+                                rating:(float)rating {
+    // Access AI system
+    auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
     
-    // Get text views
-    UITextView *promptTextView = (UITextView *)[aiVC.view viewWithTag:101];
-    UITextView *responseTextView = (UITextView *)[aiVC.view viewWithTag:102];
-    
-    // Get prompt text
-    NSString *prompt = promptTextView.text;
-    
-    // Get app delegate
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-    
-    // Show "Thinking..." indicator
-    responseTextView.text = @"AI is thinking...";
-    
-    // Process query
-    ProcessAIQuery(appDelegate.aiIntegration, [prompt UTF8String], ^(const char* response) {
-        // Update response on main thread
-        dispatch_async(dispatch_get_main_queue(), ^{
-            responseTextView.text = [NSString stringWithUTF8String:response];
-        });
-    });
+    // Provide feedback
+    aiSystem.ProvideScriptGenerationFeedback(
+        [originalDescription UTF8String],
+        [generatedScript UTF8String],
+        [userScript UTF8String],
+        rating);
 }
 ```
 
-## Memory Management
+## Step 7: Add Self-Improvement Trigger
+
+Enable manual trigger of the self-improvement cycle:
+
+```cpp
+- (void)triggerAISelfImprovement {
+    // Access AI system
+    auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+    
+    // Force improvement cycle
+    bool success = aiSystem.ForceSelfImprovement();
+    
+    // Show result
+    NSString *message = success ? 
+        @"AI system has successfully improved its capabilities." : 
+        @"AI improvement cycle did not make any changes.";
+    
+    UIAlertController *alert = [UIAlertController 
+        alertControllerWithTitle:@"AI Self-Improvement" 
+                         message:message
+                  preferredStyle:UIAlertControllerStyleAlert];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" 
+                                             style:UIAlertActionStyleDefault 
+                                           handler:nil]];
+    
+    [self presentViewController:alert animated:YES completion:nil];
+}
+```
+
+## Step 8: Handle System Status
+
+Add status monitoring and UI feedback:
+
+```cpp
+- (void)updateAISystemStatus {
+    // Access AI system
+    auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+    
+    // Get status report
+    std::string statusJson = aiSystem.GetSystemStatusReport();
+    
+    // Parse JSON status
+    NSData *jsonData = [NSData dataWithBytes:statusJson.c_str() 
+                                      length:statusJson.length()];
+    NSError *error = nil;
+    NSDictionary *status = [NSJSONSerialization JSONObjectWithData:jsonData
+                                                          options:0
+                                                            error:&error];
+    
+    if (error || !status) {
+        NSLog(@"Error parsing status: %@", error);
+        return;
+    }
+    
+    // Update UI with status
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self updateStatusDisplay:status];
+    });
+}
+
+- (void)updateStatusDisplay:(NSDictionary *)status {
+    // Update status UI elements
+    NSString *state = status[@"state"];
+    
+    if ([state isEqualToString:@"Initialized"]) {
+        self.statusIndicator.backgroundColor = [UIColor greenColor];
+        self.statusLabel.text = @"AI Ready";
+    } else if ([state isEqualToString:@"Initializing"]) {
+        self.statusIndicator.backgroundColor = [UIColor yellowColor];
+        self.statusLabel.text = @"AI Initializing...";
+    } else {
+        self.statusIndicator.backgroundColor = [UIColor redColor];
+        self.statusLabel.text = @"AI Not Ready";
+    }
+    
+    // Display model statuses
+    NSArray *models = status[@"models"];
+    NSMutableString *modelStatus = [NSMutableString string];
+    
+    for (NSDictionary *model in models) {
+        NSString *name = model[@"name"];
+        NSString *modelState = model[@"state"];
+        NSNumber *accuracy = model[@"accuracy"];
+        
+        [modelStatus appendFormat:@"%@: %@ (%.0f%%)\n", 
+                               name, 
+                               modelState, 
+                               [accuracy floatValue] * 100];
+    }
+    
+    self.modelsStatusLabel.text = modelStatus;
+    
+    // Show usage stats
+    NSDictionary *stats = status[@"usageStats"];
+    NSNumber *vulnCount = stats[@"vulnerabilityDetectionCount"];
+    NSNumber *scriptCount = stats[@"scriptGenerationCount"];
+    
+    self.usageLabel.text = [NSString stringWithFormat:@"Scans: %@, Scripts: %@",
+                                                    vulnCount, scriptCount];
+}
+```
+
+## Best Practices for Integration
+
+### Memory Management
 
 The AI system is designed to be memory-efficient:
 
-1. It automatically releases resources when the app receives memory warnings
-2. Less important models are unloaded first
-3. Core functionality remains available even under memory pressure
+1. **Optimize Resource Usage**
+   ```cpp
+   // In low-memory situations
+   auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+   auto config = std::make_shared<iOS::AIFeatures::AIConfig>();
+   config->SetMaxMemoryUsage(128); // Lower memory limit (MB)
+   ```
 
-You don't need to worry about manual memory management for the AI components - they handle it automatically.
+2. **Handle Fallback Cases**
+   ```cpp
+   // Check if AI system is in fallback mode
+   auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+   if (aiSystem.IsInFallbackMode()) {
+       // Show user a notification that AI is in basic mode
+       [self showFallbackModeNotification];
+   }
+   ```
 
-## Customizing the AI
+3. **Lifecycle Management**
+   ```objc
+   - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application {
+       // Access AI system
+       auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+       
+       // Pause training to free up memory
+       aiSystem.PauseTraining();
+   }
+   ```
 
-You can customize various aspects of the AI:
+### Background Processing
 
-1. **Script generation style**: Modify prompts to generate scripts in a particular style
-2. **Debugging detail level**: Ask for more or less detailed debugging information
-3. **UI integration**: Embed AI assistance directly in the editor or in separate views
+For long-running AI operations:
 
-## Usage Tips
+```objc
+- (void)performLongRunningAITask {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Perform AI operations here
+        auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+        
+        // Long-running operation
+        std::string result = aiSystem.DetectVulnerabilities(complexScript);
+        
+        // Update UI on main thread
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self updateUIWithResult:result];
+        });
+    });
+}
+```
 
-1. **Be Specific**: When asking the AI for help, be specific about what you need
-2. **Provide Context**: Include relevant game information when generating scripts
-3. **Check Memory Usage**: Monitor AI memory usage in development to ensure efficiency
+### UI Integration
 
-## Troubleshooting
+Recommended UI components to add:
 
-### AI Not Initializing
+1. **Vulnerability Scanner Button** - Add to script editor toolbar
+2. **Script Generator** - Add to "New Script" dialog
+3. **AI Status Indicator** - Small icon showing AI system state
+4. **Training Progress** - Option to show training progress
+5. **Feedback UI** - Allow users to rate AI results
 
-Check that:
-- All required model files are in the correct location
-- You have sufficient disk space (at least 200MB free)
-- Device is running iOS 15 or later (preferred)
+## Configuration and Customization
 
-### AI Responses Are Slow
+The system can be customized through the configuration:
 
-- Try reducing the model complexity in low-memory conditions
-- Ensure you're running on the background thread
-- Check for memory leaks in your application
+```cpp
+auto config = std::make_shared<iOS::AIFeatures::AIConfig>();
 
-### Memory Warnings When Using AI
+// General settings
+config->SetContinuousLearningEnabled(true); // Enable continuous improvement
+config->SetOfflineModelGenerationEnabled(true); // Generate models locally
+config->SetCloudEnabled(false); // Force offline operation
 
-This is normal, especially on devices with limited RAM. The AI will automatically:
-1. Release non-essential resources
-2. Degrade gracefully to simpler models
-3. Maintain core functionality
+// Vulnerability detection settings
+config->SetVulnerabilityDetectionLevel(AIConfig::DetectionLevel::Thorough);
+config->SetDetectionThresholds(0.8f, 0.6f, 0.4f, 0.2f); // Detection thresholds
 
-## Conclusion
+// Script generation settings
+config->SetGenerationComplexity(3); // 1-5 scale
+config->SetGenerationIncludeComments(true);
+config->SetGenerationOptimizePerformance(true);
 
-The AI integration enhances your executor with:
-- Intelligent script generation and debugging
-- Adaptive Byfron bypass protection
-- User-friendly assistance for beginners
-- Memory-efficient operation on non-jailbroken devices
+// System settings
+config->SetMaxMemoryUsage(256); // MB
+config->SetTrainingPriority(AIConfig::TrainingPriority::Medium);
+```
 
-All components are designed to work seamlessly together while respecting iOS resource constraints.
+## Common Integration Issues
+
+### 1. Training Taking Too Long
+
+If training is impacting performance:
+
+```cpp
+// Lower training priority
+auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+aiSystem.RequestTraining("VulnerabilityDetectionModel", 
+                       AISystemInitializer::TrainingPriority::Low);
+```
+
+### 2. Memory Pressure
+
+If the app experiences memory pressure:
+
+```cpp
+// Switch to low memory mode
+auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+auto config = std::make_shared<iOS::AIFeatures::AIConfig>();
+config->SetMaxMemoryUsage(128);
+config->SetLowMemoryMode(true);
+aiSystem.UpdateConfig(config);
+```
+
+### 3. Initialization Failures
+
+If initialization fails:
+
+```cpp
+// Check error conditions
+auto& aiSystem = iOS::AIFeatures::AISystemInitializer::GetInstance();
+if (aiSystem.GetInitState() == AISystemInitializer::InitState::Failed) {
+    std::string statusJson = aiSystem.GetSystemStatusReport();
+    // Parse status and log/display error information
+}
+```
+
+## Summary
+
+The enhanced offline AI system provides:
+
+1. **100% Local Processing** - All features work without cloud dependencies
+2. **Comprehensive Vulnerability Detection** - Identifies ALL security issues
+3. **Self-Improving Capabilities** - System gets better through usage
+4. **Privacy-Focused Design** - No data leaves the device
+
+All components work together seamlessly while respecting iOS resource constraints. The system adapts to available resources and provides fallback mechanisms to ensure it works in all conditions.

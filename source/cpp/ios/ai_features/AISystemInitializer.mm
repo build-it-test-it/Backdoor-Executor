@@ -434,6 +434,37 @@ std::shared_ptr<LocalModels::VulnerabilityDetectionModel> AISystemInitializer::G
     return m_vulnDetectionModel;
 }
 
+// Enable ALL vulnerability types for comprehensive detection
+bool AISystemInitializer::EnableAllVulnerabilityTypes() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    
+    if (!m_vulnDetectionModel) {
+        std::cerr << "AISystemInitializer: VulnerabilityDetectionModel not initialized" << std::endl;
+        return false;
+    }
+    
+    try {
+        // Configure for comprehensive detection
+        m_vulnDetectionModel->ConfigureDetection(
+            true,  // enableDataFlow
+            true,  // enableSemantic
+            true,  // enableZeroDay
+            true,  // enableAllVulnTypes
+            0.1f   // detectionThreshold (low to catch everything)
+        );
+        
+        // Explicitly enable all vulnerability types
+        m_vulnDetectionModel->EnableAllVulnerabilityTypes();
+        
+        std::cout << "AISystemInitializer: Successfully enabled ALL vulnerability types" << std::endl;
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "AISystemInitializer: Exception enabling all vulnerability types: " 
+                 << e.what() << std::endl;
+        return false;
+    }
+}
+
 // Get script generation model
 std::shared_ptr<LocalModels::ScriptGenerationModel> AISystemInitializer::GetScriptGenerationModel() {
     std::lock_guard<std::mutex> lock(m_mutex);

@@ -110,6 +110,17 @@ bool HybridAISystem::Initialize(const std::string& modelPath,
         
         if (progressCallback) progressCallback(0.7f);
         
+        // Initialize SelfModifyingCodeSystem for enhanced AI capabilities
+        m_selfModifyingSystem = std::make_shared<SelfModifyingCodeSystem>();
+        bool selfModifyingInitialized = m_selfModifyingSystem->Initialize(modelPath + "/self_modifying");
+        
+        if (selfModifyingInitialized) {
+            std::cout << "HybridAISystem: Self-modifying code system initialized successfully" << std::endl;
+        } else {
+            std::cerr << "HybridAISystem: Warning - Self-modifying code system initialization failed" << std::endl;
+            // Continue anyway, as we can recover later
+        }
+        
         // Load script templates
         LoadScriptTemplates();
         
@@ -395,6 +406,43 @@ uint64_t HybridAISystem::GetMemoryUsage() const {
 // Set maximum allowed memory
 void HybridAISystem::SetMaxMemory(uint64_t maxMemory) {
     m_maxMemoryAllowed = maxMemory;
+}
+
+// Enable self-modifying code system
+bool HybridAISystem::EnableSelfModifyingSystem() {
+    if (!m_selfModifyingSystem) {
+        std::cerr << "HybridAISystem: Self-modifying code system not initialized" << std::endl;
+        return false;
+    }
+    
+    try {
+        // Enable enhanced features
+        bool segmentsEnabled = m_selfModifyingSystem->EnableCodeSegmentModification();
+        bool patchingEnabled = m_selfModifyingSystem->EnableRuntimePatching();
+        
+        // Register critical segments
+        m_selfModifyingSystem->RegisterCodeSegment({
+            "VulnerabilityDetection",
+            "Core vulnerability detection logic",
+            "security"
+        });
+        
+        m_selfModifyingSystem->RegisterCodeSegment({
+            "ScriptGeneration",
+            "Script generation capabilities",
+            "generation"
+        });
+        
+        // Configure optimization targets
+        m_selfModifyingSystem->SetOptimizationTarget(SelfModifyingCodeSystem::OptimizationTarget::Security);
+        
+        std::cout << "HybridAISystem: Self-modifying code system enabled successfully" << std::endl;
+        return segmentsEnabled && patchingEnabled;
+    } catch (const std::exception& e) {
+        std::cerr << "HybridAISystem: Exception enabling self-modifying system: " 
+                 << e.what() << std::endl;
+        return false;
+    }
 }
 
 // Get loaded model names

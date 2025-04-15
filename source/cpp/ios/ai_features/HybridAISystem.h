@@ -9,6 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include "SelfModifyingCodeSystem.h"
 
 namespace iOS {
 namespace AIFeatures {
@@ -84,6 +85,9 @@ private:
     void* m_scriptGeneratorModel;             // Opaque pointer to script generator model
     void* m_debugAnalyzerModel;               // Opaque pointer to debug analyzer model
     void* m_patternRecognitionModel;          // Opaque pointer to pattern recognition model
+    
+    // Enhanced AI capabilities
+    std::shared_ptr<SelfModifyingCodeSystem> m_selfModifyingSystem; // Self-improving code system
     
     std::unordered_map<std::string, void*> m_modelCache; // Model cache
     std::vector<std::string> m_loadedModelNames; // Names of loaded models
@@ -254,6 +258,13 @@ public:
      * @param maxMemory Maximum allowed memory in bytes
      */
     void SetMaxMemory(uint64_t maxMemory);
+    
+    /**
+     * @brief Enable self-modifying code system
+     * Activates advanced code improvement and optimization capabilities
+     * @return True if successfully enabled
+     */
+    bool EnableSelfModifyingSystem();
     
     /**
      * @brief Get loaded model names

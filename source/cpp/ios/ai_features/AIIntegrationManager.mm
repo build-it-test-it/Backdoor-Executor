@@ -118,6 +118,19 @@ void AIIntegrationManager::InitializeComponents() {
             m_hybridAI->SetMaxMemory(m_config.GetMaxMemoryUsage());
         }
         
+        // Initialize AI System Initializer for enhanced AI capabilities
+        ReportStatus(StatusUpdate("Initializing enhanced AI system...", 0.65f));
+        m_aiSystemInitializer = std::make_shared<AISystemInitializer>();
+        bool aiSystemInitialized = m_aiSystemInitializer->Initialize(
+            m_config.GetModelPath(),
+            std::make_shared<AIConfig>(m_config)
+        );
+        
+        if (aiSystemInitialized) {
+            // Enable comprehensive vulnerability detection
+            m_aiSystemInitializer->EnableAllVulnerabilityTypes();
+        }
+        
         // Create and initialize script assistant
         ReportStatus(StatusUpdate("Initializing script assistant...", 0.7f));
         

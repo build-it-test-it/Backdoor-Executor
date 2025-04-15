@@ -12,6 +12,7 @@
 #include "HybridAISystem.h"
 #include "AIConfig.h"
 #include "OnlineService.h"
+#include "AISystemInitializer.h"
 
 namespace iOS {
 namespace AIFeatures {
@@ -64,6 +65,7 @@ private:
     std::shared_ptr<SignatureAdaptation> m_signatureAdaptation; // Signature adaptation
     std::shared_ptr<HybridAISystem> m_hybridAI;               // Hybrid AI system
     std::shared_ptr<OnlineService> m_onlineService;           // Online service
+    std::shared_ptr<AISystemInitializer> m_aiSystemInitializer; // AI system initializer
     AIConfig& m_config;                                       // AI configuration
     StatusCallback m_statusCallback;                          // Status callback
     uint32_t m_availableCapabilities;                         // Available capabilities

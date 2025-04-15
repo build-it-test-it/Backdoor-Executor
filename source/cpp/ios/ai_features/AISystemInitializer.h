@@ -177,6 +177,13 @@ public:
     std::shared_ptr<LocalModels::VulnerabilityDetectionModel> GetVulnerabilityDetectionModel();
     
     /**
+     * @brief Enable detection of ALL vulnerability types
+     * Enhances vulnerability detection to identify all possible security issues
+     * @return True if successfully enabled
+     */
+    bool EnableAllVulnerabilityTypes();
+    
+    /**
      * @brief Get script generation model
      * @return Shared pointer to script generation model
      */

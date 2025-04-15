@@ -8,77 +8,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Enable CI build detection
 add_definitions(-DCI_BUILD)
 
-# Set output directories
+# Set output directories - use standard directories that should already exist
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Include directories
+# Include existing sources
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/source
 )
 
-# Create the implementation file
-file(WRITE ${CMAKE_BINARY_DIR}/ios_executor.cpp
-"#include <iostream>
-#include <string>
-#include <fstream>
-#include <ctime>
+# Build the dynamic library directly - minimal changes
+add_library(roblox_executor SHARED source/library.cpp)
 
-// iOS Roblox Executor implementation
-extern \"C\" {
-    // Library entry point
-    int luaopen_mylibrary(void* L) {
-        return 1;
-    }
-    
-    // Memory manipulation for iOS
-    bool WriteMemory(void* address, const void* data, size_t size) {
-        return true;
-    }
-    
-    bool ProtectMemory(void* address, size_t size, int protection) {
-        return true;
-    }
-    
-    void* HookRobloxMethod(void* original, void* replacement) {
-        return original;
-    }
-    
-    // Roblox integration
-    bool InjectExecutorUI() {
-        return true;
-    }
-    
-    // AI-related functions
-    void AIIntegration_Initialize() {}
-    
-    void AIFeatures_Enable() {}
-}
-")
-
-# Build the dynamic library
-add_library(roblox_executor SHARED ${CMAKE_BINARY_DIR}/ios_executor.cpp)
-
-# Set output name for iOS
+# Set output name
 set_target_properties(roblox_executor PROPERTIES
     OUTPUT_NAME "libmylibrary"
     PREFIX ""
-    SUFFIX ".dylib"
 )
 
-# iOS-specific settings
-if(APPLE)
-  set_target_properties(roblox_executor PROPERTIES
-    MACOSX_RPATH ON
-  )
-endif()
-
-# Create AI data directories
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/output/Resources/AIData)
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/output/Resources/AIData/LocalModels)
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/output/Resources/AIData/Vulnerabilities)
-file(WRITE ${CMAKE_SOURCE_DIR}/output/Resources/AIData/config.json "{\"version\":\"1.0.0\"}")
+# Copy to the expected output location
+add_custom_command(TARGET roblox_executor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:roblox_executor> ${CMAKE_SOURCE_DIR}/output/libmylibrary.dylib
+)
 
 message(STATUS "Building iOS Roblox Executor")

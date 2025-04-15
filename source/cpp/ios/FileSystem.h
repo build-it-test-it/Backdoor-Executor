@@ -34,13 +34,13 @@ namespace iOS {
             bool m_isReadable;         // Is readable by app
             bool m_isWritable;         // Is writable by app
             
-            FileInfo() : m_type(FileType::Unknown), m_size(0), m_modTime(0),
+            FileInfo() : m_type(FileType::Unknown), m_size(0), m_modificationTime(0),
                         m_isReadable(false), m_isWritable(false) {}
             
             FileInfo(const std::string& path, const std::string& name, FileType type,
                     uint64_t size, uint64_t modTime, bool isReadable, bool isWritable)
                 : m_path(path), m_name(name), m_type(type), m_size(size),
-                  m_modTime(modTime), m_isReadable(isReadable), m_isWritable(isWritable) {}
+                  m_modificationTime(modTime), m_isReadable(isReadable), m_isWritable(isWritable) {}
         };
         
     private:

@@ -1,31 +1,23 @@
 // Force C99 mode to ensure compatibility
 #define _XOPEN_SOURCE 600
 
-// Include Lua headers - try system first, fallback to project headers
-#ifndef CI_BUILD
-// When not building in CI, try standard system headers
-#ifdef LUA_HOMEBREW_HEADERS
-// Use angle brackets for system installed headers
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-#else
-// Fallback to project headers if needed
-#include "cpp/luau/lua.h"
-#include "cpp/luau/lualib.h"
-#endif
-#else
-// In CI builds, always use project headers
-#include "cpp/luau/lua.h"
-#include "cpp/luau/lualib.h"
+// Define essential compatibility macros
+#ifndef LUA_API
+#define LUA_API extern
 #endif
 
-// Define fallbacks for any missing functions
-#ifndef chdir_error
-#define chdir_error strerror(errno)
+#ifndef LUALIB_API 
+#define LUALIB_API extern
 #endif
 
-// Essential compatibility definitions if not already provided
+#ifndef LUA_PRINTF_ATTR
+#define LUA_PRINTF_ATTR(fmt, args)
+#endif
+
+#ifndef l_noret
+#define l_noret void
+#endif
+
 #ifndef LUA_NORETURN
 #ifdef __GNUC__
 #define LUA_NORETURN __attribute__((__noreturn__))
@@ -34,6 +26,15 @@
 #else
 #define LUA_NORETURN
 #endif
+#endif
+
+// Now include Lua headers from internal project
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
+
+// Define fallbacks for any missing functions
+#ifndef chdir_error
+#define chdir_error strerror(errno)
 #endif
 
 

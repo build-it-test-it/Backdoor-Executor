@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include "../filesystem_utils.h"
 

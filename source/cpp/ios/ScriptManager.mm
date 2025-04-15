@@ -317,8 +317,8 @@ namespace iOS {
         // Load each script file
         for (const auto& file : files) {
             // Only load .lua and .json files
-            if (file.m_type == FileUtils::false) {
-                std::string extension = file.m_name.substr(file.m_name.find_last_of('.') + 1);
+            if (file.m_type == FileUtils::Regular) {
+                std::string extension = file.m_path.substr(file.m_path.find_last_of('.') + 1);
                 std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
                 
                 if (extension == "lua" || extension == "txt" || extension == "json") {

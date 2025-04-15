@@ -1,5 +1,4 @@
-#include "dobby_defs.h"
-// Fixed dobby_wrapper.cpp with proper DobbyUnHook implementation
+// Fixed dobby_wrapper.cpp implementation
 #include "../external/dobby/include/dobby.h"
 #include <cstdint>
 #include <unordered_map>
@@ -44,27 +43,26 @@ namespace DobbyWrapper {
         return nullptr;
     }
 
-    // Unhook a previously hooked function
+    // Unhook a previously hooked function - workaround version
     bool Unhook(void* targetAddr) {
         if (!targetAddr) return false;
         
         {
             std::lock_guard<std::mutex> lock(hookMutex);
-            // If DobbyUnHook doesn't exist, we can implement a workaround
-            // DobbyUnHook may not exist in some versions of Dobby
-            #ifdef DOBBY_UNHOOK_DEFINED
+            // If DobbyUnHook is implemented, we'll use that
+            #if 0
             int result = DobbyUnHook(targetAddr);
             if (result != 0) {
                 return false;
             }
             #else
-            // Alternative implementation if DobbyUnHook is not available
-            // We could just unbind by hooking back to the original
+            // Alternative implementation - re-hook to original function
             auto it = originalFunctions.find(targetAddr);
             if (it != originalFunctions.end()) {
                 void* originalFunc = it->second;
                 // Re-hook to restore original function
-                DobbyHook(targetAddr, originalFunc, nullptr);
+                void* dummy = nullptr;
+                DobbyHook(targetAddr, originalFunc, &dummy);
             } else {
                 return false;
             }
@@ -81,13 +79,14 @@ namespace DobbyWrapper {
         std::lock_guard<std::mutex> lock(hookMutex);
         
         for (auto& pair : hookHistory) {
-            #ifdef DOBBY_UNHOOK_DEFINED
+            #if 0
             DobbyUnHook(pair.first);
             #else
             // Alternative implementation
             auto it = originalFunctions.find(pair.first);
             if (it != originalFunctions.end()) {
-                DobbyHook(pair.first, it->second, nullptr);
+                void* dummy = nullptr;
+                DobbyHook(pair.first, it->second, &dummy);
             }
             #endif
         }

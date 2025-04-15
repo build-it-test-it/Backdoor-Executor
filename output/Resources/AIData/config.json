@@ -1,10 +1,4 @@
 {
   "version": "1.0.0",
-  "aiModel": "default",
-  "autoUpdate": true,
-  "features": {
-    "scriptGeneration": true,
-    "vulnerabilityScan": true,
-    "codeCompletion": true
-  }
+  "aiEnabled": true
 }

@@ -2,31 +2,11 @@
 #include "PatternScanner.h"
 #include "MemoryAccess.h"
 #include <iostream>
-#include <string>
-#include <vector>
 
 namespace iOS {
-    // Implement the FindPattern method that's in the header
-    PatternScanner::ScanResult PatternScanner::FindPattern(const char* module, const char* pattern, const char* mask) {
-        std::cout << "PatternScanner::FindPattern called" << std::endl;
-        return PatternScanner::ScanResult(0);
-    }
-    
-    // Implement ScanMemoryRegion
-    PatternScanner::ScanResult PatternScanner::ScanMemoryRegion(const char* pattern, const char* mask, void* startAddress, void* endAddress) {
-        std::cout << "PatternScanner::ScanMemoryRegion called" << std::endl;
-        return PatternScanner::ScanResult(0);
-    }
-    
-    // Implement ScanModule
-    PatternScanner::ScanResult PatternScanner::ScanModule(const char* pattern, const char* mask, const std::string& moduleName) {
-        std::cout << "PatternScanner::ScanModule called for module: " << moduleName << std::endl;
-        return PatternScanner::ScanResult(0);
-    }
-    
-    // Implement ScanProcess
-    PatternScanner::ScanResult PatternScanner::ScanProcess(const char* pattern, const char* mask) {
-        std::cout << "PatternScanner::ScanProcess called" << std::endl;
+    // Implement ScanForPattern (not defined inline)
+    PatternScanner::ScanResult PatternScanner::ScanForPattern(const char* pattern, const char* mask, void* startAddress, void* endAddress) {
+        std::cout << "PatternScanner::ScanForPattern called" << std::endl;
         return PatternScanner::ScanResult(0);
     }
     

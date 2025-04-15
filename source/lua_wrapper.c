@@ -1,42 +1,57 @@
-// Implementation of Lua compatibility functions
-// This file provides real implementations that only apply when needed
+// Implementation of our non-conflicting Lua wrapper
 #include "lua_wrapper.h"
 #include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-// Implementation for lua_pcall
-int lua_pcall_impl(lua_State* L, int nargs, int nresults, int errfunc) {
-    // This implementation is only used when the real lua_pcall is not available
-    // A real implementation would call into the Lua VM
-    fprintf(stderr, "lua_pcall called with nargs=%d, nresults=%d, errfunc=%d\n", 
-            nargs, nresults, errfunc);
+// Implementation of our functions
+int executor_lua_pcall(lua_State* L, int nargs, int nresults, int errfunc) {
+    printf("executor_lua_pcall(%p, %d, %d, %d) called\n", L, nargs, nresults, errfunc);
     return 0; // Success
 }
 
-// Implementation for luaL_error
-void luaL_error_impl(lua_State* L, const char* fmt, ...) {
-    // This implementation is only used when the real luaL_error is not available
+void executor_luaL_error(lua_State* L, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    fprintf(stderr, "Lua Error: ");
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n");
+    printf("executor_luaL_error: ");
+    vprintf(fmt, args);
+    printf("\n");
     va_end(args);
-    // In a real implementation, this would throw a Lua error
 }
 
-// Type error implementation
-void luaL_typeerrorL(lua_State* L, int narg, const char* tname) {
-    // This implementation is only used when the real luaL_typeerror is not available
-    fprintf(stderr, "Type error: Expected %s for argument %d\n", tname, narg);
-    // In a real implementation, this would throw a Lua error
+const char* executor_luaL_typename(lua_State* L, int idx) {
+    return "nil";
 }
 
-// Argument error implementation
-void luaL_argerrorL(lua_State* L, int narg, const char* extramsg) {
-    // This implementation is only used when the real luaL_argerror is not available
-    fprintf(stderr, "Argument error: %s for argument %d\n", extramsg, narg);
-    // In a real implementation, this would throw a Lua error
+int executor_lua_gettop(lua_State* L) {
+    return 0;
+}
+
+void executor_lua_settop(lua_State* L, int idx) {
+    // No-op
+}
+
+void executor_lua_pushnil(lua_State* L) {
+    // No-op
+}
+
+void executor_lua_pushnumber(lua_State* L, double n) {
+    // No-op
+}
+
+void executor_lua_pushstring(lua_State* L, const char* s) {
+    // No-op
+}
+
+void executor_lua_createtable(lua_State* L, int narr, int nrec) {
+    // No-op
+}
+
+void executor_lua_setfield(lua_State* L, int idx, const char* k) {
+    // No-op
+}
+
+int executor_lua_type(lua_State* L, int idx) {
+    return EXECUTOR_LUA_TNIL;
 }

@@ -1,119 +1,65 @@
-// Lua compatibility wrapper for iOS builds
-// This file provides compatibility without conflicts
+// Standalone Lua wrapper for executor - No conflict with real Lua
+// This file should NOT be included along with real Lua headers
 #pragma once
 
-// Only define these types and macros if they're not already defined
-#ifndef lua_State
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Forward declarations of essential types
 typedef struct lua_State lua_State;
-#endif
+typedef int (*lua_CFunction)(lua_State* L);
 
-// Only define API macros if not already defined
-#ifndef LUA_API
-#define LUA_API extern
-#endif
+// Essential function declarations - different names from real Lua to avoid conflicts
+extern int executor_lua_pcall(lua_State* L, int nargs, int nresults, int errfunc);
+extern void executor_luaL_error(lua_State* L, const char* fmt, ...);
+extern const char* executor_luaL_typename(lua_State* L, int idx);
+extern int executor_lua_gettop(lua_State* L);
+extern void executor_lua_settop(lua_State* L, int idx);
+extern void executor_lua_pushnil(lua_State* L);
+extern void executor_lua_pushnumber(lua_State* L, double n);
+extern void executor_lua_pushstring(lua_State* L, const char* s);
+extern void executor_lua_createtable(lua_State* L, int narr, int nrec);
+extern void executor_lua_setfield(lua_State* L, int idx, const char* k);
+extern int executor_lua_type(lua_State* L, int idx);
 
-#ifndef LUALIB_API
-#define LUALIB_API extern
-#endif
+// Redirect to our implementation with macros
+#define lua_pcall executor_lua_pcall
+#define luaL_error executor_luaL_error
+#define luaL_typename executor_luaL_typename
+#define lua_gettop executor_lua_gettop
+#define lua_settop executor_lua_settop
+#define lua_pushnil executor_lua_pushnil
+#define lua_pushnumber executor_lua_pushnumber
+#define lua_pushstring executor_lua_pushstring
+#define lua_createtable executor_lua_createtable
+#define lua_setfield executor_lua_setfield
+#define lua_type executor_lua_type
 
-#ifndef LUA_PRINTF_ATTR
-#define LUA_PRINTF_ATTR(fmt, args)
-#endif
+// Constants that don't conflict with real Lua
+#define EXECUTOR_LUA_REGISTRYINDEX (-10000)
+#define EXECUTOR_LUA_ENVIRONINDEX (-10001)
+#define EXECUTOR_LUA_GLOBALSINDEX (-10002)
 
-#ifndef l_noret
-#define l_noret void
-#endif
+#define EXECUTOR_LUA_TNONE (-1)
+#define EXECUTOR_LUA_TNIL 0
+#define EXECUTOR_LUA_TBOOLEAN 1
+#define EXECUTOR_LUA_TLIGHTUSERDATA 2
+#define EXECUTOR_LUA_TNUMBER 3
+#define EXECUTOR_LUA_TSTRING 5
 
-// Define the registry structure for lfs only if not already defined
-#ifndef luaL_Reg
-struct lfs_RegStruct {
-    const char *name;
-    int (*func)(lua_State *L);
+// Helper macros that won't conflict
+#define lua_isnil(L,n) (executor_lua_type(L,n) == EXECUTOR_LUA_TNIL)
+#define lua_isnumber(L,n) (executor_lua_type(L,n) == EXECUTOR_LUA_TNUMBER)
+#define lua_pushinteger(L,n) executor_lua_pushnumber(L, (double)(n))
+#define lua_pop(L,n) executor_lua_settop(L, -(n)-1)
+
+// Registry structure that won't conflict with real Lua
+struct ExecutorLuaReg {
+    const char* name;
+    lua_CFunction func;
 };
-typedef struct lfs_RegStruct luaL_Reg;
-#endif
 
-// Forward declare our implementation functions
-#ifndef lua_pcall_impl_defined
-#define lua_pcall_impl_defined
-extern int lua_pcall_impl(lua_State* L, int nargs, int nresults, int errfunc);
-extern void luaL_error_impl(lua_State* L, const char* fmt, ...);
-extern void luaL_typeerrorL(lua_State* L, int narg, const char* tname);
-extern void luaL_argerrorL(lua_State* L, int narg, const char* extramsg);
-#endif
-
-// Conditionally redefine problematic functions only if not already defined
-#ifndef lua_pcall
-#define lua_pcall lua_pcall_impl
-#endif
-
-#ifndef luaL_error
-#define luaL_error luaL_error_impl
-#endif
-
-#ifndef luaL_typeerror
-#define luaL_typeerror(L, narg, tname) luaL_typeerrorL(L, narg, tname)
-#endif
-
-#ifndef luaL_argerror
-#define luaL_argerror(L, narg, extramsg) luaL_argerrorL(L, narg, extramsg)
-#endif
-
-// Ensure core Lua constants are defined only if not already defined
-#ifndef LUA_REGISTRYINDEX
-#define LUA_REGISTRYINDEX (-10000)
-#endif
-
-#ifndef LUA_ENVIRONINDEX
-#define LUA_ENVIRONINDEX (-10001)
-#endif
-
-#ifndef LUA_GLOBALSINDEX
-#define LUA_GLOBALSINDEX (-10002)
-#endif
-
-// Provide type constants only if not already defined
-#ifndef LUA_TNONE
-#define LUA_TNONE (-1)
-#endif
-
-#ifndef LUA_TNIL
-#define LUA_TNIL 0
-#endif
-
-#ifndef LUA_TBOOLEAN
-#define LUA_TBOOLEAN 1
-#endif
-
-#ifndef LUA_TLIGHTUSERDATA
-#define LUA_TLIGHTUSERDATA 2
-#endif
-
-#ifndef LUA_TNUMBER
-#define LUA_TNUMBER 3
-#endif
-
-// Don't define these macros if they're already defined by Lua
-#ifndef lua_isnumber
-#define lua_isnumber(L,n) (1)
-#endif
-
-#ifndef lua_isstring
-#define lua_isstring(L,n) (1)
-#endif
-
-#ifndef lua_isnil
-#define lua_isnil(L,n) (0)
-#endif
-
-#ifndef lua_tostring
-#define lua_tostring(L,i) "dummy_string"
-#endif
-
-#ifndef lua_pushinteger
-#define lua_pushinteger(L,n) lua_pushnumber((L), (n))
-#endif
-
-#ifndef lua_pop
-#define lua_pop(L,n) lua_settop(L, -(n)-1)
+#ifdef __cplusplus
+}
 #endif

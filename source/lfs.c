@@ -1,9 +1,9 @@
-// Include our compatibility wrapper
-#include "lua_wrapper.h"
+// Using real Lua headers directly
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
 
-// Include our wrapper first to fix Lua compatibility issues
 
-// Include our wrapper first to fix Lua compatibility issues
+
 
 /*
 ** LuaFileSystem

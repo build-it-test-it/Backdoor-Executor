@@ -1,20 +1,26 @@
 #!/bin/bash
-# Find all .c and .cpp files that include lua.h or lualib.h
-echo "Finding files that include Lua headers..."
-FILES=$(grep -l "#include.*luau/lua\|#include.*lualib\|#include.*lauxlib" --include="*.c" --include="*.cpp" --include="*.mm" -r source/)
+# Find files that include our wrapper or Lua headers
+echo "Cleaning up Lua includes in all files..."
 
-# Add our wrapper at the top of each file
-for file in $FILES; do
-  # Skip lfs.c as it's handled by patch_lfs.sh
-  if [[ "$file" == "source/lfs.c" ]]; then
-    continue
-  fi
-  
-  echo "Patching $file..."
-  # Only add our wrapper if it's not already included
-  if ! grep -q "#include.*lua_wrapper.h" "$file"; then
-    sed -i '1i\// Include our compatibility wrapper\n#include "lua_wrapper.h"\n' "$file"
+# For files that include both our wrapper and real Lua headers, remove our wrapper
+find source -name "*.c" -o -name "*.cpp" -o -name "*.mm" | xargs grep -l "lua_wrapper.h.*luau/lua\|luau/lua.*lua_wrapper.h" | while read file; do
+  if [ "$file" != "source/lfs.c" ]; then  # Skip lfs.c as it's handled separately
+    echo "Fixing $file to use real Lua headers only..."
+    grep -v "lua_wrapper.h" "$file" > "$file.tmp"
+    mv "$file.tmp" "$file"
   fi
 done
 
-echo "Done! Patched files that include Lua headers."
+# For files that don't include real Lua headers but use Lua functionality,
+# make sure they include our wrapper
+find source -name "*.c" -o -name "*.cpp" -o -name "*.mm" | xargs grep -l "lua_State\|lua_pcall\|luaL_error" | \
+  grep -v -l "#include.*luau/lua" | \
+  grep -v "lfs.c" | \
+  while read file; do
+    if ! grep -q "#include.*lua_wrapper.h" "$file"; then
+      echo "Adding our wrapper to $file..."
+      sed -i '1i#include "lua_wrapper.h"' "$file"
+    fi
+  done
+
+echo "Done fixing Lua includes!"

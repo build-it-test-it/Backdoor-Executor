@@ -11,12 +11,9 @@
 #include <mach/mach_init.h>
 #include <mach/mach_interface.h>
 #include <mach/task.h>
-// Instead of including mach_vm.h which is unsupported, we define what we need
-#ifndef MACH_VM_INCLUDED
-#define MACH_VM_INCLUDED
-typedef vm_address_t mach_vm_address_t;
-typedef vm_size_t mach_vm_size_t;
-#endif // MACH_VM_INCLUDED
+
+// We'll use the system-defined mach_vm types instead of defining our own
+
 #else
 // Include mach_compat.h for non-Apple platforms
 #include "mach_compat.h"
@@ -42,11 +39,22 @@ namespace iOS {
         
         // Find memory region
         static void* FindMemoryRegion(const char* pattern, size_t size, void* startAddress = nullptr, void* endAddress = nullptr);
+        
         // Initialize memory subsystem
         static bool Initialize();
+        
+        // Template methods for convenience
+        template<typename T>
+        static bool ReadValue(void* address, T& value) {
+            return ReadMemory(address, &value, sizeof(T));
+        }
+        
+        template<typename T>
+        static bool WriteValue(void* address, const T& value) {
+            return WriteMemory(address, &value, sizeof(T));
+        }
     };
-}
-
+    
     // Helper functions for type safety
     namespace MemoryHelper {
         // Convert between void* and mach_vm_address_t
@@ -58,3 +66,4 @@ namespace iOS {
             return static_cast<mach_vm_address_t>(reinterpret_cast<uintptr_t>(ptr));
         }
     }
+}

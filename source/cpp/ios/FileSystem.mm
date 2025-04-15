@@ -267,7 +267,6 @@ namespace iOS {
     }
     
     // Write to a file
-    bool FileSystem::WriteFile(const std::string& path, const std::string& content) {
         // Sanitize the path to ensure it's within our sandbox
         std::string safePath = SanitizePath(path);
         

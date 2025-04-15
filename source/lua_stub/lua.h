@@ -13,7 +13,7 @@ typedef struct lua_State lua_State;
 typedef int (*lua_CFunction)(lua_State* L);
 
 // Basic Lua types
-typedef int lua_Integer;  // Add missing lua_Integer type
+typedef int lua_Integer;
 typedef unsigned lua_Unsigned;
 
 // Basic constants
@@ -36,22 +36,28 @@ LUA_API void lua_pushnil(lua_State* L);
 LUA_API void lua_pushnumber(lua_State* L, double n);
 LUA_API void lua_pushboolean(lua_State* L, int b);
 LUA_API void lua_pushstring(lua_State* L, const char* s);
+LUA_API void lua_pushlstring(lua_State* L, const char* s, size_t len); // Added missing function
+LUA_API void lua_pushliteral(lua_State* L, const char* s); // Added missing function
+LUA_API void lua_pushvalue(lua_State* L, int idx); // Added missing function
 LUA_API LUA_PRINTF_ATTR(2, 3) const char* lua_pushfstring(lua_State* L, const char* fmt, ...);
 LUA_API int lua_type(lua_State* L, int idx);
 LUA_API int lua_pcall(lua_State* L, int nargs, int nresults, int errfunc);
 LUA_API const char* lua_tolstring(lua_State* L, int idx, size_t* len);
 LUA_API void lua_createtable(lua_State* L, int narr, int nrec);
 LUA_API void lua_setfield(lua_State* L, int idx, const char* k);
+LUA_API void lua_setglobal(lua_State* L, const char* name); // Added missing function
 LUA_API void lua_setmetatable(lua_State* L, int idx);
+LUA_API void lua_rawset(lua_State* L, int idx); // Added missing function
 LUA_API void* lua_newuserdata(lua_State* L, size_t size);
-LUA_API void lua_newtable(lua_State* L); // Added missing function
-LUA_API void lua_pushcfunction(lua_State* L, lua_CFunction f, const char* debugname); // Added missing function
-LUA_API int lua_toboolean(lua_State* L, int idx); // Added missing function
-LUA_API void* lua_touserdata(lua_State* L, int idx); // Added missing function
+LUA_API void lua_newtable(lua_State* L);
+LUA_API void lua_pushcfunction(lua_State* L, lua_CFunction f, const char* debugname);
+LUA_API int lua_toboolean(lua_State* L, int idx);
+LUA_API void* lua_touserdata(lua_State* L, int idx);
 
 // Helper macros
 #define lua_tostring(L, i) lua_tolstring(L, (i), NULL)
 #define lua_isnil(L, n) (lua_type(L, (n)) == LUA_TNIL)
+#define lua_istable(L, n) (lua_type(L, (n)) == LUA_TTABLE) // Added missing macro
 #define lua_isnumber(L,n) (lua_type(L,n) == LUA_TNUMBER)
 #define lua_isstring(L,n) (lua_type(L,n) == LUA_TSTRING)
 #define lua_pushinteger(L,n) lua_pushnumber(L, (double)(n))

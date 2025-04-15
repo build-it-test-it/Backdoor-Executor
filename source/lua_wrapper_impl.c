@@ -107,3 +107,37 @@ int luaL_newmetatable(lua_State* L, const char* tname) {
     printf("luaL_newmetatable(%p, %s) called\n", L, tname);
     return 1;
 }
+
+// Additional implementations for newly added functions
+
+// Implementation for lua_pushlstring
+void lua_pushlstring(lua_State* L, const char* s, size_t len) {
+    // Just call lua_pushstring for simplicity in our stub
+    printf("lua_pushlstring(%p, %s, %zu) called\n", L, s, len);
+    lua_pushstring(L, s);
+}
+
+// Implementation for lua_pushliteral
+void lua_pushliteral(lua_State* L, const char* s) {
+    // Just call lua_pushstring for simplicity in our stub
+    printf("lua_pushliteral(%p, %s) called\n", L, s);
+    lua_pushstring(L, s);
+}
+
+// Implementation for lua_pushvalue
+void lua_pushvalue(lua_State* L, int idx) {
+    // Simply log in our stub
+    printf("lua_pushvalue(%p, %d) called\n", L, idx);
+}
+
+// Implementation for lua_setglobal
+void lua_setglobal(lua_State* L, const char* name) {
+    // Simply log in our stub
+    printf("lua_setglobal(%p, %s) called\n", L, name);
+}
+
+// Implementation for lua_rawset
+void lua_rawset(lua_State* L, int idx) {
+    // Simply log in our stub
+    printf("lua_rawset(%p, %d) called\n", L, idx);
+}

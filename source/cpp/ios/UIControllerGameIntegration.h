@@ -26,7 +26,7 @@ namespace iOS {
         size_t m_callbackId;
         
         // Private methods
-        void OnGameStateChanged(GameDetector::GameState oldState, GameDetector::GameState newState);
+        void OnGameStateChanged(iOS::GameState oldState, iOS::GameState newState);
         void UpdateUIGameInfo();
         
     public:
@@ -90,7 +90,7 @@ namespace iOS {
          * @brief Get the current game state
          * @return Current game state
          */
-        GameDetector::GameState GetGameState() const;
+        iOS::GameState GetGameState() const;
         
         /**
          * @brief Check if player is in a game

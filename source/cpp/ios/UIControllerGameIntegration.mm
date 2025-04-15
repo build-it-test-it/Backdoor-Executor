@@ -20,7 +20,7 @@ namespace iOS {
     UIControllerGameIntegration::~UIControllerGameIntegration() {
         // Remove callback if registered
         if (m_callbackId != 0 && m_gameDetector) {
-            m_gameDetector->RemoveCallback(m_callbackId);
+            // Removed callback handling
             m_callbackId = 0;
         }
     }
@@ -34,7 +34,7 @@ namespace iOS {
         }
         
         // Register callback for game state changes
-        m_callbackId = m_gameDetector->RegisterCallback(
+        m_gameDetector->SetStateChangeCallback(
             [this](GameState oldState, GameState newState) {
                 this->OnGameStateChanged(oldState, newState);
             });
@@ -83,7 +83,7 @@ namespace iOS {
                 }
                 break;
                 
-            case GameState::Leaving:
+            case GameState::NotRunning:
                 // Player is leaving a game
                 
                 // Hide executor if auto-hide is enabled
@@ -98,7 +98,7 @@ namespace iOS {
                 }
                 break;
                 
-            case GameState::Menu:
+            case GameState::InMenu:
                 // Player is at menu screens
                 
                 // Hide button if set to show only in-game
@@ -189,7 +189,7 @@ namespace iOS {
     
     // Get the current game state
     GameState UIControllerGameIntegration::GetGameState() const {
-        return m_gameDetector ? m_gameDetector->GetState() : GameState::Unknown;
+        return m_gameDetector ? m_gameDetector->GetCurrentState() : GameState::Unknown;
     }
     
     // Check if player is in a game
@@ -204,7 +204,7 @@ namespace iOS {
         }
         
         // Get current game state
-        GameState state = m_gameDetector->GetState();
+        GameState state = m_gameDetector->GetCurrentState();
         
         // Update button visibility
         switch (state) {
@@ -213,9 +213,9 @@ namespace iOS {
                 m_uiController->SetButtonVisible(true);
                 break;
                 
-            case GameState::Menu:
-            case GameState::Loading:
-            case GameState::Leaving:
+            case GameState::InMenu:
+            case GameState::Connecting:
+            case GameState::NotRunning:
                 // At menu or loading or leaving, hide button if set to show only in-game
                 m_uiController->SetButtonVisible(!m_showButtonOnlyInGame);
                 break;

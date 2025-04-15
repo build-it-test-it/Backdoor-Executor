@@ -203,17 +203,9 @@ private:
         /**
          */
             // Prune old detection history
-            PruneDetectionHistory();
-            
-            // Clear any cached data
-            if (m_detectionHistory.size() > 1000) {
-                // Keep only the last 1000 detection events
-                m_detectionHistory.erase(
-                    m_detectionHistory.begin(),
-                    m_detectionHistory.begin() + (m_detectionHistory.size() - 1000)
-                );
-            }
-        }
+        // Prune old detection history to save memory
+        void PruneDetectionHistory();
+
         
         /**
          * @brief Get memory usage of this component

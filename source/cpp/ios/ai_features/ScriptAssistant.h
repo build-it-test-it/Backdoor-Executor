@@ -273,10 +273,9 @@ private:
         /**
          */
             // Clear history beyond necessary size
-            if (m_conversationHistory.size() > m_maxHistorySize) {
-                TrimConversationHistory();
-            }
-        }
+        // Update conversation history trimming
+        void TrimConversationHistory();
+
         
         /**
          * @brief Get memory usage of this component

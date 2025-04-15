@@ -51,6 +51,23 @@ public:
         OfflineOnly,   // Always use offline mode
         OnlineOnly     // Always use online mode (will fail if no connectivity)
     };
+    };
+    
+    // Online mode enum
+    enum class OnlineMode {
+        Auto,       // Automatically use online when available, fallback to offline
+        PreferOffline, // Prefer offline, use online only when offline fails
+        PreferOnline,  // Prefer online, use offline only when online fails
+        OfflineOnly,   // Always use offline mode
+        OnlineOnly     // Always use online mode (will fail if no connectivity)
+    };
+    
+    // Callback for AI responses
+    using ResponseCallback = std::function<void(const AIResponse&)>;
+    
+private:
+    bool m_initialized;                       // Initialization flag
+    bool m_localModelsLoaded;                 // Local models loaded flag
     bool m_isInLowMemoryMode;                 // Low memory mode flag
     bool m_networkConnected;                  // Network connectivity flag
     OnlineMode m_onlineMode;                  // Current online mode

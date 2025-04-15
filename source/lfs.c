@@ -1,3 +1,9 @@
+// Include our wrapper first to fix Lua compatibility issues
+#include "lua_wrapper.h"
+
+// Include our wrapper first to fix Lua compatibility issues
+#include "lua_wrapper.h"
+
 /*
 ** LuaFileSystem
 ** Copyright Kepler Project 2003 - 2020

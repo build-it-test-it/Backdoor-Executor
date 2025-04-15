@@ -1,0 +1,249 @@
+name: Build with Homebrew Lua/Luau
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest  # Use macOS for iOS compatible builds
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        echo "Installing dependencies..."
+        # Install essential build tools and Lua/Luau
+        brew update
+        brew install cmake pkg-config
+        brew install luau 
+        brew install lua || true
+        
+        # Show Lua/Luau installation details
+        echo "Lua/Luau installation details:"
+        brew info luau
+        brew info lua || true
+        
+        echo "Lua/Luau paths:"
+        ls -la $(brew --prefix luau)/include || echo "No include directory found"
+        ls -la $(brew --prefix luau)/lib || echo "No lib directory found"
+        
+        # Create required directories
+        mkdir -p external/dobby/include
+        mkdir -p external/dobby/lib
+        mkdir -p output/Resources/AIData
+        mkdir -p build
+        
+        # Remove any CI_BUILD defines
+        find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" -o -name "*.c" \) | \
+          xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Build Dobby
+      id: install-dobby
+      run: |
+        echo "Building Dobby from source (required dependency)..."
+        git clone --depth=1 https://github.com/jmpews/Dobby.git
+        cd Dobby
+        mkdir -p build && cd build
+        
+        # Configure and build Dobby
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DDOBBY_BUILD_SHARED_LIBRARY=OFF \
+          -DDOBBY_BUILD_STATIC_LIBRARY=ON
+        
+        cmake --build . --config Release
+        
+        # Copy Dobby files to expected location
+        mkdir -p $GITHUB_WORKSPACE/external/dobby/lib
+        mkdir -p $GITHUB_WORKSPACE/external/dobby/include
+        
+        cp libdobby.a $GITHUB_WORKSPACE/external/dobby/lib/
+        cp -r ../include/* $GITHUB_WORKSPACE/external/dobby/include/
+        
+        echo "Dobby successfully built and installed to external/dobby"
+        cd $GITHUB_WORKSPACE
+
+    - name: Create Minimal Lua API Patch
+      run: |
+        echo "Creating minimal patch for Lua API..."
+        
+        # Create a small header file that just fixes the specific issues
+        cat > lua_fixes.h << 'EOF'
+// Minimal fixes for Lua/Luau API issues
+#pragma once
+
+// Only fix the problematic static function pointer
+#ifdef lua_pcall
+#undef lua_pcall
+#endif
+extern int lua_pcall(lua_State* L, int nargs, int nresults, int errfunc);
+
+// Fix typeerror and argerror macros
+#define luaL_typeerror(L, narg, tname) luaL_typeerrorL(L, narg, tname)
+#define luaL_argerror(L, narg, extramsg) luaL_argerrorL(L, narg, extramsg)
+EOF
+
+        # Create a patch for lua.h to fix the static function pointer
+        if [ -f "source/cpp/luau/lua.h" ]; then
+          echo "Patching source/cpp/luau/lua.h..."
+          # Create a backup
+          cp source/cpp/luau/lua.h source/cpp/luau/lua.h.bak
+          
+          # Remove the static function pointer line
+          sed -i '' 's/static int (\*lua_pcall)(lua_State\* L, int nargs, int nresults, int errfunc);/int lua_pcall(lua_State* L, int nargs, int nresults, int errfunc);/' source/cpp/luau/lua.h
+        fi
+        
+        # Copy the fixes to the source directory
+        cp lua_fixes.h source/
+
+    - name: Update CMakeLists.txt to use Homebrew Lua
+      run: |
+        echo "Updating CMakeLists.txt to use Homebrew Lua/Luau..."
+        
+        # Add Lua paths to CMakeLists.txt
+        cat >> CMakeLists.txt << EOF
+# Find and use Homebrew Lua/Luau
+list(APPEND CMAKE_PREFIX_PATH $(brew --prefix luau))
+set(LUAU_DIR $(brew --prefix luau))
+set(LUA_INCLUDE_DIR \${LUAU_DIR}/include)
+set(LUA_LIBRARIES \${LUAU_DIR}/lib/libluau.dylib)
+
+# Include our fix header
+include_directories(\${CMAKE_SOURCE_DIR}/source)
+
+# Link against Homebrew Lua
+target_link_libraries(roblox_executor PRIVATE \${LUA_LIBRARIES})
+EOF
+
+        # Ensure we include the fix header in lfs.c
+        if [ -f "source/lfs.c" ]; then
+          # Add the include to the top of the file
+          sed -i '' '1i\
+// Include minimal fixes for Lua API\
+#include "lua_fixes.h"\
+' source/lfs.c
+        fi
+
+    - name: Build Dynamic Library
+      run: |
+        echo "Building the iOS dynamic library..."
+        
+        # Create a direct link to Homebrew's luau lib as liblua.dylib (for backward compatibility)
+        LUAU_LIB=$(brew --prefix luau)/lib
+        if [ -f "$LUAU_LIB/libluau.dylib" ] && [ ! -f "$LUAU_LIB/liblua.dylib" ]; then
+          echo "Creating symlink from libluau.dylib to liblua.dylib..."
+          ln -sf "$LUAU_LIB/libluau.dylib" "$LUAU_LIB/liblua.dylib" || sudo ln -sf "$LUAU_LIB/libluau.dylib" "$LUAU_LIB/liblua.dylib" || true
+        fi
+        
+        # Configure with Homebrew Lua paths
+        echo "Configuring with Lua from: $(brew --prefix luau)"
+        cmake -S . -B build \
+          -DCMAKE_OSX_ARCHITECTURES="arm64" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_SYSTEM_NAME=iOS \
+          -DCMAKE_PREFIX_PATH="$(brew --prefix luau)" \
+          -DLUA_INCLUDE_DIR="$(brew --prefix luau)/include" \
+          -DLUA_LIBRARIES="$(brew --prefix luau)/lib/libluau.dylib" \
+          -DENABLE_AI_FEATURES=ON \
+          -DUSE_DOBBY=ON
+        
+        # Print the CMake configuration
+        cat build/CMakeCache.txt | grep -E "LUA|Lua|luau|DOBBY"
+        
+        # Build the library
+        cmake --build build --config Release || {
+          echo "🔎 Build failed, analyzing errors..."
+          
+          # Show the problematic part of lua.h
+          echo "lua.h line with lua_pcall:"
+          grep -n "lua_pcall" source/cpp/luau/lua.h || echo "Not found"
+          
+          # Check if the lua_fixes.h was properly included in lfs.c
+          echo "First 10 lines of lfs.c:"
+          head -10 source/lfs.c
+          
+          # Show build errors
+          if [ -f "build/CMakeFiles/CMakeError.log" ]; then
+            echo "=== CMakeError.log ==="
+            cat build/CMakeFiles/CMakeError.log
+          fi
+          
+          # Check for specific error logs
+          echo "Searching for error logs..."
+          find build -name "*.log" -type f -exec grep -l "error:" {} \; | xargs cat 2>/dev/null || echo "No error logs found"
+          
+          exit 1
+        }
+        
+        # Check if build produced the library
+        if [ -f "build/lib/libmylibrary.dylib" ]; then
+          echo "✅ Successfully built libmylibrary.dylib"
+          ls -la build/lib/libmylibrary.dylib
+          
+          # Copy to output directory
+          mkdir -p output
+          cp build/lib/libmylibrary.dylib output/
+          
+          # Copy any resources
+          if [ -d "Resources" ]; then
+            mkdir -p output/Resources
+            cp -r Resources/* output/Resources/ 2>/dev/null || true
+          fi
+          
+          # Create default config if it doesn't exist
+          mkdir -p output/Resources/AIData
+          if [ ! -f "output/Resources/AIData/config.json" ]; then
+            echo '{"version":"1.0.0","led_effects":true,"ai_features":true,"memory_optimization":true}' > output/Resources/AIData/config.json
+          fi
+          
+          echo "== Built files =="
+          ls -la output/
+        else
+          echo "❌ Failed to build libmylibrary.dylib"
+          echo "== Build directory contents =="
+          find build -name "*.dylib" -o -name "*.a"
+          exit 1
+        fi
+
+    - name: Verify Library
+      run: |
+        echo "Verifying built dylib..."
+        
+        if [ -f "output/libmylibrary.dylib" ]; then
+          echo "✅ libmylibrary.dylib exists"
+          
+          # Check for exported symbols
+          echo "Exported symbols:"
+          nm -g output/libmylibrary.dylib | grep -E "luaopen_|ExecuteScript" || echo "No key symbols found!"
+          
+          # Check library type
+          file output/libmylibrary.dylib
+          
+          # Check library dependencies
+          otool -L output/libmylibrary.dylib
+        else
+          echo "❌ libmylibrary.dylib not found in output directory"
+          exit 1
+        fi
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-dylib-with-real-lua
+        path: |
+          output/libmylibrary.dylib
+          output/Resources/**

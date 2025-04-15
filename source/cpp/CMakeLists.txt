@@ -29,6 +29,7 @@ endif()
 
 # Set include directories
 target_include_directories(roblox_execution PUBLIC
+    ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}/source/cpp

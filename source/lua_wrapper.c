@@ -53,5 +53,5 @@ void executor_lua_setfield(lua_State* L, int idx, const char* k) {
 }
 
 int executor_lua_type(lua_State* L, int idx) {
-    return EXECUTOR_LUA_TNIL;
+    return LUA_TNIL;
 }

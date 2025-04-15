@@ -1,4 +1,4 @@
-// Stub lua.h with just enough functionality for lfs.c to compile
+// Stub lua.h with complete functionality for lfs.c to compile
 #pragma once
 
 #include <stddef.h>
@@ -30,12 +30,16 @@ LUA_API int lua_gettop(lua_State* L);
 LUA_API void lua_settop(lua_State* L, int idx);
 LUA_API void lua_pushnil(lua_State* L);
 LUA_API void lua_pushnumber(lua_State* L, double n);
+LUA_API void lua_pushboolean(lua_State* L, int b);
 LUA_API void lua_pushstring(lua_State* L, const char* s);
+LUA_API LUA_PRINTF_ATTR(2, 3) const char* lua_pushfstring(lua_State* L, const char* fmt, ...);
 LUA_API int lua_type(lua_State* L, int idx);
 LUA_API int lua_pcall(lua_State* L, int nargs, int nresults, int errfunc);
 LUA_API const char* lua_tolstring(lua_State* L, int idx, size_t* len);
 LUA_API void lua_createtable(lua_State* L, int narr, int nrec);
 LUA_API void lua_setfield(lua_State* L, int idx, const char* k);
+LUA_API void lua_setmetatable(lua_State* L, int idx);
+LUA_API void* lua_newuserdata(lua_State* L, size_t size);
 
 // Helper macros
 #define lua_tostring(L, i) lua_tolstring(L, (i), NULL)

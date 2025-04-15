@@ -102,21 +102,11 @@ find_package(LuaFileSystem QUIET)
 # Add LuaFileSystem if not found
 if(NOT TARGET lfs_obj AND EXISTS ${CMAKE_SOURCE_DIR}/source/lfs.c)
     message(STATUS "Using bundled LuaFileSystem implementation")
-# LuaFileSystem with real Lua headers
-# LuaFileSystem with real Lua headers
-add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
-target_include_directories(lfs_obj PRIVATE
-    ${CMAKE_SOURCE_DIR}/source
-    ${CMAKE_SOURCE_DIR}/source/lua_stub
-)
-    ${CMAKE_SOURCE_DIR}/source/cpp/luau
-    ${CMAKE_SOURCE_DIR}/source
-)
-    ${CMAKE_SOURCE_DIR}/source/cpp/luau
-    ${CMAKE_SOURCE_DIR}/source
-)
-target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
-target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
+    add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
+    target_include_directories(lfs_obj PRIVATE
+        ${CMAKE_SOURCE_DIR}/source
+        ${CMAKE_SOURCE_DIR}/source/lua_stub
+    )
     target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
 endif()
 

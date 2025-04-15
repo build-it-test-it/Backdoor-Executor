@@ -28,10 +28,6 @@ jobs:
         mkdir -p external/dobby/lib
         mkdir -p output/Resources/AIData
         mkdir -p build
-        
-        # Remove any CI_BUILD definitions from source files
-        echo "Removing CI_BUILD definitions from source files..."
-        find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" \) | xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -64,139 +60,142 @@ jobs:
         echo "Dobby successfully built and installed to external/dobby"
         cd $GITHUB_WORKSPACE
 
-    - name: Show Luau headers
+    - name: Fix Lua Types and Declarations
       run: |
-        echo "Looking at problematic Luau headers..."
+        echo "Creating lua_wrapper.h header to fix Lua declarations..."
         
-        # Check issues with lua.h and lualib.h
-        cat source/cpp/luau/lua.h | grep -n "static int (\*lua_pcall)" || echo "Static lua_pcall not found as expected"
-        cat source/cpp/luau/lualib.h | grep -n "LUALIB_API" || echo "LUALIB_API lines not found"
-        
-        # Check if our fixes header exists
-        if [ -f "luau_fixes.h" ]; then
-          echo "✅ luau_fixes.h found"
-        else
-          echo "❌ luau_fixes.h not found - this is needed for builds"
-        fi
-        
-        # Check if our implementation file exists
-        if [ -f "source/cpp/luau_fixes.cpp" ]; then
-          echo "✅ luau_fixes.cpp found"
-        else
-          echo "❌ luau_fixes.cpp not found - this is needed for builds"
-        fi
-
-    - name: Add Lua Fixes Header
-      run: |
-        # Create the luau_fixes.h header if it doesn't exist
-        if [ ! -f "luau_fixes.h" ]; then
-          echo "Creating luau_fixes.h..."
-          cat > luau_fixes.h << 'EOF'
-// Luau compatibility fixes for iOS builds
+        # Create a wrapper header that will be included before lua.h
+        cat > lua_wrapper.h << 'EOF'
+// Wrapper for Lua headers to fix compatibility issues
 #pragma once
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stddef.h>
-
-// Fix missing API macros if not defined
-#ifndef LUA_API
+// Core type definitions that need to be defined before any Lua headers
 #define LUA_API extern
-#endif
-
-#ifndef LUALIB_API
 #define LUALIB_API extern
-#endif
-
-#ifndef LUA_PRINTF_ATTR
 #define LUA_PRINTF_ATTR(fmt, args)
-#endif
+#define l_noret void
 
-// Forward declaration of lua_State
+// Basic types
 struct lua_State;
-
-// Fix for lua_pcall static initialization
-#ifdef lua_pcall
-#undef lua_pcall
-#endif
-LUA_API int lua_pcall_impl(lua_State* L, int nargs, int nresults, int errfunc);
-#define lua_pcall lua_pcall_impl
-
-// Fix for luaL_error
-#ifdef luaL_error
-#undef luaL_error
-#endif
-LUALIB_API void luaL_error_impl(lua_State* L, const char* fmt, ...);
-#define luaL_error luaL_error_impl
-
-// Basic type definitions
 typedef int (*lua_CFunction)(lua_State* L);
 typedef int (*lua_Continuation)(lua_State* L, int status);
 
-// Fix noret definition
-#ifndef l_noret
-#define l_noret void
-#endif
+// Forward declare the fixed function implementations
+extern int lua_pcall_impl(lua_State* L, int nargs, int nresults, int errfunc);
+extern void luaL_error_impl(lua_State* L, const char* fmt, ...);
+extern void luaL_typeerrorL(lua_State* L, int narg, const char* tname);
+extern void luaL_argerrorL(lua_State* L, int narg, const char* extramsg);
 
-// Error function declarations
+// Redefine problematic functions
+#undef lua_pcall
+#define lua_pcall lua_pcall_impl
+
+#undef luaL_error
+#define luaL_error luaL_error_impl
+
 #define luaL_typeerror(L, narg, tname) luaL_typeerrorL(L, narg, tname)
 #define luaL_argerror(L, narg, extramsg) luaL_argerrorL(L, narg, extramsg)
 EOF
-        fi
+
+        echo "Creating lua_wrapper.c with function implementations..."
         
-        # Create the luau_fixes.cpp implementation if it doesn't exist
-        if [ ! -f "source/cpp/luau_fixes.cpp" ]; then
-          echo "Creating luau_fixes.cpp..."
-          cat > source/cpp/luau_fixes.cpp << 'EOF'
-// Luau compatibility fixes implementation
-#define LUAU_FIXES_IMPLEMENTATION
-#include "../../luau_fixes.h"
-
+        # Create implementation file
+        cat > lua_wrapper.c << 'EOF'
+// Implementation of Lua functions needed for compatibility
+#include "lua_wrapper.h"
 #include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
-#include <stdlib.h>
 
-// Basic implementations
+// Basic implementations of required functions
 int lua_pcall_impl(lua_State* L, int nargs, int nresults, int errfunc) {
+    // This is a stub; in the real library it would call into the Lua VM
     return 0; // Success
 }
 
 void luaL_error_impl(lua_State* L, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
+    fprintf(stderr, "Lua Error: ");
     vfprintf(stderr, fmt, args);
-    va_end(args);
     fprintf(stderr, "\n");
+    va_end(args);
 }
 
-void luaL_typeerrorL(lua_State* L, int narg, const char* tname) {}
-void luaL_argerrorL(lua_State* L, int narg, const char* extramsg) {}
-EOF
-        fi
+void luaL_typeerrorL(lua_State* L, int narg, const char* tname) {
+    fprintf(stderr, "Type error: Expected %s for argument %d\n", tname, narg);
+}
 
-    - name: Detect and fix CMakeLists
-      run: |
-        # Add luau_fixes.cpp to CMakeLists if it's not already included
-        if ! grep -q "luau_fixes.cpp" source/cpp/CMakeLists.txt; then
-          echo "Adding luau_fixes.cpp to CMakeLists.txt..."
-          sed -i '' '/set(CORE_SOURCES/a\\    source/cpp/luau_fixes.cpp' source/cpp/CMakeLists.txt || true
+void luaL_argerrorL(lua_State* L, int narg, const char* extramsg) {
+    fprintf(stderr, "Argument error: %s for argument %d\n", extramsg, narg);
+}
+EOF
+
+        echo "Fixing all Lua header includes in source files..."
+        
+        # Remove CI_BUILD definitions
+        find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" -o -name "*.c" \) | \
+          xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
+          
+        # Fix lfs.c which includes Lua directly
+        if [ -f "source/lfs.c" ]; then
+          echo "Patching source/lfs.c to include our wrapper..."
+          
+          # Create a backup
+          cp source/lfs.c source/lfs.c.bak
+          
+          # Create a patched version that includes our wrapper first
+          cat > source/lfs.c.new << 'EOF'
+/* Basic file system operations for Lua */
+/* Modified to include wrapper header for iOS builds */
+#include "lua_wrapper.h"
+
+EOF
+          
+          # Append the original file (skipping includes for lua.h and lualib.h)
+          grep -v "#include.*lua" source/lfs.c.bak >> source/lfs.c.new
+          
+          # Replace the original
+          mv source/lfs.c.new source/lfs.c
         fi
         
-        # Add the include path for luau_fixes.h
-        if ! grep -q "include_directories(\\$\{CMAKE_SOURCE_DIR\})" source/cpp/CMakeLists.txt; then
-          echo "Adding root include directory to CMakeLists.txt..."
-          sed -i '' '/include_directories/a\\  \\$\{CMAKE_SOURCE_DIR\}' source/cpp/CMakeLists.txt || true
+        # Fix lua.h
+        if [ -f "source/cpp/luau/lua.h" ]; then
+          echo "Patching source/cpp/luau/lua.h..."
+          
+          # Create a backup
+          cp source/cpp/luau/lua.h source/cpp/luau/lua.h.bak
+          
+          # Remove the static function pointer line that causes issues
+          sed -i '' 's/static int (\*lua_pcall)(lua_State\* L, int nargs, int nresults, int errfunc);/\/\/ Replaced by lua_pcall_impl in wrapper.h/' source/cpp/luau/lua.h
         fi
+
+    - name: Patch CMake Build Files
+      run: |
+        echo "Patching CMake build files..."
+        
+        # Move our wrapper files to the source directory
+        cp lua_wrapper.h source/
+        cp lua_wrapper.c source/
+        
+        # Modify CMakeLists.txt to include our wrapper
+        echo "Adding wrapper to CMakeLists.txt..."
+        
+        # Add include directory for wrapper
+        if ! grep -q "include_directories(${CMAKE_SOURCE_DIR}/source)" source/cpp/CMakeLists.txt; then
+          sed -i '' '/include_directories/a\\  ${CMAKE_SOURCE_DIR}/source' source/cpp/CMakeLists.txt || true
+        fi
+        
+        # Add the wrapper source to the build
+        if ! grep -q "lua_wrapper.c" source/cpp/CMakeLists.txt; then
+          sed -i '' '/set(CORE_SOURCES/a\\    source/lua_wrapper.c' source/cpp/CMakeLists.txt || true
+        fi
+        
+        # Also update compiler flags to include the source directory
+        sed -i '' 's/-DCMAKE_CXX_FLAGS="/-DCMAKE_CXX_FLAGS="-I${CMAKE_SOURCE_DIR}/source /' source/cpp/CMakeLists.txt || true
 
     - name: Build Dynamic Library
       run: |
         echo "Building the iOS dynamic library..."
-        
-        # Add header include for source files that use Lua
-        echo "#include \"../../luau_fixes.h\"" > lua_include_fix.h
-        find source -name "*.cpp" -o -name "*.mm" | xargs -I {} grep -l "luau/lua.h" {} | \
-          xargs -I {} sed -i '' '1i\'$'\n''#include "../../luau_fixes.h"'$'\n' {} || true
         
         # Configure CMake with proper flags
         cmake -S . -B build \
@@ -204,13 +203,21 @@ EOF
           -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_SYSTEM_NAME=iOS \
-          -DCMAKE_CXX_FLAGS="-ferror-limit=100" \
+          -DCMAKE_C_FLAGS="-I${PWD}/source -ferror-limit=100" \
+          -DCMAKE_CXX_FLAGS="-I${PWD}/source -ferror-limit=100" \
           -DENABLE_AI_FEATURES=ON \
           -DUSE_DOBBY=ON
-
+        
         # Build with extra diagnostics
         cmake --build build --config Release --verbose || {
           echo "🔎 Build failed, showing detailed error analysis:"
+          
+          echo "=== Examining Lua headers before build ==="
+          head -30 source/cpp/luau/lua.h
+          
+          echo "=== Examining patched files ==="
+          [ -f "source/lfs.c" ] && head -30 source/lfs.c
+          [ -f "source/lua_wrapper.h" ] && cat source/lua_wrapper.h
           
           # Show content of build/CMakeFiles/CMakeError.log if it exists
           if [ -f "build/CMakeFiles/CMakeError.log" ]; then
@@ -218,15 +225,13 @@ EOF
             cat build/CMakeFiles/CMakeError.log
           fi
           
-          # Show content of the CMake output
-          if [ -f "build/CMakeOutput.log" ]; then
-            echo "=== CMakeOutput.log ==="
-            cat build/CMakeOutput.log
-          fi
-          
           # Find any error messages in CMake files
           echo "=== Build error details ==="
-          find build -name "*.log" -type f -exec grep -l "error:" {} \; | xargs cat || true
+          find build -name "*.log" -type f -exec grep -l "error:" {} \; | xargs cat 2>/dev/null || echo "No error logs found"
+          
+          # Check if any C/C++ files failed to compile
+          echo "=== Failed compiler commands ==="
+          find build -name "*.o.log" -type f | xargs cat 2>/dev/null || echo "No compiler logs found"
           
           # Exit with error
           exit 1

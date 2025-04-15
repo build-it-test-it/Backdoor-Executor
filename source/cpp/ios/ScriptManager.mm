@@ -1,3 +1,4 @@
+#define CI_BUILD
 #include "../ios_compat.h"
 #include "ScriptManager.h"
 #include <iostream>

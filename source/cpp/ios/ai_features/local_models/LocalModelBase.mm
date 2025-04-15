@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "LocalModelBase.h"
 #include <iostream>
 #include <fstream>
@@ -5,7 +7,6 @@
 #include <random>
 #include <algorithm>
 #include <chrono>
-#import <Foundation/Foundation.h>
 
 namespace iOS {
 namespace AIFeatures {

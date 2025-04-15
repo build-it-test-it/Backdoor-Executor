@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #include "LocalModelBase.h"
 #include "ScriptGenerationModel.h"
 #include <string>

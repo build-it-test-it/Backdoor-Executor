@@ -1,3 +1,5 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 //
 // MethodSwizzling.h
 // Provides iOS-specific method swizzling utilities to replace function hooking
@@ -6,8 +8,6 @@
 #pragma once
 
 #if defined(__APPLE__) || defined(IOS_TARGET)
-#import <Foundation/Foundation.h>
-#import <objc/runtime.h>
 
 namespace iOS {
 

@@ -1,3 +1,4 @@
+#include "../ios_compat.h"
 #pragma once
 
 // Define CI_BUILD for CI environments

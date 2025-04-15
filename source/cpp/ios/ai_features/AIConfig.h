@@ -1,9 +1,10 @@
+#define CI_BUILD
+#include "../ios_compat.h"
 #pragma once
 
 #include <string>
 #include <unordered_map>
 #include <functional>
-#import <Foundation/Foundation.h>
 #include "HybridAISystem.h" // Include for OnlineMode type
 
 namespace iOS {

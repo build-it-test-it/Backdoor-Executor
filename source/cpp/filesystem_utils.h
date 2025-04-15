@@ -7,11 +7,42 @@
 #include <vector>
 #include <iostream>
 #include <system_error>
+#include <ctime>
 
 namespace fs = std::filesystem;
 
 // Simple filesystem utility functions
 namespace FileUtils {
+    // Define FileInfo structure for compatibility with old code
+    struct FileInfo {
+        std::string m_path;
+        bool m_type;  // Using bool instead of enum (true = directory, false = file)
+        size_t m_size;
+        time_t m_modificationTime;
+        bool m_isReadable;
+        bool m_isWritable;
+        
+        FileInfo() : 
+            m_type(false), 
+            m_size(0), 
+            m_modificationTime(0),
+            m_isReadable(false), 
+            m_isWritable(false) {}
+        
+        FileInfo(const std::string& path, bool isDir, size_t size, time_t modTime, 
+                 bool isReadable, bool isWritable) : 
+            m_path(path),
+            m_type(isDir),
+            m_size(size), 
+            m_modificationTime(modTime),
+            m_isReadable(isReadable), 
+            m_isWritable(isWritable) {}
+    };
+    
+    // Compatibility constants
+    const bool Regular = false;  // For file type
+    const bool Directory = true; // For directory type
+    
     // Path operations
     inline std::string GetDocumentsPath() {
         #ifdef __APPLE__
@@ -117,7 +148,8 @@ namespace FileUtils {
         }
     }
     
-    inline bool WriteFile(const std::string& path, const std::string& content) {
+    // WriteFile with optional overwrite parameter (for backward compatibility)
+    inline bool WriteFile(const std::string& path, const std::string& content, bool overwrite = true) {
         try {
             // Create parent directory if it doesn't exist
             fs::path filePath(path);
@@ -125,6 +157,11 @@ namespace FileUtils {
             if (!parentPath.empty()) {
                 std::error_code ec;
                 fs::create_directories(parentPath, ec);
+            }
+            
+            // If overwrite is false and file exists, don't write
+            if (!overwrite && FileExists(path)) {
+                return false;
             }
             
             std::ofstream file(path, std::ios::out | std::ios::binary);
@@ -169,6 +206,40 @@ namespace FileUtils {
             std::cerr << "Exception appending to file: " << e.what() << std::endl;
             return false;
         }
+    }
+    
+    // List directory function to return a vector of FileInfo
+    inline std::vector<FileInfo> ListDirectory(const std::string& path) {
+        std::vector<FileInfo> files;
+        
+        std::error_code ec;
+        if (!fs::is_directory(path, ec)) {
+            std::cerr << "Cannot list directory, it does not exist: " << path << std::endl;
+            return files;
+        }
+        
+        try {
+            for (const auto& entry : fs::directory_iterator(path, ec)) {
+                std::string entryPath = entry.path().string();
+                bool isDir = fs::is_directory(entry, ec);
+                size_t size = isDir ? 0 : fs::file_size(entry, ec);
+                
+                auto time = fs::last_write_time(entry, ec);
+                auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                    time - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+                time_t modTime = std::chrono::system_clock::to_time_t(sctp);
+                
+                // Check permissions (simplified)
+                bool canRead = fs::status(entry, ec).permissions() & fs::perms::owner_read;
+                bool canWrite = fs::status(entry, ec).permissions() & fs::perms::owner_write;
+                
+                files.emplace_back(entryPath, isDir, size, modTime, canRead, canWrite);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Exception listing directory: " << e.what() << std::endl;
+        }
+        
+        return files;
     }
     
     // Additional compatibility functions that existed in the original FileSystem

@@ -95,37 +95,38 @@ include_directories(
     ${DOBBY_INCLUDE_DIR}
 )
 
-# Define a CI detection variable
+# Simple CI detection - assume we're in CI during GitHub Actions
 option(CI_BUILD "Build in CI environment" OFF)
-if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
+if(DEFINED ENV{GITHUB_ACTIONS})
   set(CI_BUILD ON)
+  message(STATUS "Building in CI environment")
 endif()
 
-# Find required Lua package from Homebrew (don't require for CI)
+# Try to find Lua, but don't require it
+message(STATUS "Looking for Lua installation")
 find_package(Lua QUIET)
+
+# Set Lua paths - use internal headers if in CI or Lua not found
 if(NOT LUA_FOUND OR CI_BUILD)
-  # In CI environment or if Lua not found, use internal headers
+  # Fallback to internal headers
   message(STATUS "Using internal Lua headers")
   set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
   set(LUA_LIBRARIES "")
-  set(CI_BUILD ON)
-  add_definitions(-DCI_BUILD)
+  
+  # Mark that we're in CI build
+  add_definitions(-DCI_BUILD=1)
 else
-  # Normal build with system Lua
-  message(STATUS "Found Lua: ${LUA_LIBRARIES}")
-  message(STATUS "Lua include directory: ${LUA_INCLUDE_DIR}")
+  # Using system Lua installation
+  message(STATUS "Using system Lua: ${LUA_LIBRARIES}")
 endif()
 
-# Add LuaFileSystem with Homebrew Lua headers
+# LuaFileSystem object library
 add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
-target_include_directories(lfs_obj PRIVATE
-    ${CMAKE_SOURCE_DIR}/source
-    ${LUA_INCLUDE_DIR}
-)
-target_compile_definitions(lfs_obj PRIVATE 
-    LUA_COMPAT_5_1=1
-    LUA_HOMEBREW_HEADERS=1
-)
+target_include_directories(lfs_obj PRIVATE ${CMAKE_SOURCE_DIR}/source ${LUA_INCLUDE_DIR})
+target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
+if(NOT CI_BUILD)
+  target_compile_definitions(lfs_obj PRIVATE LUA_HOMEBREW_HEADERS=1)
+endif()
 
 # Dobby wrapper implementation
 set(CMAKE_DOBBY_WRAPPER ${CMAKE_SOURCE_DIR}/source/cpp/dobby_wrapper.cpp)

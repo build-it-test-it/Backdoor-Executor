@@ -69,9 +69,6 @@ if(LUAU_SOURCES)
 
     # On CI builds, we need to make sure all Lua symbols are available
     # Fix: Make sure each define is separate and properly escaped
-    if(CI_BUILD)
-    # On CI builds, we need to make sure all Lua symbols are available
-    # Properly define visibility to ensure symbols are exported
     target_compile_definitions(lua_bundled PRIVATE
         "LUA_USE_LONGJMP=1"
         "LUA_API=__attribute__((visibility(\"default\")))"
@@ -79,11 +76,6 @@ if(LUAU_SOURCES)
         "LUAI_DDEC=__attribute__((visibility(\"default\")))"
         "LUAI_DDEF=__attribute__((visibility(\"default\")))"
     )
-            "LUAI_FUNC="
-            "LUAI_DDEC="
-            "LUAI_DDEF="
-        )
-    endif()
 
     # Create a symlink target to ensure the library is available
     add_custom_target(ensure_lua_path ALL
@@ -122,47 +114,17 @@ add_library(roblox_executor SHARED
     $<TARGET_OBJECTS:lfs_obj>
 )
 
-# Link with libraries
-# For macOS/iOS, we need to use special linking flags to force include all symbols
-if(APPLE)
-    set_target_properties(lua_bundled PROPERTIES 
-        POSITION_INDEPENDENT_CODE ON
-    )
-
-    # Use -force_load on macOS to ensure all symbols are included
-    target_link_libraries(roblox_executor 
-        "-Wl,-force_load,$<TARGET_FILE:lua_bundled>"
-        roblox_execution
-    )
-else()
-    # On other platforms use the standard linking
-    target_link_libraries(roblox_executor 
-        lua_bundled
-        roblox_execution
-    )
-endif()
+# Link with libraries - use WHOLE_ARCHIVE to ensure all symbols are included
+target_link_libraries(roblox_executor 
+    "-Wl,-force_load,$<TARGET_FILE:lua_bundled>"  # Force include all symbols from lua_bundled
+    roblox_execution
+)
 
 if(Dobby_FOUND)
-# For macOS/iOS, we need to use special linking flags to force include all symbols
-if(APPLE)
-    set_target_properties(lua_bundled PROPERTIES 
-        POSITION_INDEPENDENT_CODE ON
-    )
-
-    # Use -force_load on macOS to ensure all symbols are included
-    target_link_libraries(roblox_executor 
-        "-Wl,-force_load,$<TARGET_FILE:lua_bundled>"
-        roblox_execution
-    )
-else()
-    # On other platforms use the standard linking
-    target_link_libraries(roblox_executor 
-        lua_bundled
-        roblox_execution
-    )
+    target_link_libraries(roblox_executor Dobby::dobby)
 endif()
 
-# Add dependencies
+# Add dependencies to ensure correct build order
 add_dependencies(roblox_executor lua_bundled ensure_lua_path)
 
 # Set output name
@@ -171,6 +133,7 @@ set_target_properties(roblox_executor PROPERTIES
     PREFIX ""
 )
 
-# Print build information
+# Debug output
 message(STATUS "Build configuration: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Using bundled Lua library for link time")
+message(STATUS "Lua library path: $<TARGET_FILE:lua_bundled>")

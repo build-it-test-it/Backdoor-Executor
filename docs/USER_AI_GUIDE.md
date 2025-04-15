@@ -1,8 +1,17 @@
 # Executor AI System: User Guide
 
+## What's New: Enhanced Offline AI System
+
+Our executor now includes a fully offline AI system with advanced capabilities:
+
+- **100% Local Processing** - All AI features now work without internet connection
+- **Advanced Vulnerability Detection** - Identifies ALL types of security issues in scripts
+- **Improved Script Generation** - Creates optimized scripts based on natural language
+- **Self-Learning Capabilities** - System automatically improves based on your usage
+
 ## What the AI Can Do For You
 
-Our executor includes a powerful AI system that helps you in multiple ways:
+Our powerful AI system helps you in multiple ways:
 
 ### 1. Script Creation & Help
 
@@ -18,7 +27,24 @@ Our executor includes a powerful AI system that helps you in multiple ways:
 - "How do I make a speed hack that works in this game?"
 - "Explain how this script works"
 
-### 2. Script Debugging
+### 2. Vulnerability Detection & Security
+
+**The NEW AI security scanner can detect:**
+- Script injection vulnerabilities (`loadstring`, `setfenv`)
+- Remote event exploits and misuse
+- Insecure HTTP requests
+- Data store manipulation issues
+- Weak authentication and validation
+- Obfuscated code execution attempts
+- And many more security issues
+
+**How to use:**
+1. Load your script in the editor
+2. Click "Scan for Vulnerabilities" 
+3. Review the highlighted issues with severity ratings
+4. Apply suggested fixes or mark false positives
+
+### 3. Script Debugging & Optimization
 
 **The AI can:**
 - Find errors in your scripts
@@ -32,7 +58,7 @@ Our executor includes a powerful AI system that helps you in multiple ways:
 - "Make this script more efficient"
 - "Fix the errors in this code"
 
-### 3. Game Analysis
+### 4. Game Analysis
 
 **The AI can:**
 - Analyze game mechanics
@@ -46,13 +72,14 @@ Our executor includes a powerful AI system that helps you in multiple ways:
 - "What are the important parts of this game to script?"
 - "Analyze this game's structure"
 
-### 4. Protection Enhancement
+### 5. Protection & Self-Improvement
 
 **The AI automatically:**
-- Adapts to Byfron anti-cheat updates
+- Adapts to anti-cheat updates
 - Creates new protection strategies
 - Learns from detection attempts
-- Improves security over time
+- Improves vulnerability detection over time
+- Enhances script generation based on your feedback
 
 ## How to Use the AI
 
@@ -63,6 +90,18 @@ Our executor includes a powerful AI system that helps you in multiple ways:
 3. The AI will respond with helpful information or code
 4. Tap "Use This Code" to insert scripts directly into the editor
 
+### Using the NEW Vulnerability Scanner
+
+1. Write or paste a script in the editor
+2. Click the "Scan Vulnerabilities" button in the toolbar
+3. Review the highlighted issues categorized by severity:
+   - Red: Critical security issues
+   - Orange: High severity concerns
+   - Yellow: Medium severity issues
+   - Blue: Low severity concerns
+4. Hover over any highlighted code to see the detailed issue description
+5. Click "Apply Fix" to automatically fix an issue, or "Ignore" to mark a false positive
+
 ### Using the AI Debug Feature
 
 1. Write or paste a script in the editor
@@ -70,13 +109,18 @@ Our executor includes a powerful AI system that helps you in multiple ways:
 3. The AI will analyze your script and show any problems
 4. Follow the suggestions to fix issues
 
-### Using the Script Generator
+### Using the Enhanced Script Generator
 
 1. Tap "Create New Script"
 2. Select "Generate with AI"
 3. Describe what you want the script to do
-4. The AI will create a complete script based on your description
-5. Edit as needed or use directly
+4. Optionally specify:
+   - Game type (Simulator, FPS, etc.)
+   - Script context (server-side or client-side)
+   - Special requirements (memory efficiency, anti-detection, etc.)
+5. The AI will create a complete script based on your description
+6. Edit as needed or use directly
+7. Rate the generated script to help the AI improve
 
 ## Tips for Best Results
 
@@ -88,27 +132,22 @@ Our executor includes a powerful AI system that helps you in multiple ways:
 
 4. **Iterate**: If the first result isn't perfect, ask the AI to modify specific parts
 
-5. **Learn from Examples**: Ask the AI to explain scripts so you can learn how they work
+5. **Provide Feedback**: Rate generated scripts and correct vulnerability detection to improve the AI
 
-## Memory Efficiency
+6. **Explore Advanced Features**: Try the vulnerability scanner on existing scripts to find security issues
 
-The AI system is designed to be memory-efficient:
+## Privacy and Security
 
-- It automatically adjusts based on your device's capabilities
-- On devices with less memory, it uses simpler models
-- It releases resources when not in use
-- It won't interfere with game performance
+The new AI system is designed with complete privacy:
 
-## Limitations
+- **100% Offline Operation**: All processing happens on your device
+- **No Data Collection**: Your scripts and usage patterns never leave your device
+- **No Internet Required**: All features work without internet connection
+- **Secure Storage**: AI data is stored securely within the app's sandbox
 
-While powerful, the AI has some limitations:
+## Example Conversations
 
-- It may not know about very recent Roblox updates
-- It can't access specific game assets that aren't loaded
-- Complex scripts may need some manual adjustments
-- Its knowledge is based on training data, not real-time information
-
-## Example Conversation
+### Example 1: Script Generation
 
 **User:** "I want to create a script that makes all players visible through walls with different colors for teammates and enemies"
 
@@ -165,6 +204,53 @@ end)
 
 Would you like me to explain how this script works or modify it in any way?"
 
+### Example 2: Vulnerability Detection
+
+**User:** *Loads a script with security issues and clicks "Scan Vulnerabilities"*
+
+**AI:** "I've detected the following security issues:
+
+1. **Critical**: Script injection vulnerability (Line 12)
+   ```lua
+   local func = loadstring(userInput)
+   ```
+   This allows execution of user-provided code which is very dangerous.
+   Suggested fix: Validate user input with a whitelist or use a safer alternative.
+
+2. **High**: Remote event exploitation (Line 24)
+   ```lua
+   RemoteEvent:FireServer(_G.playerData)
+   ```
+   Sending global variables to the server could allow data manipulation.
+   Suggested fix: Only send specific validated data instead of entire global tables.
+
+3. **Medium**: Insecure HTTP request (Line 36)
+   ```lua
+   local response = HttpService:GetAsync("http://example.com/data?user="..player.Name)
+   ```
+   Sending player data to external servers via HTTP.
+   Suggested fix: Avoid sending identifying information, use HTTPS, and validate servers.
+
+Would you like me to automatically fix these issues?"
+
+## Advanced Features
+
+### AI Training Status
+
+The system shows you when it's training new models:
+
+- **Status indicator** in the bottom right corner shows training progress
+- **Training notification** appears when models are being updated
+- **Performance may vary** during initial training (typically 5-15 minutes)
+
+### Vulnerability Report Export
+
+You can export vulnerability reports for sharing or record-keeping:
+
+1. Run a vulnerability scan
+2. Click "Export Report" 
+3. Choose from PDF, HTML, or JSON formats
+
 ## Enjoy the Power of AI!
 
-The AI system makes your executor more powerful and easier to use. It learns and improves over time, so your experience will get even better the more you use it. Have fun scripting!
+The enhanced AI system makes your executor more powerful, secure, and easier to use. It learns and improves over time, all while keeping your data private and local. Have fun scripting!

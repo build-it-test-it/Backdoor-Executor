@@ -1,7 +1,7 @@
 #pragma once
 
 // Define CI_BUILD for CI environments
-#define CI_BUILD
+
 
 #include <string>
 #include <functional>

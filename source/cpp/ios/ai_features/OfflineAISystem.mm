@@ -1,4 +1,4 @@
-#define CI_BUILD
+
 #include "../ios_compat.h"
 #include "OfflineAISystem.h"
 #include "local_models/LocalModelBase.h"

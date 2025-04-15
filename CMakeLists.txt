@@ -106,6 +106,12 @@ if(NOT TARGET lfs_obj AND EXISTS ${CMAKE_SOURCE_DIR}/source/lfs.c)
 # LuaFileSystem with real Lua headers
 add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
 target_include_directories(lfs_obj PRIVATE
+    ${CMAKE_SOURCE_DIR}/source
+    ${CMAKE_SOURCE_DIR}/source/lua_stub
+)
+    ${CMAKE_SOURCE_DIR}/source/cpp/luau
+    ${CMAKE_SOURCE_DIR}/source
+)
     ${CMAKE_SOURCE_DIR}/source/cpp/luau
     ${CMAKE_SOURCE_DIR}/source
 )

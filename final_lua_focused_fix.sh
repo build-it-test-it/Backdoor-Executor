@@ -1,3 +1,25 @@
+#!/bin/bash
+# Focused fix specifically for Lua macro definitions
+
+echo "==== Applying Focused Lua Macro Fix ===="
+
+# 1. Ensure lfs.c includes lua_defs.h before any other Lua headers
+echo "Fixing lfs.c to include essential Lua macro definitions..."
+cp source/lfs.c source/lfs.c.bak
+
+# Remove any existing includes to start fresh
+grep -v "#include.*luau/lua" source/lfs.c > source/lfs.c.tmp1
+grep -v "#include.*lualib" source/lfs.c.tmp1 > source/lfs.c.tmp2
+grep -v "lua_wrapper.h" source/lfs.c.tmp2 > source/lfs.c.tmp
+mv source/lfs.c.tmp source/lfs.c
+
+# Add proper includes in the correct order
+sed -i '1i// Include Lua in proper order with essential definitions first\n#include "cpp/luau/lua_defs.h"\n#include "cpp/luau/lua.h"\n#include "cpp/luau/lualib.h"\n' source/lfs.c
+
+# 2. Ensure our lua_wrapper.h is used only in files that don't use real Lua
+echo "Updating lua_wrapper.h to avoid conflicts..."
+
+cat > source/lua_wrapper.h << 'EOL'
 // Standalone Lua wrapper for executor - For use in non-Lua files only
 #pragma once
 
@@ -58,3 +80,23 @@ typedef struct lfs_RegStruct luaL_Reg;
 #endif
 
 #endif // _lua_already_included
+EOL
+
+# 3. Update CMakeLists.txt to ensure lfs.c compiles correctly
+echo "Updating CMakeLists.txt to ensure correct compilation..."
+
+# Update the lfs_obj target to include luau directory
+if grep -q "target_include_directories(lfs_obj" CMakeLists.txt; then
+  sed -i '/target_include_directories(lfs_obj/c\
+target_include_directories(lfs_obj PRIVATE\
+    ${CMAKE_SOURCE_DIR}/source/cpp/luau\
+    ${CMAKE_SOURCE_DIR}/source\
+)' CMakeLists.txt
+fi
+
+echo "==== Focused Lua Macro Fix Complete ===="
+
+# Verify our changes
+echo "Verifying fix..."
+head -n 10 source/lfs.c
+head -n 10 source/lua_wrapper.h

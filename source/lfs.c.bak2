@@ -1,8 +1,7 @@
-// Using stub Lua headers
-#include "lua_stub/lua.h"
-#include "lua_stub/lualib.h"
-
 // Include Lua in proper order with essential definitions first
+#include "cpp/luau/lua_defs.h"
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
 
 // Include Lua in proper order with essential definitions first
 

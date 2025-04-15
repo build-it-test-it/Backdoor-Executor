@@ -106,7 +106,7 @@ public:
         
         try {
             // Create necessary directories
-            std::string aiDataPath = FileUtils::JoinPaths("AIData");
+            std::string aiDataPath = FileUtils::JoinPaths("", "AIData");
             if (!FileUtils::Exists(aiDataPath)) {
                 FileUtils::CreateDirectory(aiDataPath);
             }
@@ -114,13 +114,13 @@ public:
             if (progressCallback) progressCallback(0.1f);
             
             // Create directory for locally trained models
-            std::string localModelsPath = FileUtils::JoinPaths("AIData/LocalModels");
+            std::string localModelsPath = FileUtils::JoinPaths("", "AIData/LocalModels");
             if (!FileUtils::Exists(localModelsPath)) {
                 FileUtils::CreateDirectory(localModelsPath);
             }
             
             // Create directory for vulnerability detection
-            std::string vulnerabilitiesPath = FileUtils::JoinPaths("AIData/Vulnerabilities");
+            std::string vulnerabilitiesPath = FileUtils::JoinPaths("", "AIData/Vulnerabilities");
             if (!FileUtils::Exists(vulnerabilitiesPath)) {
                 FileUtils::CreateDirectory(vulnerabilitiesPath);
             }
@@ -237,10 +237,10 @@ public:
         m_mainViewController->SetScriptAssistant(m_scriptAssistant);
         
         // Set up script assistant callbacks
-        m_scriptAssistant->SetResponseCallback([this](const ScriptAssistant::Message& message) {
+        m_scriptAssistant->SetResponseCallback([this](const std::string& message, bool success) {
             // Handle assistant responses
             // In a real implementation, this would update the UI
-            std::cout << "ScriptAssistant: " << message.m_content << std::endl;
+            std::cout << "ScriptAssistant: " << message << (success ? " (success)" : " (failed)") << std::endl;
         });
         
         // Add vulnerability view controller to main UI
@@ -265,11 +265,8 @@ public:
                 const VulnerabilityDetection::VulnerabilityDetector::Vulnerability& vulnerability) {
                 // Exploit vulnerability
                 if (m_scriptAssistant) {
-                    m_scriptAssistant->ExecuteScript(vulnerability.m_exploitCode, 
-                        [vulnerability](bool success, const std::string& output) {
-                            std::cout << "Exploit " << (success ? "succeeded" : "failed") << ": " 
-                                    << output << std::endl;
-                        });
+                    m_scriptAssistant->ExecuteScript(vulnerability.m_exploitCode);
+                    std::cout << "Executed exploit: " << vulnerability.m_name << std::endl;
                 }
             });
         }
@@ -288,7 +285,6 @@ public:
         
         // Release non-essential resources
         if (m_scriptAssistant) {
-            m_scriptAssistant->SetMaxHistorySize(20); // Reduce history size
         }
         
         if (m_hybridAI) {

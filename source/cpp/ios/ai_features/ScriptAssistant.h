@@ -96,7 +96,7 @@ namespace AIFeatures {
         // Configuration methods
         void LoadTemplates(const std::string& templatesPath);
         void SaveTemplates(const std::string& templatesPath);
-        void AddTemplate(const ScriptTemplate& template);
+        void AddTemplate(const ScriptTemplate& tmpl);
         void RemoveTemplate(const std::string& templateName);
         
         // Helper methods

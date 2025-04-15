@@ -36,7 +36,7 @@ namespace iOS {
         // Register callback for game state changes
         m_gameDetector->SetStateChangeCallback(
             [this](GameState oldState, GameState newState) {
-                this->OnGameStateChanged(oldState, newState);
+                this->OnGameStateChanged(GameState::Unknown, newState);
             });
         
         if (m_callbackId == 0) {
@@ -110,8 +110,6 @@ namespace iOS {
                 }
                 break;
                 
-            case GameState::NotRunning:
-                // Roblox is not running
                 
                 // Hide everything
                 m_uiController->Hide();
@@ -222,7 +220,6 @@ namespace iOS {
                 
             case GameState::NotRunning:
             case GameState::Unknown:
-                // Not running or unknown, hide everything
                 m_uiController->Hide();
                 m_uiController->SetButtonVisible(false);
                 break;

@@ -116,7 +116,7 @@ namespace UI {
         void SwitchToTab(Tab tab, bool animated);
         void UpdateFloatingButtonVisibility();
         void ShowNotification(const Notification& notification);
-        void HandleGameStateChanged(GameDetector::GameState oldState, GameDetector::GameState newState);
+        void HandleGameStateChanged(iOS::GameState oldState, iOS::GameState newState);
         void ApplyVisualStyle(VisualStyle style);
         void SetupLEDEffects();
         void PulseLEDEffect(void* layer, float duration, float intensity);

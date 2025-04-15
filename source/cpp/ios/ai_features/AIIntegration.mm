@@ -106,23 +106,23 @@ public:
         
         try {
             // Create necessary directories
-            std::string aiDataPath = iOS::FileSystem::GetSafePath("AIData");
-            if (!iOS::FileSystem::Exists(aiDataPath)) {
-                iOS::FileSystem::CreateDirectory(aiDataPath);
+            std::string aiDataPath = FileUtils::JoinPaths("AIData");
+            if (!FileUtils::Exists(aiDataPath)) {
+                FileUtils::CreateDirectory(aiDataPath);
             }
             
             if (progressCallback) progressCallback(0.1f);
             
             // Create directory for locally trained models
-            std::string localModelsPath = iOS::FileSystem::GetSafePath("AIData/LocalModels");
-            if (!iOS::FileSystem::Exists(localModelsPath)) {
-                iOS::FileSystem::CreateDirectory(localModelsPath);
+            std::string localModelsPath = FileUtils::JoinPaths("AIData/LocalModels");
+            if (!FileUtils::Exists(localModelsPath)) {
+                FileUtils::CreateDirectory(localModelsPath);
             }
             
             // Create directory for vulnerability detection
-            std::string vulnerabilitiesPath = iOS::FileSystem::GetSafePath("AIData/Vulnerabilities");
-            if (!iOS::FileSystem::Exists(vulnerabilitiesPath)) {
-                iOS::FileSystem::CreateDirectory(vulnerabilitiesPath);
+            std::string vulnerabilitiesPath = FileUtils::JoinPaths("AIData/Vulnerabilities");
+            if (!FileUtils::Exists(vulnerabilitiesPath)) {
+                FileUtils::CreateDirectory(vulnerabilitiesPath);
             }
             
             if (progressCallback) progressCallback(0.2f);

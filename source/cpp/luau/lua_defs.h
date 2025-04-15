@@ -1,7 +1,7 @@
-// Essential Lua macro definitions needed by lua.h and lualib.h
+// Essential definitions for Lua to work with iOS frameworks
 #pragma once
 
-// API macros
+// Core API declarations (already defined in lua_defs.h)
 #ifndef LUA_API
 #define LUA_API extern
 #endif
@@ -10,14 +10,37 @@
 #define LUALIB_API extern
 #endif
 
-// Only define LUA_NORETURN if it's not already defined
+// Define lua function attributes
+#ifndef LUA_PRINTF_ATTR
+#define LUA_PRINTF_ATTR(fmt, args)
+#endif
+
+// Define C++ attribute macros that might conflict
 #ifndef LUA_NORETURN
 #define LUA_NORETURN
 #endif
 
-// Important: DO NOT define l_noret here, let lua.h define it properly
+// Make l_noret not depend on LUA_NORETURN
+#undef l_noret
+#define l_noret void
 
-// Format attributes
-#ifndef LUA_PRINTF_ATTR
-#define LUA_PRINTF_ATTR(fmt, args)
+// Add defines for missing macros that cause compilation errors
+#ifndef LUAI_USER_ALIGNMENT_T
+#define LUAI_USER_ALIGNMENT_T double
+#endif
+
+#ifndef LUA_EXTRA_SIZE
+#define LUA_EXTRA_SIZE 0
+#endif
+
+#ifndef LUA_SIZECLASSES
+#define LUA_SIZECLASSES 32
+#endif
+
+#ifndef LUA_MEMORY_CATEGORIES
+#define LUA_MEMORY_CATEGORIES 8
+#endif
+
+#ifndef LUA_UTAG_LIMIT
+#define LUA_UTAG_LIMIT 16
 #endif

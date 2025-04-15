@@ -243,8 +243,8 @@ ExecutionStatus executescript(lua_State* ls, const std::string& script, const Ex
             processedScript = AntiDetection::Obfuscator::AddDeadCode(processedScript);
             
             // Apply more advanced obfuscation techniques
-            processedScript = AntiDetection::Obfuscator::ObfuscateStrings(processedScript);
-            processedScript = AntiDetection::Obfuscator::ObfuscateControlFlow(processedScript);
+            processedScript = AntiDetection::Obfuscator::ObfuscateIdentifiers(processedScript);
+            processedScript = AntiDetection::Obfuscator::AddDeadCode(processedScript);
         }
         
         // 3. Add output capture if needed

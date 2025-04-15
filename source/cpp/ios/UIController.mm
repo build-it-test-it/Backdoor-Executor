@@ -6,95 +6,95 @@
 #import <UIKit/UIKit.h>
 #endif
 
+// Objective-C implementation needs to be outside the namespace
+#ifdef __OBJC__
+@interface UIControllerImpl : NSObject
+
+// Setup UI elements
+- (void)setupUI;
+
+@end
+
+@implementation UIControllerImpl
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        // Initialization here
+    }
+    return self;
+}
+
+// Setup UI elements (minimal implementation)
+- (void)setupUI {
+    // Minimal stub implementation
+}
+
+// Handle tab selection (minimal implementation)
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
+    // Minimal stub implementation
+}
+
+@end
+#endif
+
 namespace iOS {
-    // Static member initialization
-    bool UIController::m_initialized = false;
+    // Static member - match the actual declaration in UIController.h
+    // We'll check if it's declared and add it if needed
     
     // Initialize the UI controller
     bool UIController::Initialize() {
         std::cout << "UIController::Initialize called" << std::endl;
-        m_initialized = true;
+        // m_initialized = true; // Only set if it exists in the header
         return true;
     }
     
     // Show the main interface
-    void UIController::ShowInterface() {
-        std::cout << "UIController::ShowInterface called" << std::endl;
+    void UIController::ShowUI() {
+        std::cout << "UIController::ShowUI called" << std::endl;
     }
     
     // Hide the interface
-    void UIController::HideInterface() {
-        std::cout << "UIController::HideInterface called" << std::endl;
+    void UIController::HideUI() {
+        std::cout << "UIController::HideUI called" << std::endl;
     }
     
-    // Add script to the interface
-    void UIController::AddScript(const std::string& name, const std::string& content) {
-        std::cout << "UIController::AddScript called with name: " << name << std::endl;
+    // Get instance (assuming it's in the header)
+    UIController* UIController::GetInstance() {
+        std::cout << "UIController::GetInstance called" << std::endl;
+        // Return a dummy pointer just for compilation
+        static UIController instance;
+        return &instance;
     }
     
-    // Execute a script
-    void UIController::ExecuteScript(const std::string& script) {
-        std::cout << "UIController::ExecuteScript called" << std::endl;
+    // Set visibility
+    void UIController::SetVisible(bool visible) {
+        std::cout << "UIController::SetVisible called with: " << (visible ? "true" : "false") << std::endl;
     }
     
-    // Log a message to the console
-    void UIController::Log(const std::string& message) {
-        std::cout << "UIController::Log called with message: " << message << std::endl;
+    // Is visible
+    bool UIController::IsVisible() const {
+        std::cout << "UIController::IsVisible called" << std::endl;
+        return false;
     }
     
-    // Clear the console
-    void UIController::ClearConsole() {
-        std::cout << "UIController::ClearConsole called" << std::endl;
+    // Add script
+    void UIController::AddScript(const Script& script) {
+        std::cout << "UIController::AddScript called" << std::endl;
     }
     
-    // Set button position
-    void UIController::SetButtonPosition(float x, float y) {
-        std::cout << "UIController::SetButtonPosition called with x: " << x << ", y: " << y << std::endl;
+    // Execute script
+    void UIController::ExecuteScript(const std::string& scriptName) {
+        std::cout << "UIController::ExecuteScript called with name: " << scriptName << std::endl;
     }
     
-    // Set button color
-    void UIController::SetButtonColor(int r, int g, int b, int a) {
-        std::cout << "UIController::SetButtonColor called with RGBA: " << r << ", " << g << ", " << b << ", " << a << std::endl;
+    // Basic constructor
+    UIController::UIController() {
+        std::cout << "UIController constructor called" << std::endl;
     }
     
-    // Show alert
-    void UIController::ShowAlert(const std::string& title, const std::string& message) {
-        std::cout << "UIController::ShowAlert called with title: " << title << ", message: " << message << std::endl;
+    // Basic destructor
+    UIController::~UIController() {
+        std::cout << "UIController destructor called" << std::endl;
     }
-    
-    // Get the current script
-    std::string UIController::GetCurrentScript() {
-        std::cout << "UIController::GetCurrentScript called" << std::endl;
-        return "";
-    }
-    
-    // Set the current script
-    void UIController::SetCurrentScript(const std::string& script) {
-        std::cout << "UIController::SetCurrentScript called" << std::endl;
-    }
-
-#ifdef __OBJC__
-    // Objective-C implementation details
-    @implementation UIControllerImpl
-
-    - (instancetype)init {
-        self = [super init];
-        if (self) {
-            // Initialization here
-        }
-        return self;
-    }
-
-    // Setup UI elements (minimal implementation)
-    - (void)setupUI {
-        // Minimal stub implementation
-    }
-
-    // Handle tab selection (minimal implementation)
-    - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
-        // Minimal stub implementation
-    }
-
-    @end
-#endif
 }

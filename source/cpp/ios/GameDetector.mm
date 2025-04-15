@@ -1,6 +1,6 @@
 // Game detector implementation
 #include "GameDetector.h"
-#include "FileSystem.h"
+#include "../filesystem_utils.h"
 #include "MemoryAccess.h"
 #include "PatternScanner.h"
 #include <iostream>

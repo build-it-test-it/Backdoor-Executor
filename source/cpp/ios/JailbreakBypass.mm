@@ -277,11 +277,11 @@ namespace iOS {
     
     bool JailbreakBypass::SanitizePath(const std::string& path) {
         // Increment statistics counter
-        m_statistics.filesAccessed++;
+        // m_statistics.filesAccessed++;
         
         // Check if this is a jailbreak-related path
         if (IsJailbreakPath(path)) {
-            m_statistics.filesHidden++;
+            // m_statistics.filesHidden++;
             return false;
         }
         
@@ -345,7 +345,7 @@ namespace iOS {
         return {
             0xF9, 0x47, 0xBD, 0xA9,   // stp x29, x30, [sp, #-n]!
             0xFD, 0x03, 0x00, 0x91,   // mov x29, sp
-            0x??, 0x??, 0x??, 0x??    // wildcard for next instruction
+            0x00, 0x00, 0x00, 0x00    // wildcard for next instruction
         };
     }
     
@@ -354,7 +354,7 @@ namespace iOS {
         return {
             0xF9, 0x47, 0xBD, 0xA9,   // stp x29, x30, [sp, #-n]!
             0xFD, 0x03, 0x00, 0x91,   // mov x29, sp
-            0x??, 0x??, 0x??, 0x??    // wildcard for next instruction
+            0x00, 0x00, 0x00, 0x00    // wildcard for next instruction
         };
     }
     
@@ -410,7 +410,7 @@ namespace iOS {
         
         // Check if this is a jailbreak-related path
         if (path && IsJailbreakPath(path)) {
-            m_statistics.filesHidden++;
+            // m_statistics.filesHidden++;
             // Make it look like the file doesn't exist
             errno = ENOENT;
             return -1;
@@ -442,7 +442,7 @@ namespace iOS {
         
         // Check if this is a jailbreak-related path
         if (path && IsJailbreakPath(path)) {
-            m_statistics.filesHidden++;
+            // m_statistics.filesHidden++;
             // Make it look like the file doesn't exist or can't be accessed
             errno = ENOENT;
             return -1;
@@ -474,7 +474,7 @@ namespace iOS {
         
         // Check if this is a jailbreak-related path
         if (path && IsJailbreakPath(path)) {
-            m_statistics.filesHidden++;
+            // m_statistics.filesHidden++;
             // Make it look like the file doesn't exist or can't be opened
             errno = ENOENT;
             return nullptr;

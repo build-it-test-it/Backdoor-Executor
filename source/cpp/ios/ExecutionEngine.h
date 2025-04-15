@@ -10,7 +10,7 @@
 #include <memory>
 #include <mutex>
 #include "ScriptManager.h"
-#include "FileSystem.h"
+#include "../filesystem_utils.h"
 
 namespace iOS {
     /**

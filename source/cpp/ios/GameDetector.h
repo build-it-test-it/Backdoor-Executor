@@ -1,7 +1,7 @@
 #include "../ios_compat.h"
 #pragma once
 
-#define CI_BUILD
+
 
 #include <string>
 #include <functional>

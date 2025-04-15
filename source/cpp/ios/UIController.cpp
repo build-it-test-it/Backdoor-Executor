@@ -1,6 +1,6 @@
 #include "../ios_compat.h"
 // Define CI_BUILD for CI builds
-#define CI_BUILD
+
 
 #include "UIController.h"
 #include <algorithm>

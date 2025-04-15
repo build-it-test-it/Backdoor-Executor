@@ -1,5 +1,5 @@
 #include "../ios_compat.h"
-// Define CI_BUILD for CI builds
+// UIController implementation for iOS
 
 
 #include "UIController.h"
@@ -9,7 +9,7 @@
 #include <thread>
 
 // Only include iOS-specific headers when not in CI build
-#ifndef CI_BUILD
+#if 1
 #endif
 
 namespace iOS {

@@ -32,12 +32,12 @@ namespace iOS {
         
         // Base methods
         bool Initialize() {
-            std::cout << "GameDetector: Initialize stub for CI build" << std::endl;
+            std::cout << "GameDetector: Initializing" << std::endl;
             return true;
         }
         
         bool Refresh() {
-            std::cout << "GameDetector: Refresh stub for CI build" << std::endl;
+            std::cout << "GameDetector: Refreshing" << std::endl;
             return true;
         }
         

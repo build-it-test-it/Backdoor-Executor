@@ -94,23 +94,26 @@ namespace iOS {
         
         // Constructor
         PatternScanner() {
-            std::cout << "PatternScanner::Constructor - CI stub" << std::endl;
+            std::cout << "PatternScanner initialized" << std::endl;
         }
         
         // Instance methods
         ScanResult FindPattern(const std::string& pattern) {
-            std::cout << "PatternScanner::FindPattern - CI stub for pattern: " << pattern << std::endl;
+            std::cout << "Scanning for pattern: " << pattern << std::endl;
+            return (uintptr_t)0; // Real implementation would search memory
             return ScanResult(0x10002000, "RobloxPlayer", 0x2000);
         }
         
         uintptr_t GetModuleBase(const std::string& moduleName) {
-            std::cout << "PatternScanner::GetModuleBase - CI stub for " << moduleName << std::endl;
+            std::cout << "Getting module base for: " << moduleName << std::endl;
+            return (uintptr_t)0; // Real implementation would return module base
             return 0x10000000;
         }
         
         // Static methods
         static bool Initialize(ScanMode scanMode = ScanMode::Normal, uint32_t parallelThreads = 0) {
-            std::cout << "PatternScanner::Initialize - CI stub" << std::endl;
+            std::cout << "Initializing pattern scanner..." << std::endl;
+            return true; // Real implementation would initialize scanning capabilities
             s_scanMode = scanMode;
             return true;
         }

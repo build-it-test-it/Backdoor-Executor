@@ -10,14 +10,14 @@
 
 // Stub implementations of mangled name functions
 extern "C" {
-#ifdef CI_BUILD
+#if 0
     // Use the mangled name functions for CI build
     EXPORT void* _ZN3iOS10AIFeatures19SignatureAdaptationC1Ev() {
-        return nullptr;  // Constructor stub
+        return std::make_shared<SignatureAdaptation>();
     }
     
     EXPORT void* _ZN3iOS10AIFeatures19SignatureAdaptationD1Ev() {
-        return nullptr;  // Destructor stub
+        // No need to return anything from destructor
     }
 #endif
 }
@@ -30,13 +30,13 @@ namespace iOS {
         
         class SignatureAdaptation {
         public:
-#ifndef CI_BUILD
+#if 1
             SignatureAdaptation();
             ~SignatureAdaptation();
 #endif
         };
         
-#ifndef CI_BUILD
+#if 1
         // Only include actual implementations in non-CI builds
         SignatureAdaptation::SignatureAdaptation() {
             // Real constructor implementation would initialize:

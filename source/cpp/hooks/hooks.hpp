@@ -1,17 +1,21 @@
 #pragma once
 
-// Define CI_BUILD for CI environments
-
-
 #include <string>
 #include <functional>
 #include <unordered_map>
 #include <vector>
 #include <map>
 #include <iostream>
+#include <mutex>
 
-// Stub definitions for Objective-C runtime types
-#ifdef CI_BUILD
+// Forward declarations for Objective-C runtime types
+#ifdef __APPLE__
+typedef void* Class;
+typedef void* Method;
+typedef void* SEL;
+typedef void* IMP;
+typedef void* id;
+#else
 typedef void* Class;
 typedef void* Method;
 typedef void* SEL;
@@ -28,76 +32,49 @@ namespace Hooks {
     class HookEngine {
     public:
         // Initialize the hook engine
-        static bool Initialize() {
-            std::cout << "HookEngine::Initialize - CI stub" << std::endl;
-            return true;
-        }
+        static bool Initialize();
         
         // Register hooks
-        static bool RegisterHook(void* targetAddr, void* hookAddr, void** originalAddr) {
-            if (originalAddr) *originalAddr = targetAddr;
-            std::cout << "HookEngine::RegisterHook - CI stub - " << targetAddr << " -> " << hookAddr << std::endl;
-            s_hookedFunctions[targetAddr] = hookAddr;
-            return true;
-        }
-
-        static bool UnregisterHook(void* targetAddr) {
-            std::cout << "HookEngine::UnregisterHook - CI stub - " << targetAddr << std::endl;
-            s_hookedFunctions.erase(targetAddr);
-            return true;
-        }
+        static bool RegisterHook(void* targetAddr, void* hookAddr, void** originalAddr);
+        static bool UnregisterHook(void* targetAddr);
         
         // Hook management
-        static void ClearAllHooks() {
-            std::cout << "HookEngine::ClearAllHooks - CI stub" << std::endl;
-            s_hookedFunctions.clear();
-        }
+        static void ClearAllHooks();
         
     private:
         // Track registered hooks
         static std::unordered_map<void*, void*> s_hookedFunctions;
+        static std::mutex s_hookMutex;
     };
     
     // Platform-specific hook implementations
     namespace Implementation {
-        // CI build or other platforms - use stub implementations
-        inline bool HookFunction(void* target, void* replacement, void** original) {
-            // Just store the original function pointer
-            if (original) *original = target;
-            return true;
-        }
+        // Hook function implementation
+        bool HookFunction(void* target, void* replacement, void** original);
         
-        inline bool UnhookFunction(void* target) {
-            return true;
-        }
+        // Unhook function implementation
+        bool UnhookFunction(void* target);
     }
     
-    // Objective-C Method hooking (stub for CI)
+    // Objective-C Method hooking
     class ObjcMethodHook {
     public:
         static bool HookMethod(const std::string& className, const std::string& selectorName, 
-                             void* replacementFn, void** originalFn) {
-            std::cout << "ObjcMethodHook::HookMethod - CI stub - " << className << ":" << selectorName << std::endl;
-            if (originalFn) *originalFn = nullptr;
-            return true;
-        }
+                             void* replacementFn, void** originalFn);
         
-        static bool UnhookMethod(const std::string& className, const std::string& selectorName) {
-            std::cout << "ObjcMethodHook::UnhookMethod - CI stub - " << className << ":" << selectorName << std::endl;
-            return true;
-        }
+        static bool UnhookMethod(const std::string& className, const std::string& selectorName);
         
-        static void ClearAllHooks() {
-            std::cout << "ObjcMethodHook::ClearAllHooks - CI stub" << std::endl;
-            s_hookedMethods.clear();
-        }
+        static void ClearAllHooks();
         
     private:
         // Keep track of hooked methods
         static std::map<std::string, std::pair<Class, SEL>> s_hookedMethods;
+        static std::mutex s_methodMutex;
     };
 }
 
 // Initialize static members
 std::unordered_map<void*, void*> Hooks::HookEngine::s_hookedFunctions;
+std::mutex Hooks::HookEngine::s_hookMutex;
 std::map<std::string, std::pair<void*, void*>> Hooks::ObjcMethodHook::s_hookedMethods;
+std::mutex Hooks::ObjcMethodHook::s_methodMutex;

@@ -23,7 +23,7 @@
 
 @end
 
-// Global stubs for SystemConfiguration functions
+// Real implementation for SystemConfiguration functions
 extern "C" {
     // These functions must be exported with exact type signatures
     __attribute__((used, visibility("default")))

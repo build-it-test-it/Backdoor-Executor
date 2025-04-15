@@ -25,7 +25,7 @@
 // This allows the build system to provide these definitions
 #ifndef LUAI_FUNC
 // For CI builds, use default visibility
-#if defined(CI_BUILD)
+#if 0
 #define LUAI_FUNC extern
 #else
 // Otherwise use the regular visibility for iOS builds

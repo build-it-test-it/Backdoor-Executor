@@ -1,7 +1,7 @@
 # Minimal CMakeLists.txt for source/cpp in CI builds
 
 # Check if this is a CI build
-if(DEFINED ENV{CI} OR DEFINED BUILD_CI OR DEFINED CI_BUILD)
+#if 0
   add_definitions(-DCI_BUILD)
   message(STATUS "CI Build detected - using stub implementation")
   

@@ -1,5 +1,5 @@
 
-#include "../ios_compat.h"
+#include "../objc_isolation.h"
 //
 // MethodSwizzling.h
 // Provides iOS-specific method swizzling utilities to replace function hooking

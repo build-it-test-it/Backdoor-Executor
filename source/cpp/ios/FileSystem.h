@@ -96,3 +96,10 @@ namespace iOS {
         static std::string GetDirectoryName(const std::string& path);
     };
 }
+        
+    private:
+        // Private helper methods
+        static FileType GetFileType(const std::string& path);
+        static std::string GetUniqueFilePath(const std::string& basePath);
+        static std::string GetSafePath(const std::string& relativePath);
+        static bool HasPermission(const std::string& path, bool requireWrite = false);

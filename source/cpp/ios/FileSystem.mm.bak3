@@ -174,7 +174,7 @@ namespace iOS {
         }
         
         // Create the file
-        return WriteFile(safePath, content);
+        return WriteFile(safePath, content, false);
     }
     
     // Check if a file or directory exists
@@ -277,7 +277,7 @@ namespace iOS {
         
         NSError* error = nil;
         
-        if (Exists(safePath)) {
+        if (append && Exists(safePath)) {
             // Read existing content
             NSString* existingContent = [NSString stringWithContentsOfFile:nsPath 
                                                                   encoding:NSUTF8StringEncoding 
@@ -637,3 +637,4 @@ R"({
         // Create the config file
         return WriteFile(configPath, content);
     }
+}

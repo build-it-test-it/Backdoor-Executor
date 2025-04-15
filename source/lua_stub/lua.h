@@ -12,6 +12,10 @@
 typedef struct lua_State lua_State;
 typedef int (*lua_CFunction)(lua_State* L);
 
+// Basic Lua types
+typedef int lua_Integer;  // Add missing lua_Integer type
+typedef unsigned lua_Unsigned;
+
 // Basic constants
 #define LUA_REGISTRYINDEX (-10000)
 #define LUA_TNONE (-1)
@@ -40,6 +44,10 @@ LUA_API void lua_createtable(lua_State* L, int narr, int nrec);
 LUA_API void lua_setfield(lua_State* L, int idx, const char* k);
 LUA_API void lua_setmetatable(lua_State* L, int idx);
 LUA_API void* lua_newuserdata(lua_State* L, size_t size);
+LUA_API void lua_newtable(lua_State* L); // Added missing function
+LUA_API void lua_pushcfunction(lua_State* L, lua_CFunction f, const char* debugname); // Added missing function
+LUA_API int lua_toboolean(lua_State* L, int idx); // Added missing function
+LUA_API void* lua_touserdata(lua_State* L, int idx); // Added missing function
 
 // Helper macros
 #define lua_tostring(L, i) lua_tolstring(L, (i), NULL)

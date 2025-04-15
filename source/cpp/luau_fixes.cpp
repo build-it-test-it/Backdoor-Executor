@@ -2,7 +2,7 @@
 // This file implements all the necessary functions to fix Luau build issues
 
 #define LUAU_FIXES_IMPLEMENTATION
-#include "../../luau_fixes.h"
+#include "luau_fixes.h"
 
 // We include these after our fixes to ensure proper macros
 #include <stdio.h>

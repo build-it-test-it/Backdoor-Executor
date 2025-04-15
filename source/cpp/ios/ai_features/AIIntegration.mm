@@ -106,7 +106,7 @@ public:
         
         try {
             // Create necessary directories
-            std::string aiDataPath = FileUtils::JoinPaths("", "AIData");
+            std::string aiDataPath = FileUtils::JoinPaths(FileUtils::GetDocumentsPath(), "AIData");
             if (!FileUtils::Exists(aiDataPath)) {
                 FileUtils::CreateDirectory(aiDataPath);
             }
@@ -114,13 +114,13 @@ public:
             if (progressCallback) progressCallback(0.1f);
             
             // Create directory for locally trained models
-            std::string localModelsPath = FileUtils::JoinPaths("", "AIData/LocalModels");
+            std::string localModelsPath = FileUtils::JoinPaths(FileUtils::GetDocumentsPath(), "AIData/LocalModels");
             if (!FileUtils::Exists(localModelsPath)) {
                 FileUtils::CreateDirectory(localModelsPath);
             }
             
             // Create directory for vulnerability detection
-            std::string vulnerabilitiesPath = FileUtils::JoinPaths("", "AIData/Vulnerabilities");
+            std::string vulnerabilitiesPath = FileUtils::JoinPaths(FileUtils::GetDocumentsPath(), "AIData/Vulnerabilities");
             if (!FileUtils::Exists(vulnerabilitiesPath)) {
                 FileUtils::CreateDirectory(vulnerabilitiesPath);
             }
@@ -236,12 +236,14 @@ public:
         // Connect script assistant to UI
         m_mainViewController->SetScriptAssistant(m_scriptAssistant);
         
-        // Set up script assistant callbacks
-        m_scriptAssistant->SetResponseCallback([this](const std::string& message, bool success) {
-            // Handle assistant responses
-            // In a real implementation, this would update the UI
-            std::cout << "ScriptAssistant: " << message << (success ? " (success)" : " (failed)") << std::endl;
-        });
+        // Set up script assistant callbacks using the correct signature
+        if (m_scriptAssistant) {
+            m_scriptAssistant->SetResponseCallback([this](const std::string& message, bool success) {
+                // Handle assistant responses
+                // In a real implementation, this would update the UI
+                std::cout << "ScriptAssistant: " << message << (success ? " (success)" : " (failed)") << std::endl;
+            });
+        }
         
         // Add vulnerability view controller to main UI
         if (m_vulnerabilityViewController && m_vulnerabilityViewController->GetViewController()) {

@@ -95,20 +95,13 @@ include_directories(
     ${DOBBY_INCLUDE_DIR}
 )
 
-# Find required packages
-find_package(Lua QUIET)
-find_package(LuaFileSystem QUIET)
-
-# Add LuaFileSystem if not found
-if(NOT TARGET lfs_obj AND EXISTS ${CMAKE_SOURCE_DIR}/source/lfs.c)
-    message(STATUS "Using bundled LuaFileSystem implementation")
-    add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
-    target_include_directories(lfs_obj PRIVATE
-        ${CMAKE_SOURCE_DIR}/source
-        ${CMAKE_SOURCE_DIR}/source/lua_stub
-    )
-    target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
-endif()
+# Add LuaFileSystem
+add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
+target_include_directories(lfs_obj PRIVATE
+    ${CMAKE_SOURCE_DIR}/source
+    ${CMAKE_SOURCE_DIR}/source/cpp/luau
+)
+target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
 
 # Dobby wrapper implementation
 set(CMAKE_DOBBY_WRAPPER ${CMAKE_SOURCE_DIR}/source/cpp/dobby_wrapper.cpp)
@@ -218,7 +211,6 @@ endif()
 # Define source files by component
 # Core files
 set(CORE_SOURCES
-    source/library.cpp
     source/lfs.c
     ${CMAKE_DOBBY_WRAPPER}
 )
@@ -291,6 +283,7 @@ set(SOURCES
     ${BYPASS_SOURCES}
     ${ANTI_DETECTION_SOURCES}
     ${EXEC_SOURCES}
+    source/cpp/native-lib.cpp
 )
 
 # Create the dynamic library
@@ -328,9 +321,7 @@ target_include_directories(roblox_executor PRIVATE
 )
 
 # Add LuaFileSystem
-if(TARGET lfs_obj)
-    target_sources(roblox_executor PRIVATE $<TARGET_OBJECTS:lfs_obj>)
-endif()
+target_sources(roblox_executor PRIVATE $<TARGET_OBJECTS:lfs_obj>)
 
 # Link against Dobby - now required
 target_link_libraries(roblox_executor PRIVATE ${DOBBY_LIBRARY})
@@ -382,15 +373,3 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/Resources)
 endif()
 
 message(STATUS "Building iOS Roblox Executor with real implementations (no stubs)")
-# Include our wrapper files directly
-add_library(lua_wrapper STATIC 
-    source/lua_wrapper.c 
-    source/lua_wrapper_impl.c 
-)
-
-target_include_directories(lua_wrapper PUBLIC 
-    source 
-    source/lua_stub 
-)
-# Link the wrapper with the main library
-target_link_libraries(roblox_executor PRIVATE lua_wrapper)

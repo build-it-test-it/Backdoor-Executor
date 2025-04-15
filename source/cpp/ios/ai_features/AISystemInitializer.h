@@ -82,7 +82,7 @@ public:
               m_accuracy(0.0f), m_lastTrainingTime(0), m_lastUsedTime(0) {}
     };
     
-private:
+public:
     // Singleton instance
     static std::unique_ptr<AISystemInitializer> s_instance;
     static std::mutex s_instanceMutex;
@@ -141,7 +141,7 @@ private:
     std::string GetFallbackVulnerabilityDetectionResult(const std::string& script);
     std::string GetFallbackScriptGenerationResult(const std::string& description);
     
-    // Constructor (private for singleton)
+    // Constructor
     explicit AISystemInitializer();
     
 public:

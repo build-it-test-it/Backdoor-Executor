@@ -15,13 +15,14 @@ namespace AIFeatures {
     /**
      * @class SignatureAdaptation
      * @brief AI-driven system for adapting to Byfron scanning patterns
-        // Detection event structure
-        struct DetectionEvent {
-            std::string m_detectionType;      // Type of detection
-            std::vector<uint8_t> m_signature; // Detection signature
-            uint64_t m_timestamp;            // When the detection occurred
-            std::string m_context;           // Detection context
-        };
+    // Detection event structure
+    struct DetectionEvent {
+        std::string m_detectionType;      // Type of detection
+        std::vector<uint8_t> m_signature; // Detection signature
+        uint64_t m_timestamp;            // When the detection occurred
+        std::string m_context;           // Detection context
+    };
+
      * 
      * This class implements machine learning techniques to identify Byfron scanning
      * patterns and adapt signatures over time to avoid detection.

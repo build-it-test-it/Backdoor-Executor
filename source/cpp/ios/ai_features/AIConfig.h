@@ -85,7 +85,7 @@ public:
     // For compatibility - use HybridAISystem's OnlineMode
     typedef HybridAISystem::OnlineMode OnlineMode;
     
-private:
+public:
     // Singleton instance
     static AIConfig* s_instance;
     
@@ -395,3 +395,107 @@ public:
 
 } // namespace AIFeatures
 } // namespace iOS
+
+    // Model improvement enum
+    enum class ModelImprovement {
+        None,           // No improvement
+        Local,          // Local improvement only
+        Cloud,          // Cloud-based improvement
+        Hybrid          // Hybrid local and cloud
+    };
+    
+    /**
+     * @brief Set model improvement
+     * @param improvement Model improvement setting
+     */
+    void SetModelImprovement(ModelImprovement improvement) {
+        std::string improvementStr;
+        switch (improvement) {
+            case ModelImprovement::None:
+                improvementStr = "none";
+                break;
+            case ModelImprovement::Local:
+                improvementStr = "local";
+                break;
+            case ModelImprovement::Cloud:
+                improvementStr = "cloud";
+                break;
+            case ModelImprovement::Hybrid:
+                improvementStr = "hybrid";
+                break;
+            default:
+                improvementStr = "local";
+                break;
+        }
+        SetOption("model_improvement", improvementStr);
+    }
+    
+    /**
+     * @brief Get model improvement
+     * @return Model improvement setting
+     */
+    ModelImprovement GetModelImprovement() const {
+        std::string improvementStr = GetOption("model_improvement", "local");
+        
+        if (improvementStr == "none") {
+            return ModelImprovement::None;
+        } else if (improvementStr == "cloud") {
+            return ModelImprovement::Cloud;
+        } else if (improvementStr == "hybrid") {
+            return ModelImprovement::Hybrid;
+        } else {
+            return ModelImprovement::Local;
+        }
+    }
+    
+    // Vulnerability detection level enum
+    enum class DetectionLevel {
+        Basic,          // Basic detection
+        Standard,       // Standard detection
+        Thorough,       // Thorough detection
+        Exhaustive      // Exhaustive detection
+    };
+    
+    /**
+     * @brief Set vulnerability detection level
+     * @param level Detection level
+     */
+    void SetVulnerabilityDetectionLevel(DetectionLevel level) {
+        std::string levelStr;
+        switch (level) {
+            case DetectionLevel::Basic:
+                levelStr = "basic";
+                break;
+            case DetectionLevel::Standard:
+                levelStr = "standard";
+                break;
+            case DetectionLevel::Thorough:
+                levelStr = "thorough";
+                break;
+            case DetectionLevel::Exhaustive:
+                levelStr = "exhaustive";
+                break;
+            default:
+                levelStr = "standard";
+                break;
+        }
+        SetOption("vulnerability_detection_level", levelStr);
+    }
+    
+    /**
+     * @brief Get vulnerability detection level
+     * @return Detection level
+     */
+    DetectionLevel GetVulnerabilityDetectionLevel() const {
+        std::string levelStr = GetOption("vulnerability_detection_level", "standard");
+        
+        if (levelStr == "basic") {
+            return DetectionLevel::Basic;
+        } else if (levelStr == "thorough") {
+            return DetectionLevel::Thorough;
+        } else if (levelStr == "exhaustive") {
+            return DetectionLevel::Exhaustive;
+        } else {
+            return DetectionLevel::Standard;
+        }
+    }

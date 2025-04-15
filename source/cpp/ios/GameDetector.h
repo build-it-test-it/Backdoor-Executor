@@ -82,5 +82,9 @@ namespace iOS {
         
         // Get Roblox offsets
         RobloxOffsets GetOffsets() const;
+    
+    // Aliases for game information
+    std::string GetGameName() const { return GetCurrentGameName(); }
+    std::string GetPlaceId() const { return GetCurrentPlaceId(); }
     };
 }

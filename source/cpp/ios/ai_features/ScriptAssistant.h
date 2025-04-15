@@ -98,7 +98,11 @@ namespace AIFeatures {
         // Callback for responses
         using ResponseCallback = std::function<void(const Message& response)>;
         
-    private:
+        // Memory and pruning methods
+    void PruneConversationHistory();
+    uint64_t GetMemoryUsage() const;
+
+private:
         bool m_initialized;                   // Whether the assistant is initialized
         std::vector<Message> m_conversationHistory; // Conversation history
         GameContext m_currentContext;         // Current game context
@@ -278,17 +282,3 @@ namespace AIFeatures {
          * @brief Get memory usage of this component
          * @return Memory usage in bytes
          */
-        uint64_t GetMemoryUsage() const {
-            uint64_t total = 0;
-            // Each message takes approximately 1KB
-            total += m_conversationHistory.size() * 1024;
-            // Templates take approximately 2KB each
-            total += m_scriptTemplates.size() * 2048;
-            // Base usage is approximately 10MB
-            total += 10 * 1024 * 1024;
-            return total;
-        }
-    };
-
-} // namespace AIFeatures
-} // namespace iOS

@@ -6,57 +6,63 @@
 #include <vector>
 
 namespace iOS {
-    // Basic implementation for basic pattern scanning
-    ScanResult PatternScanner::FindPattern(const std::string& patternStr, const std::string& moduleName) {
-        std::cout << "PatternScanner::FindPattern called with pattern: " << patternStr << std::endl;
-        return ScanResult();
+    // Implement the FindPattern method that's in the header
+    PatternScanner::ScanResult PatternScanner::FindPattern(const char* module, const char* pattern, const char* mask) {
+        std::cout << "PatternScanner::FindPattern called" << std::endl;
+        return PatternScanner::ScanResult(0);
     }
     
-    // Basic implementation for range-based pattern scanning
-    ScanResult PatternScanner::FindPatternInRange(const std::string& patternStr, uintptr_t start, size_t size) {
-        std::cout << "PatternScanner::FindPatternInRange called for range: " << std::hex << start << " - " << (start + size) << std::endl;
-        return ScanResult();
+    // Implement ScanMemoryRegion
+    PatternScanner::ScanResult PatternScanner::ScanMemoryRegion(const char* pattern, const char* mask, void* startAddress, void* endAddress) {
+        std::cout << "PatternScanner::ScanMemoryRegion called" << std::endl;
+        return PatternScanner::ScanResult(0);
     }
     
-    // Basic implementation for module-based pattern scanning
-    ScanResult PatternScanner::FindPatternInModule(const std::string& patternStr, const std::string& moduleName) {
-        std::cout << "PatternScanner::FindPatternInModule called for module: " << moduleName << std::endl;
-        return ScanResult();
+    // Implement ScanModule
+    PatternScanner::ScanResult PatternScanner::ScanModule(const char* pattern, const char* mask, const std::string& moduleName) {
+        std::cout << "PatternScanner::ScanModule called for module: " << moduleName << std::endl;
+        return PatternScanner::ScanResult(0);
     }
     
-    // Basic implementation for Roblox-specific pattern scanning
-    ScanResult PatternScanner::FindPatternInRoblox(const std::string& patternStr) {
-        std::cout << "PatternScanner::FindPatternInRoblox called with pattern: " << patternStr << std::endl;
-        return ScanResult();
+    // Implement ScanProcess
+    PatternScanner::ScanResult PatternScanner::ScanProcess(const char* pattern, const char* mask) {
+        std::cout << "PatternScanner::ScanProcess called" << std::endl;
+        return PatternScanner::ScanResult(0);
     }
     
-    // Basic implementation for finding all patterns
-    std::vector<ScanResult> PatternScanner::FindAllPatterns(const std::string& patternStr, const std::string& moduleName) {
-        std::cout << "PatternScanner::FindAllPatterns called with pattern: " << patternStr << std::endl;
-        return std::vector<ScanResult>();
+    // Implement ScanForSignature
+    PatternScanner::ScanResult PatternScanner::ScanForSignature(const std::string& signature, void* startAddress, void* endAddress) {
+        std::cout << "PatternScanner::ScanForSignature called" << std::endl;
+        return PatternScanner::ScanResult(0);
     }
     
-    // Basic implementation for finding all patterns in a range
-    std::vector<ScanResult> PatternScanner::FindAllPatternsInRange(const std::string& patternStr, uintptr_t start, size_t size) {
-        std::cout << "PatternScanner::FindAllPatternsInRange called for range: " << std::hex << start << " - " << (start + size) << std::endl;
-        return std::vector<ScanResult>();
+    // Implement ScanForString
+    PatternScanner::ScanResult PatternScanner::ScanForString(const std::string& str, void* startAddress, void* endAddress) {
+        std::cout << "PatternScanner::ScanForString called" << std::endl;
+        return PatternScanner::ScanResult(0);
     }
     
-    // Basic implementation for finding all patterns in a module
-    std::vector<ScanResult> PatternScanner::FindAllPatternsInModule(const std::string& patternStr, const std::string& moduleName) {
-        std::cout << "PatternScanner::FindAllPatternsInModule called for module: " << moduleName << std::endl;
-        return std::vector<ScanResult>();
+    // Implement FindAllPatterns
+    std::vector<PatternScanner::ScanResult> PatternScanner::FindAllPatterns(const char* pattern, const char* mask, void* startAddress, void* endAddress) {
+        std::cout << "PatternScanner::FindAllPatterns called" << std::endl;
+        return std::vector<PatternScanner::ScanResult>();
     }
     
-    // Basic implementation for resolving branch target
-    uintptr_t PatternScanner::ResolveBranchTarget(uintptr_t instructionAddress) {
-        std::cout << "PatternScanner::ResolveBranchTarget called for address: " << std::hex << instructionAddress << std::endl;
+    // Implement GetBaseAddress
+    uintptr_t PatternScanner::GetBaseAddress() {
+        std::cout << "PatternScanner::GetBaseAddress called" << std::endl;
         return 0;
     }
     
-    // Basic implementation for resolving ADRP sequence
-    uintptr_t PatternScanner::ResolveAdrpSequence(uintptr_t adrpInstructionAddress, int nextInstructionOffset) {
-        std::cout << "PatternScanner::ResolveAdrpSequence called for address: " << std::hex << adrpInstructionAddress << std::endl;
+    // Implement GetModuleBaseAddress
+    uintptr_t PatternScanner::GetModuleBaseAddress(const std::string& moduleName) {
+        std::cout << "PatternScanner::GetModuleBaseAddress called for module: " << moduleName << std::endl;
+        return 0;
+    }
+    
+    // Implement GetModuleSize
+    size_t PatternScanner::GetModuleSize(const std::string& moduleName) {
+        std::cout << "PatternScanner::GetModuleSize called for module: " << moduleName << std::endl;
         return 0;
     }
 }

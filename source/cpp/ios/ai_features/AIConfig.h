@@ -397,6 +397,7 @@ public:
 } // namespace iOS
 
     // Model improvement enum
+    // Model improvement enum
     enum class ModelImprovement {
         None,           // No improvement
         Local,          // Local improvement only
@@ -499,3 +500,7 @@ public:
             return DetectionLevel::Standard;
         }
     }
+};
+
+} // namespace AIFeatures
+} // namespace iOS

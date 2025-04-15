@@ -189,6 +189,18 @@ public:
     static std::string CategoryToString(ScriptCategory category);
     
     /**
+    /**
+     * @brief Check if the model is initialized
+     * @return True if initialized
+     */
+    bool IsInitialized() const;
+
+    /**
+     * @brief Set model path
+     * @param path Path to model files
+     * @return True if path was valid and set
+     */
+    bool SetModelPath(const std::string& path);
      * @brief Convert string to category
      * @param str String representation
      * @return Script category
@@ -203,11 +215,9 @@ public:
      * @brief Check if the model is initialized
      * @return True if initialized
      */
-    bool IsInitialized() const;
     
     /**
      * @brief Set model path
      * @param path Path to model files
      * @return True if path was valid and set
      */
-    bool SetModelPath(const std::string& path);

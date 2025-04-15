@@ -118,6 +118,8 @@ namespace iOS {
     bool GameDetector::InitializeMemoryAccess() {
         try {
             // For actual implementation, we'd initialize memory access here
+            // For example, get task port for Roblox process
+            
             return true;
         } catch (const std::exception& e) {
             std::cerr << "GameDetector: Failed to initialize memory access: " << e.what() << std::endl;
@@ -164,14 +166,47 @@ namespace iOS {
             // 2. Scan for signatures of key functions
             // 3. Calculate offsets from signatures
             
-            // Mock implementation
-            RobloxOffsets offsets;
-            offsets.baseAddress = 0x140000000;  // Example base address
-            offsets.scriptContext = 0x140100000;
-            offsets.luaState = 0x140200000;
-            offsets.dataModel = 0x140300000;
+            // Here's what a real implementation might look like:
+            
+            // Get the base address of the Roblox module
+            uintptr_t baseAddress = PatternScanner::GetBaseAddress();
+            if (baseAddress == 0) {
+                std::cerr << "GameDetector: Failed to get Roblox base address" << std::endl;
+                return false;
+            }
+            
+            // Find the script context using signature
+            ScanResult scriptContextSig = PatternScanner::ScanForSignature(SIG_SCRIPT_CONTEXT, reinterpret_cast<void*>(baseAddress));
+            if (scriptContextSig.address == 0) {
+                std::cerr << "GameDetector: Failed to find script context signature" << std::endl;
+                return false;
+            }
+            uintptr_t scriptContext = scriptContextSig.address + 0x3; // Adjust based on pattern
+            
+            // Find Lua state using signature
+            ScanResult luaStateSig = PatternScanner::ScanForSignature(SIG_LUA_STATE, reinterpret_cast<void*>(baseAddress));
+            if (luaStateSig.address == 0) {
+                std::cerr << "GameDetector: Failed to find Lua state signature" << std::endl;
+                return false;
+            }
+            uintptr_t luaState = luaStateSig.address + 0x3; // Adjust based on pattern
+            
+            // Find data model using signature
+            ScanResult dataModelSig = PatternScanner::ScanForSignature(SIG_DATA_MODEL, reinterpret_cast<void*>(baseAddress));
+            if (dataModelSig.address == 0) {
+                std::cerr << "GameDetector: Failed to find data model signature" << std::endl;
+                return false;
+            }
+            uintptr_t dataModel = dataModelSig.address + 0x3; // Adjust based on pattern
             
             // Store the offsets
+            RobloxOffsets offsets;
+            offsets.baseAddress = baseAddress;
+            offsets.scriptContext = scriptContext;
+            offsets.luaState = luaState;
+            offsets.dataModel = dataModel;
+            
+            // Update the stored offsets
             std::lock_guard<std::mutex> lock(s_detectorMutex);
             m_offsets = offsets;
             
@@ -190,10 +225,20 @@ namespace iOS {
             // 1. Get the list of running processes
             // 2. Check if Roblox is in the list
             
-            // For iOS, we'd use NSRunningApplication or similar API
-            
+            // For iOS, we'd use NSRunningApplication or similar API to check if Roblox is running
+            #ifdef __OBJC__
+            // Objective-C implementation to check running apps
+            NSArray *runningApps = [[NSWorkspace sharedWorkspace] runningApplications];
+            for (NSRunningApplication *app in runningApps) {
+                if ([[app bundleIdentifier] isEqualToString:@"com.roblox.robloxmobile"]) {
+                    return true;
+                }
+            }
+            return false;
+            #else
             // Mock implementation - always return true for testing
             return true;
+            #endif
         } catch (const std::exception& e) {
             std::cerr << "GameDetector: Error checking if Roblox is running: " << e.what() << std::endl;
             return false;
@@ -208,26 +253,25 @@ namespace iOS {
             // 2. Get the current place name and ID
             // 3. Determine if we're in a game or the menu
             
-            // Mock implementation - simulate being in a game
             GameState currentState = m_currentState.load();
             GameState newState;
             
-            // Simulate state transitions for testing
-            switch (currentState) {
-                case GameState::Connecting:
-                    newState = GameState::InGame;
-                    break;
-                case GameState::InGame:
-                    // Stay in game most of the time
-                    newState = GameState::InGame;
-                    break;
-                case GameState::InMenu:
-                    // Transition to in-game occasionally
-                    newState = GameState::InGame;
-                    break;
-                default:
-                    newState = GameState::InGame;
-                    break;
+            // Get the current place ID and name
+            std::string placeId = GetPlaceIdFromMemory();
+            std::string gameName = GetGameNameFromMemory();
+            
+            // Determine the state based on the place ID
+            if (placeId == "0") {
+                // We're in the menu or loading
+                if (currentState == GameState::Connecting) {
+                    newState = GameState::InMenu;
+                } else {
+                    // Stay in the current state
+                    newState = currentState;
+                }
+            } else {
+                // We're in a game
+                newState = GameState::InGame;
             }
             
             // Update state if changed
@@ -237,9 +281,10 @@ namespace iOS {
                 
                 // Update game info if we entered a game
                 if (newState == GameState::InGame) {
+                    std::lock_guard<std::mutex> lock(s_detectorMutex);
                     m_lastGameJoinTime.store(std::chrono::system_clock::now().time_since_epoch().count());
-                    m_currentGameName = GetGameNameFromMemory();
-                    m_currentPlaceId = GetPlaceIdFromMemory();
+                    m_currentGameName = gameName;
+                    m_currentPlaceId = placeId;
                 }
             }
         } catch (const std::exception& e) {
@@ -251,9 +296,28 @@ namespace iOS {
     std::string GameDetector::GetGameNameFromMemory() {
         try {
             // In a real implementation, we would read the game name from memory
+            // 1. Get the address of the data model
+            // 2. Find the game name pointer
+            // 3. Read the string
             
-            // Mock implementation
-            return "Adopt Me";
+            // Example implementation:
+            uintptr_t dataModelPtr = m_offsets.dataModel;
+            if (dataModelPtr == 0) {
+                return "Unknown";
+            }
+            
+            // Read the pointer to the game name
+            uintptr_t namePtr = 0;
+            if (!MemoryAccess::ReadMemory(MemoryHelper::AddressToPtr(dataModelPtr + 0x20), &namePtr, sizeof(namePtr))) {
+                return "Unknown";
+            }
+            
+            if (namePtr == 0) {
+                return "Unknown";
+            }
+            
+            // Read the game name string
+            return ReadRobloxString(namePtr);
         } catch (const std::exception& e) {
             std::cerr << "GameDetector: Error getting game name: " << e.what() << std::endl;
             return "Unknown";
@@ -264,9 +328,24 @@ namespace iOS {
     std::string GameDetector::GetPlaceIdFromMemory() {
         try {
             // In a real implementation, we would read the place ID from memory
+            // 1. Get the address of the data model
+            // 2. Find the place ID
+            // 3. Return it as a string
             
-            // Mock implementation
-            return "920587237";
+            // Example implementation:
+            uintptr_t dataModelPtr = m_offsets.dataModel;
+            if (dataModelPtr == 0) {
+                return "0";
+            }
+            
+            // Read the place ID (often at a specific offset)
+            uint64_t placeId = 0;
+            if (!MemoryAccess::ReadMemory(MemoryHelper::AddressToPtr(dataModelPtr + 0x30), &placeId, sizeof(placeId))) {
+                return "0";
+            }
+            
+            // Convert to string
+            return std::to_string(placeId);
         } catch (const std::exception& e) {
             std::cerr << "GameDetector: Error getting place ID: " << e.what() << std::endl;
             return "0";
@@ -293,65 +372,54 @@ namespace iOS {
             
             // Read the string data
             std::vector<char> buffer(length + 1);
-            if (!MemoryAccess::ReadMemory(MemoryHelper::AddressToPtr(stringPtr +# Let's copy the fixed files to the actual source files
-
-# First, let's check what fixed files we have
-echo "Checking for fixed files..."
-ls -la source/cpp/ios/*.fixed
-
-# Copy them to their respective actual files
-cp source/cpp/ios/GameDetector.mm.fixed source/cpp/ios/GameDetector.mm
-cp source/cpp/ios/MemoryAccess.h.fixed source/cpp/ios/MemoryAccess.h
-
-# Fix any remaining issues in MemoryAccess.h
-echo "Ensuring MemoryAccess.h has proper typedef guards..."
-grep -n "mach_vm_address_t" source/cpp/ios/MemoryAccess.h
-
-# Let's modify it to ensure proper guards
-sed -i 's/typedef uint64_t mach_vm_address_t;/#ifndef mach_vm_address_t\ntypedef uint64_t mach_vm_address_t;\n#endif/g' source/cpp/ios/MemoryAccess.h
-sed -i 's/typedef uint64_t mach_vm_size_t;/#ifndef mach_vm_size_t\ntypedef uint64_t mach_vm_size_t;\n#endif/g' source/cpp/ios/MemoryAccess.h
-
-# Now let's make sure all our files are properly updated
-echo "Checking updated files..."
-grep -n "WorkerThread" source/cpp/ios/GameDetector.h
-grep -n "namespace MemoryHelper" source/cpp/ios/MemoryAccess.h
-
-# Verify all necessary files have been modified
-git status
-
-echo "All files updated and ready to commit"
-# Let's check what fixed files we have
-echo "Checking for fixed files..."
-find source/cpp/ios -name "*.fixed"
-
-# First, update the GameDetector.mm file with our improved implementation
-echo "Updating GameDetector.mm with real implementation..."
-if [ -f "source/cpp/ios/GameDetector.mm.fixed" ]; then
-  cp source/cpp/ios/GameDetector.mm.fixed source/cpp/ios/GameDetector.mm
-  echo "GameDetector.mm updated successfully"
-else
-  echo "GameDetector.mm.fixed not found"
-fi
-
-# Update MemoryAccess.h file
-echo "Updating MemoryAccess.h..."
-
-# Check and update typedef guards in MemoryAccess.h
-grep -n "mach_vm_address_t" source/cpp/ios/MemoryAccess.h || echo "mach_vm_address_t not found in MemoryAccess.h"
-
-# Add helper methods if they don't exist
-if ! grep -q "namespace MemoryHelper" source/cpp/ios/MemoryAccess.h; then
-  echo "Adding MemoryHelper namespace..."
-  cat >> source/cpp/ios/MemoryAccess.h << 'EOF'
-
-    // Helper functions for type safety
-    namespace MemoryHelper {
-        // Convert between void* and mach_vm_address_t
-        inline void* AddressToPtr(mach_vm_address_t addr) {
-            return reinterpret_cast<void*>(static_cast<uintptr_t>(addr));
-        }
-        
-        inline mach_vm_address_t PtrToAddress(void* ptr) {
-            return static_cast<mach_vm_address_t>(reinterpret_cast<uintptr_t>(ptr));
+            if (!MemoryAccess::ReadMemory(MemoryHelper::AddressToPtr(stringPtr + sizeof(uint32_t)), buffer.data(), length)) {
+                return "";
+            }
+            
+            // Null-terminate the string and return
+            buffer[length] = '\0';
+            return std::string(buffer.data());
+        } catch (const std::exception& e) {
+            std::cerr << "GameDetector: Error reading Roblox string: " << e.what() << std::endl;
+            return "";
         }
     }
+    
+    // Get current state
+    GameState GameDetector::GetCurrentState() const {
+        return m_currentState.load();
+    }
+    
+    // Check if in game
+    bool GameDetector::IsInGame() const {
+        return m_currentState.load() == GameState::InGame;
+    }
+    
+    // Get current game name
+    std::string GameDetector::GetCurrentGameName() const {
+        std::lock_guard<std::mutex> lock(s_detectorMutex);
+        return m_currentGameName;
+    }
+    
+    // Get current place ID
+    std::string GameDetector::GetCurrentPlaceId() const {
+        std::lock_guard<std::mutex> lock(s_detectorMutex);
+        return m_currentPlaceId;
+    }
+    
+    // Get game join time
+    uint64_t GameDetector::GetGameJoinTime() const {
+        return m_lastGameJoinTime.load();
+    }
+    
+    // Set state change callback
+    void GameDetector::SetStateChangeCallback(std::function<void(GameState)> callback) {
+        s_stateCallback = callback;
+    }
+    
+    // Get Roblox offsets
+    RobloxOffsets GameDetector::GetOffsets() const {
+        std::lock_guard<std::mutex> lock(s_detectorMutex);
+        return m_offsets;
+    }
+}

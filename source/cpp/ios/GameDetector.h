@@ -38,12 +38,19 @@ namespace iOS {
         std::atomic<uint64_t> m_lastGameJoinTime;
         std::string m_currentGameName;
         std::string m_currentPlaceId;
+        RobloxOffsets m_offsets;
         
         // Detection methods
         void UpdateGameState();
         bool UpdateRobloxOffsets();
+        bool InitializeMemoryAccess();
+        void NotifyStateChange(GameState newState);
         bool CheckRobloxRunning();
         void DetectCurrentGame();
+        void WorkerThread();
+        std::string GetGameNameFromMemory();
+        std::string GetPlaceIdFromMemory();
+        std::string ReadRobloxString(mach_vm_address_t stringPtr);
         
         // Worker thread
         std::thread m_workerThread;

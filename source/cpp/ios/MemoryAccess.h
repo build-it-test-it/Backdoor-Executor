@@ -42,5 +42,19 @@ namespace iOS {
         
         // Find memory region
         static void* FindMemoryRegion(const char* pattern, size_t size, void* startAddress = nullptr, void* endAddress = nullptr);
+        // Initialize memory subsystem
+        static bool Initialize();
     };
 }
+
+    // Helper functions for type safety
+    namespace MemoryHelper {
+        // Convert between void* and mach_vm_address_t
+        inline void* AddressToPtr(mach_vm_address_t addr) {
+            return reinterpret_cast<void*>(static_cast<uintptr_t>(addr));
+        }
+        
+        inline mach_vm_address_t PtrToAddress(void* ptr) {
+            return static_cast<mach_vm_address_t>(reinterpret_cast<uintptr_t>(ptr));
+        }
+    }

@@ -8,7 +8,7 @@ namespace AdvancedBypass {
 
     // Implementation of key methods
 
-    bool DynamicMessageDispatcher::IsAvailable() const {
+    bool DynamicMessageDispatcher::IsAvailable() {
         return true;  // Simple implementation for build fix
     }
 

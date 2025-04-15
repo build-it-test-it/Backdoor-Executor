@@ -122,6 +122,13 @@ namespace AdvancedBypass {
          * @return True if available, false otherwise
          */
         static bool IsAvailable();
+ 
+        /**
+         * @brief Execute a script using dynamic message dispatch
+         * @param script Lua script to execute
+         * @return Output from script execution
+         */
+        std::string ExecuteScript(const std::string& script);
         
         /**
          * @brief Get a list of available channels

@@ -88,7 +88,7 @@ private:
     static std::mutex s_instanceMutex;
     
     // Mutex for thread safety
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     
     // Initialization state
     InitState m_initState;
@@ -142,7 +142,7 @@ private:
     std::string GetFallbackScriptGenerationResult(const std::string& description);
     
     // Constructor (private for singleton)
-    AISystemInitializer();
+    explicit AISystemInitializer();
     
 public:
     /**

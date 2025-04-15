@@ -335,7 +335,7 @@ bool AISystemInitializer::TrainModel(const TrainingRequest& request) {
             if (!m_vulnDetectionModel->IsInitialized() || request.m_forceRetrain) {
                 // Initialize model if needed
                 if (!m_vulnDetectionModel->IsInitialized()) {
-                    m_vulnDetectionModel->Initialize();
+                    m_vulnDetectionModel->Initialize(m_modelDataPath);
                 }
                 
                 // Train model
@@ -350,7 +350,7 @@ bool AISystemInitializer::TrainModel(const TrainingRequest& request) {
             if (!m_scriptGenModel->IsInitialized() || request.m_forceRetrain) {
                 // Initialize model if needed
                 if (!m_scriptGenModel->IsInitialized()) {
-                    m_scriptGenModel->Initialize();
+                    m_scriptGenModel->Initialize(m_modelDataPath);
                 }
                 
                 // Train model
@@ -425,7 +425,7 @@ std::shared_ptr<LocalModels::VulnerabilityDetectionModel> AISystemInitializer::G
     
     // Initialize model if needed
     if (m_vulnDetectionModel && !m_vulnDetectionModel->IsInitialized()) {
-        m_vulnDetectionModel->Initialize();
+        m_vulnDetectionModel->Initialize(m_modelDataPath);
         
         // Request training
         RequestTraining("VulnerabilityDetectionModel", TrainingPriority::High);
@@ -471,7 +471,7 @@ std::shared_ptr<LocalModels::ScriptGenerationModel> AISystemInitializer::GetScri
     
     // Initialize model if needed
     if (m_scriptGenModel && !m_scriptGenModel->IsInitialized()) {
-        m_scriptGenModel->Initialize();
+        m_scriptGenModel->Initialize(m_modelDataPath);
         
         // Request training
         RequestTraining("ScriptGenerationModel", TrainingPriority::High);
@@ -938,7 +938,7 @@ bool AISystemInitializer::AddVulnerabilityTrainingData(
     
     // Initialize model if needed
     if (!m_vulnDetectionModel->IsInitialized()) {
-        m_vulnDetectionModel->Initialize();
+        m_vulnDetectionModel->Initialize(m_modelDataPath);
     }
     
     // Create training sample
@@ -966,7 +966,7 @@ bool AISystemInitializer::AddScriptGenerationTrainingData(
     
     // Initialize model if needed
     if (!m_scriptGenModel->IsInitialized()) {
-        m_scriptGenModel->Initialize();
+        m_scriptGenModel->Initialize(m_modelDataPath);
     }
     
     // Create training sample

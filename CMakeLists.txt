@@ -91,17 +91,25 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}/source/cpp
-    ${CMAKE_SOURCE_DIR}/source/cpp/luau
+    ${LUA_INCLUDE_DIR}
     ${DOBBY_INCLUDE_DIR}
 )
 
-# Add LuaFileSystem
+# Find required Lua package from Homebrew
+find_package(Lua REQUIRED)
+message(STATUS "Found Lua: ${LUA_LIBRARIES}")
+message(STATUS "Lua include directory: ${LUA_INCLUDE_DIR}")
+
+# Add LuaFileSystem with Homebrew Lua headers
 add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
 target_include_directories(lfs_obj PRIVATE
     ${CMAKE_SOURCE_DIR}/source
-    ${CMAKE_SOURCE_DIR}/source/cpp/luau
+    ${LUA_INCLUDE_DIR}
 )
-target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
+target_compile_definitions(lfs_obj PRIVATE 
+    LUA_COMPAT_5_1=1
+    LUA_HOMEBREW_HEADERS=1
+)
 
 # Dobby wrapper implementation
 set(CMAKE_DOBBY_WRAPPER ${CMAKE_SOURCE_DIR}/source/cpp/dobby_wrapper.cpp)

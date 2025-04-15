@@ -1,12 +1,31 @@
 // Force C99 mode to ensure compatibility
 #define _XOPEN_SOURCE 600
 
-// Include our compatibility fixes to ensure macros are defined
-#include "cpp/luau_fixes.h"
+// Include standard Lua headers from system
+#ifdef LUA_HOMEBREW_HEADERS
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+#else
+// Fallback to project headers if needed
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
+#endif
 
 // Define fallbacks for any missing functions
 #ifndef chdir_error
 #define chdir_error strerror(errno)
+#endif
+
+// Essential compatibility definitions if not already provided
+#ifndef LUA_NORETURN
+#ifdef __GNUC__
+#define LUA_NORETURN __attribute__((__noreturn__))
+#elif defined(_MSC_VER)
+#define LUA_NORETURN __declspec(noreturn)
+#else
+#define LUA_NORETURN
+#endif
 #endif
 
 

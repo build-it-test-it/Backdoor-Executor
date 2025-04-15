@@ -35,7 +35,7 @@ namespace iOS {
         
         // Register callback for game state changes
         m_gameDetector->SetStateChangeCallback(
-            [this](GameState oldState, GameState newState) {
+            [this](GameState newState) {
                 this->OnGameStateChanged(GameState::Unknown, newState);
             });
         
@@ -109,7 +109,6 @@ namespace iOS {
                     std::cout << "UIControllerGameIntegration: Hiding button at menu" << std::endl;
                 }
                 break;
-                
                 
                 // Hide everything
                 m_uiController->Hide();
@@ -220,7 +219,6 @@ namespace iOS {
                 
             case GameState::NotRunning:
             case GameState::Unknown:
-                m_uiController->Hide();
                 m_uiController->SetButtonVisible(false);
                 break;
         }

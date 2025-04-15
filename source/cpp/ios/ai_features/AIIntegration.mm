@@ -1,6 +1,8 @@
 
 #include "../ios_compat.h"
 #include "AIIntegration.h"
+#include "AIConfig.h"
+#include "AISystemInitializer.h"
 #include "ScriptAssistant.h"
 #include "SignatureAdaptation.h"
 #include "local_models/ScriptGenerationModel.h" 
@@ -8,9 +10,10 @@
 #include "HybridAISystem.h"
 #include "OfflineAISystem.h"
 #include "../../filesystem_utils.h"
-#include "../ui/MainViewController.h"
-#include "../ui/VulnerabilityViewController.h"
+
+// UI includes
 #include <iostream>
+#include <string>
 
 namespace iOS {
 namespace AIFeatures {

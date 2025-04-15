@@ -205,9 +205,6 @@ public:
      * @param str String representation
      * @return Script category
      */
-    static ScriptCategory StringToCategory(const std::string& str);
-};
-
 } // namespace LocalModels
 } // namespace AIFeatures
 } // namespace iOS

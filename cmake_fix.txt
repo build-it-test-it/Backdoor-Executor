@@ -1,8 +1,0 @@
-    # Properly define visibility to ensure symbols are exported
-    target_compile_definitions(lua_bundled PRIVATE
-        LUA_USE_LONGJMP=1
-        "LUA_API=__attribute__\(\(visibility\(\"default\"\)\)\)"
-        "LUAI_FUNC=__attribute__\(\(visibility\(\"default\"\)\)\)"
-        "LUAI_DDEC=__attribute__\(\(visibility\(\"default\"\)\)\)"
-        "LUAI_DDEF=__attribute__\(\(visibility\(\"default\"\)\)\)"
-    )

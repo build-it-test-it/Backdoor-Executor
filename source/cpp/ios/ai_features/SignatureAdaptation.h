@@ -1,4 +1,4 @@
-#include "../ios_compat.h"
+#include "../objc_isolation.h"
 
 
 #pragma once
@@ -46,7 +46,7 @@ namespace AIFeatures {
             float m_dangerLevel;                 // How dangerous this signature is (0-1)
             std::vector<std::string> m_counters; // Effective countermeasures
             
-            MemorySignature()
+            MemorySignature();
         };
         
         // Protection strategy structure
@@ -57,13 +57,17 @@ namespace AIFeatures {
             float m_effectiveness;               // Effectiveness rating (0-1)
             uint32_t m_evolutionGeneration;      // Evolution generation number
             
-            ProtectionStrategy()
+            ProtectionStrategy();
         };
         
         // Callback for adaptive response
         using AdaptiveResponseCallback = std::function<void(const ProtectionStrategy&)>;
         
-    private:
+        // Memory and pruning methods
+    void PruneDetectionHistory();
+    uint64_t GetMemoryUsage() const;
+
+private:
         // Machine learning model parameters
         struct ModelParameters {
             // Neural network parameters
@@ -108,17 +112,6 @@ namespace AIFeatures {
         std::string GenerateCountermeasureCode(const MemorySignature& signature);
         bool ValidateStrategy(const ProtectionStrategy& strategy);
         void UpdateSignatureDatabase(const MemorySignature& signature);
-        void PruneDetectionHistory();
-        void SaveModelToDisk();
-        bool LoadModelFromDisk();
-        
-    public:
-        /**
-         * @brief Constructor
-         */
-        SignatureAdaptation();
-        
-        /**
          * @brief Destructor
          */
         ~SignatureAdaptation();
@@ -226,19 +219,3 @@ namespace AIFeatures {
          * @brief Get memory usage of this component
          * @return Memory usage in bytes
          */
-        uint64_t GetMemoryUsage() const {
-            uint64_t total = 0;
-            // Each signature takes approximately 2KB
-            total += m_signatureDatabase.size() * 2048;
-            // Each detection event takes approximately 1KB
-            total += m_detectionHistory.size() * 1024;
-            // Each strategy takes approximately 3KB
-            total += m_strategies.size() * 3072;
-            // Base usage is approximately 5MB
-            total += 5 * 1024 * 1024;
-            return total;
-        }
-    };
-
-} // namespace AIFeatures
-} // namespace iOS

@@ -1,8 +1,15 @@
-// Include our wrapper first to fix Lua compatibility issues
-#include "lua_wrapper.h"
+// Using stub Lua headers
+#include "lua_stub/lua.h"
+#include "lua_stub/lualib.h"
 
-// Include our wrapper first to fix Lua compatibility issues
-#include "lua_wrapper.h"
+// Include Lua in proper order with essential definitions first
+
+// Include Lua in proper order with essential definitions first
+
+// Using real Lua headers directly
+
+
+
 
 /*
 ** LuaFileSystem
@@ -94,8 +101,6 @@
 
 // Include Luau headers - use the ones included in the project
 // since we're having issues with finding the Homebrew ones
-#include "cpp/luau/lua.h"
-#include "cpp/luau/lualib.h"
 
 // Note: luaL_Reg is already defined in Luau's lualib.h
 // We use that definition instead of redefining it

@@ -20,7 +20,7 @@ namespace iOS {
     // Initialize script manager
     bool ScriptManager::Initialize() {
         // Ensure FileSystem is initialized
-        if (!FileSystem::GetDocumentsPath().empty()) {
+        if (!FileUtils::GetDocumentsPath().empty()) {
             // Load all scripts
             return LoadAllScripts();
         } else {
@@ -137,8 +137,8 @@ namespace iOS {
         for (auto it = m_scripts.begin(); it != m_scripts.end(); ++it) {
             if (it->m_name == name) {
                 // Delete the script file if it has a file path
-                if (!it->m_filePath.empty() && FileSystem::Exists(it->m_filePath)) {
-                    if (!FileSystem::Delete(it->m_filePath)) {
+                if (!it->m_filePath.empty() && FileUtils::Exists(it->m_filePath)) {
+                    if (!FileUtils::Delete(it->m_filePath)) {
                         std::cerr << "ScriptManager: Failed to delete script file '" << it->m_filePath << "'" << std::endl;
                         // Continue anyway, script will be removed from memory
                     }
@@ -305,20 +305,20 @@ namespace iOS {
         m_scripts.clear();
         
         // Get the scripts directory
-        std::string scriptsDir = FileSystem::GetScriptsPath();
+        std::string scriptsDir = FileUtils::GetScriptsPath();
         if (scriptsDir.empty()) {
             std::cerr << "ScriptManager: Scripts directory not set" << std::endl;
             return false;
         }
         
         // List all files in the scripts directory
-        std::vector<FileSystem::FileInfo> files = FileSystem::ListDirectory(scriptsDir);
+        std::vector<FileUtils::FileInfo> files = FileUtils::ListDirectory(scriptsDir);
         
         // Load each script file
         for (const auto& file : files) {
             // Only load .lua and .json files
-            if (file.m_type == FileSystem::FileType::Regular) {
-                std::string extension = file.m_name.substr(file.m_name.find_last_of('.') + 1);
+            if (file.m_type == FileUtils::Regular) {
+                std::string extension = file.m_path.substr(file.m_path.find_last_of('.') + 1);
                 std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
                 
                 if (extension == "lua" || extension == "txt" || extension == "json") {
@@ -384,7 +384,7 @@ namespace iOS {
     // Import a script from file
     bool ScriptManager::ImportScript(const std::string& path) {
         // Check if file exists
-        if (!FileSystem::Exists(path)) {
+        if (!FileUtils::Exists(path)) {
             std::cerr << "ScriptManager: Import file does not exist: " << path << std::endl;
             return false;
         }
@@ -411,13 +411,13 @@ namespace iOS {
         
         // Ensure parent directory exists
         std::string parentDir = path.substr(0, path.find_last_of('/'));
-        if (!FileSystem::EnsureDirectoryExists(parentDir)) {
+        if (!FileUtils::EnsureDirectoryExists(parentDir)) {
             std::cerr << "ScriptManager: Failed to ensure parent directory exists: " << parentDir << std::endl;
             return false;
         }
         
         // Save the script
-        return FileSystem::WriteFile(path, script.m_content, false);
+        return FileUtils::WriteFile(path, script.m_content, false);
     }
     
     // Save a script to file
@@ -426,7 +426,7 @@ namespace iOS {
         std::string filePath = script.m_filePath;
         if (filePath.empty()) {
             // Get the scripts directory
-            std::string scriptsDir = FileSystem::GetScriptsPath();
+            std::string scriptsDir = FileUtils::GetScriptsPath();
             if (scriptsDir.empty()) {
                 std::cerr << "ScriptManager: Scripts directory not set" << std::endl;
                 return false;
@@ -434,7 +434,7 @@ namespace iOS {
             
             // Generate a file name
             std::string fileName = GenerateScriptFileName(script);
-            filePath = FileSystem::CombinePaths(scriptsDir, fileName);
+            filePath = FileUtils::CombinePaths(scriptsDir, fileName);
         }
         
         // Convert script to JSON
@@ -447,13 +447,13 @@ namespace iOS {
         }
         
         // Save the file
-        return FileSystem::WriteFile(filePath, content, false);
+        return FileUtils::WriteFile(filePath, content, false);
     }
     
     // Load a script from file
     bool ScriptManager::LoadScriptFromFile(const std::string& path, Script& script) {
         // Read the file
-        std::string content = FileSystem::ReadFile(path);
+        std::string content = FileUtils::ReadFile(path);
         if (content.empty()) {
             std::cerr << "ScriptManager: Failed to read file: " << path << std::endl;
             return false;

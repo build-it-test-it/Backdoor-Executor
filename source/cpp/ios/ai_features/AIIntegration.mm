@@ -106,23 +106,23 @@ public:
         
         try {
             // Create necessary directories
-            std::string aiDataPath = FileSystem::GetSafePath("AIData");
-            if (!FileSystem::Exists(aiDataPath)) {
-                FileSystem::CreateDirectory(aiDataPath);
+            std::string aiDataPath = FileUtils::JoinPaths("AIData");
+            if (!FileUtils::Exists(aiDataPath)) {
+                FileUtils::CreateDirectory(aiDataPath);
             }
             
             if (progressCallback) progressCallback(0.1f);
             
             // Create directory for locally trained models
-            std::string localModelsPath = FileSystem::GetSafePath("AIData/LocalModels");
-            if (!FileSystem::Exists(localModelsPath)) {
-                FileSystem::CreateDirectory(localModelsPath);
+            std::string localModelsPath = FileUtils::JoinPaths("AIData/LocalModels");
+            if (!FileUtils::Exists(localModelsPath)) {
+                FileUtils::CreateDirectory(localModelsPath);
             }
             
             // Create directory for vulnerability detection
-            std::string vulnerabilitiesPath = FileSystem::GetSafePath("AIData/Vulnerabilities");
-            if (!FileSystem::Exists(vulnerabilitiesPath)) {
-                FileSystem::CreateDirectory(vulnerabilitiesPath);
+            std::string vulnerabilitiesPath = FileUtils::JoinPaths("AIData/Vulnerabilities");
+            if (!FileUtils::Exists(vulnerabilitiesPath)) {
+                FileUtils::CreateDirectory(vulnerabilitiesPath);
             }
             
             if (progressCallback) progressCallback(0.2f);

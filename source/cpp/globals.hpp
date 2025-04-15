@@ -5,6 +5,7 @@
 #include <vector>
 #include <mutex>
 #include <unordered_map>
+#include "luau/lua_defs.h"
 #include "luau/lua.h"
 #include "luau/lstate.h"
 #include "memory/signature.hpp"

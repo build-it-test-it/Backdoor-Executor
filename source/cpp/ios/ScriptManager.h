@@ -1,13 +1,14 @@
 
-#include "../ios_compat.h"
+#include "../objc_isolation.h"
 #pragma once
 
 #include <string>
 #include <vector>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
-#include "FileSystem.h"
+#include "../filesystem_utils.h"
 
 namespace iOS {
     /**

@@ -1,104 +1,83 @@
-// Real implementation of Dobby hook functionality
-#include "../hooks/hooks.hpp"
-#include <iostream>
-#include <memory>
+// Fixed dobby_wrapper.cpp implementation without DobbyUnHook
+#include "../external/dobby/include/dobby.h"
+#include <cstdint>
 #include <unordered_map>
 #include <mutex>
+#include <vector>
 
-// Include Dobby API
-#include "dobby.h"
+namespace DobbyWrapper {
+    // Thread-safe storage for original function pointers
+    static std::unordered_map<void*, void*> originalFunctions;
+    static std::mutex hookMutex;
+    static std::vector<std::pair<void*, void*>> hookHistory;
 
-// Track hooked functions
-namespace {
-    std::mutex g_hookMutex;
-    std::unordered_map<void*, void*> g_hookedFunctions;
-}
-
-namespace Hooks {
-
-    // Implementation of HookEngine using Dobby
-    bool HookEngine::Initialize() {
-        std::cout << "Initializing Dobby hook engine..." << std::endl;
+    // Hook a function using Dobby
+    void* Hook(void* targetAddr, void* replacementAddr) {
+        if (!targetAddr || !replacementAddr) return nullptr;
         
-        // Dobby doesn't need explicit initialization
-        return true;
-    }
-    
-    bool HookEngine::RegisterHook(void* targetAddr, void* hookAddr, void** originalAddr) {
-        std::lock_guard<std::mutex> lock(g_hookMutex);
+        void* originalFunc = nullptr;
         
-        // Check if already hooked
-        if (g_hookedFunctions.find(targetAddr) != g_hookedFunctions.end()) {
-            std::cout << "Function at " << targetAddr << " is already hooked" << std::endl;
-            if (originalAddr) {
-                *originalAddr = g_hookedFunctions[targetAddr];
-            }
-            return true;
-        }
-        
-        // Apply the hook using Dobby
-        int result = DobbyHook(targetAddr, hookAddr, originalAddr);
-        if (result == 0) {
-            // Successful hook
-            std::cout << "Successfully hooked function at " << targetAddr << std::endl;
+        {
+            std::lock_guard<std::mutex> lock(hookMutex);
+            int result = DobbyHook(targetAddr, replacementAddr, &originalFunc);
             
-            // Store the original function pointer
-            if (originalAddr) {
-                g_hookedFunctions[targetAddr] = *originalAddr;
+            if (result == 0 && originalFunc) {
+                originalFunctions[targetAddr] = originalFunc;
+                hookHistory.push_back({targetAddr, replacementAddr});
+            } else {
+                // Log error or handle the failure
+                return nullptr;
             }
-            return true;
-        } else {
-            std::cerr << "Failed to hook function at " << targetAddr << ", error code: " << result << std::endl;
-            return false;
-        }
-    }
-    
-    bool HookEngine::UnregisterHook(void* targetAddr) {
-        std::lock_guard<std::mutex> lock(g_hookMutex);
-        
-        // Check if the function is hooked
-        if (g_hookedFunctions.find(targetAddr) == g_hookedFunctions.end()) {
-            std::cout << "Function at " << targetAddr << " is not hooked" << std::endl;
-            return false;
         }
         
-        // Unhook using Dobby
-        int result = DobbyUnHook(targetAddr);
-        if (result == 0) {
-            // Successful unhook
-            std::cout << "Successfully unhooked function at " << targetAddr << std::endl;
-            g_hookedFunctions.erase(targetAddr);
-            return true;
-        } else {
-            std::cerr << "Failed to unhook function at " << targetAddr << ", error code: " << result << std::endl;
-            return false;
-        }
-    }
-    
-    void HookEngine::ClearAllHooks() {
-        std::lock_guard<std::mutex> lock(g_hookMutex);
-        
-        std::cout << "Clearing all hooks..." << std::endl;
-        
-        // Unhook all functions
-        for (const auto& pair : g_hookedFunctions) {
-            DobbyUnHook(pair.first);
-        }
-        
-        // Clear the map
-        g_hookedFunctions.clear();
-        
-        std::cout << "All hooks cleared" << std::endl;
+        return originalFunc;
     }
 
-    namespace Implementation {
-        // Direct implementation for hooks
-        bool HookFunction(void* target, void* replacement, void** original) {
-            return HookEngine::RegisterHook(target, replacement, original);
+    // Get the original function pointer for a hooked function
+    void* GetOriginalFunction(void* targetAddr) {
+        std::lock_guard<std::mutex> lock(hookMutex);
+        auto it = originalFunctions.find(targetAddr);
+        if (it != originalFunctions.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    // Unhook a previously hooked function - Alternative implementation without DobbyUnHook
+    bool Unhook(void* targetAddr) {
+        if (!targetAddr) return false;
+        
+        {
+            std::lock_guard<std::mutex> lock(hookMutex);
+            // Alternative implementation - re-hook to original function
+            auto it = originalFunctions.find(targetAddr);
+            if (it != originalFunctions.end()) {
+                void* originalFunc = it->second;
+                // Re-hook to restore original function
+                void* dummy = nullptr;
+                DobbyHook(targetAddr, originalFunc, &dummy);
+                originalFunctions.erase(targetAddr);
+                return true;
+            }
+            
+            return false;
+        }
+    }
+
+    // Unhook all previously hooked functions
+    void UnhookAll() {
+        std::lock_guard<std::mutex> lock(hookMutex);
+        
+        for (auto& pair : hookHistory) {
+            // Alternative implementation - re-hook to original function
+            auto it = originalFunctions.find(pair.first);
+            if (it != originalFunctions.end()) {
+                void* dummy = nullptr;
+                DobbyHook(pair.first, it->second, &dummy);
+            }
         }
         
-        bool UnhookFunction(void* target) {
-            return HookEngine::UnregisterHook(target);
-        }
+        originalFunctions.clear();
+        hookHistory.clear();
     }
 }

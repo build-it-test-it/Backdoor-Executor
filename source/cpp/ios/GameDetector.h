@@ -1,67 +1,90 @@
-#include "../ios_compat.h"
+// Game detection and monitoring
 #pragma once
 
-
-
-#include <string>
-#include <functional>
-#include <memory>
-#include <iostream>
+#include "../objc_isolation.h"
+#include "PatternScanner.h"
+#include "MemoryAccess.h"
 #include "mach_compat.h"
-
-// GameState enum definition
-enum class GameState {
-    NotDetected,
-    Launching,
-    MainMenu,
-    Loading,
-    InGame
-};
+#include <string>
+#include <atomic>
+#include <thread>
+#include <functional>
 
 namespace iOS {
+    // Game state enum
+    enum class GameState {
+        Unknown,
+        NotRunning,
+        Connecting,
+        InGame,
+        InMenu
+    };
+    
+    // Game detection offsets
+    struct RobloxOffsets {
+        uintptr_t baseAddress;
+        uintptr_t scriptContext;
+        uintptr_t luaState;
+        uintptr_t dataModel;
+    };
+    
+    // Game detector class
     class GameDetector {
+    private:
+        // State tracking
+        std::atomic<GameState> m_currentState;
+        std::atomic<bool> m_running;
+        std::atomic<uint64_t> m_lastChecked;
+        std::atomic<uint64_t> m_lastGameJoinTime;
+        std::string m_currentGameName;
+        std::string m_currentPlaceId;
+        RobloxOffsets m_offsets;
+        
+        // Detection methods
+        void UpdateGameState();
+        bool UpdateRobloxOffsets();
+        bool InitializeMemoryAccess();
+        void NotifyStateChange(GameState newState);
+        bool CheckRobloxRunning();
+        void DetectCurrentGame();
+        void WorkerThread();
+        std::string GetGameNameFromMemory();
+        std::string GetPlaceIdFromMemory();
+        std::string ReadRobloxString(mach_vm_address_t stringPtr);
+        
+        // Worker thread
+        std::thread m_workerThread;
+        
     public:
-        // Constructor & destructor
-        GameDetector() {
-            std::cout << "GameDetector: Stub constructor for CI build" << std::endl;
-        }
+        // Constructor and destructor
+        GameDetector();
+        ~GameDetector();
         
-        ~GameDetector() {
-            std::cout << "GameDetector: Stub destructor for CI build" << std::endl;
-        }
+        // Non-copyable
+        GameDetector(const GameDetector&) = delete;
+        GameDetector& operator=(const GameDetector&) = delete;
         
-        // Base methods
-        bool Initialize() {
-            std::cout << "GameDetector: Initialize stub for CI build" << std::endl;
-            return true;
-        }
+        // Start/stop detection
+        bool Start();
+        void Stop();
         
-        bool Refresh() {
-            std::cout << "GameDetector: Refresh stub for CI build" << std::endl;
-            return true;
-        }
+        // Get current state
+        GameState GetCurrentState() const;
+        bool IsInGame() const;
         
-        // Game state methods
-        bool IsGameRunning(const std::string& gameIdentifier) {
-            return true;
-        }
+        // Get game info
+        std::string GetCurrentGameName() const;
+        std::string GetCurrentPlaceId() const;
+        uint64_t GetGameJoinTime() const;
         
-        std::string GetDetectedGameName() {
-            return "Roblox";
-        }
+        // Callback for state changes
+        void SetStateChangeCallback(std::function<void(GameState)> callback);
         
-        std::string GetGameExecutablePath() {
-            return "/path/to/roblox";
-        }
-        
-        // Required GameState method
-        GameState GetGameState() {
-            return GameState::InGame;
-        }
-        
-        // Memory validation
-        bool ValidatePointer(mach_vm_address_t ptr) {
-            return ptr != 0;
-        }
+        // Get Roblox offsets
+        RobloxOffsets GetOffsets() const;
+    
+    // Aliases for game information
+    std::string GetGameName() const { return GetCurrentGameName(); }
+    std::string GetPlaceId() const { return GetCurrentPlaceId(); }
     };
 }

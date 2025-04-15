@@ -1,4 +1,4 @@
-#include "../ios_compat.h"
+#include "../objc_isolation.h"
 
 
 #pragma once
@@ -10,7 +10,7 @@
 #include <memory>
 #include <mutex>
 #include "ScriptManager.h"
-#include "FileSystem.h"
+#include "../filesystem_utils.h"
 
 namespace iOS {
     /**

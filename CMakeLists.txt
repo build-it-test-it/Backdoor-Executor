@@ -104,8 +104,8 @@ if(NOT TARGET lfs_obj AND EXISTS ${CMAKE_SOURCE_DIR}/source/lfs.c)
     message(STATUS "Using bundled LuaFileSystem implementation")
     add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
     target_include_directories(lfs_obj PRIVATE
-        ${CMAKE_SOURCE_DIR}/source/cpp/luau
         ${CMAKE_SOURCE_DIR}/source
+        ${CMAKE_SOURCE_DIR}/source/lua_stub
     )
     target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
 endif()
@@ -383,7 +383,14 @@ endif()
 
 message(STATUS "Building iOS Roblox Executor with real implementations (no stubs)")
 # Include our wrapper files directly
-add_library(lua_wrapper STATIC source/lua_wrapper.c)
-target_include_directories(lua_wrapper PUBLIC source)
+add_library(lua_wrapper STATIC 
+    source/lua_wrapper.c 
+    source/lua_wrapper_impl.c 
+)
+
+target_include_directories(lua_wrapper PUBLIC 
+    source 
+    source/lua_stub 
+)
 # Link the wrapper with the main library
 target_link_libraries(roblox_executor PRIVATE lua_wrapper)

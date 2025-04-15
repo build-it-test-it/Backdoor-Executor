@@ -1,5 +1,5 @@
 
-#include "../ios_compat.h"
+#include "../objc_isolation.h"
 #pragma once
 
 #include "AIConfig.h"

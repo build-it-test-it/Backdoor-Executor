@@ -35,7 +35,7 @@ namespace iOS {
         
         // Register callback for game state changes
         m_callbackId = m_gameDetector->RegisterCallback(
-            [this](GameDetector::GameState oldState, GameDetector::GameState newState) {
+            [this](GameState oldState, GameState newState) {
                 this->OnGameStateChanged(oldState, newState);
             });
         
@@ -59,7 +59,7 @@ namespace iOS {
     
     // Handle game state changes
     void UIControllerGameIntegration::OnGameStateChanged(
-        GameDetector::GameState oldState, GameDetector::GameState newState) {
+        GameState oldState, GameState newState) {
         
         // Log state change
         std::cout << "UIControllerGameIntegration: Game state changed from " 
@@ -67,7 +67,7 @@ namespace iOS {
         
         // Handle state changes
         switch (newState) {
-            case GameDetector::GameState::InGame:
+            case GameState::InGame:
                 // Player has joined a game
                 
                 // Update game info in UI
@@ -83,7 +83,7 @@ namespace iOS {
                 }
                 break;
                 
-            case GameDetector::GameState::Leaving:
+            case GameState::Leaving:
                 // Player is leaving a game
                 
                 // Hide executor if auto-hide is enabled
@@ -98,7 +98,7 @@ namespace iOS {
                 }
                 break;
                 
-            case GameDetector::GameState::Menu:
+            case GameState::Menu:
                 // Player is at menu screens
                 
                 // Hide button if set to show only in-game
@@ -110,7 +110,7 @@ namespace iOS {
                 }
                 break;
                 
-            case GameDetector::GameState::NotRunning:
+            case GameState::NotRunning:
                 // Roblox is not running
                 
                 // Hide everything
@@ -121,7 +121,7 @@ namespace iOS {
                 std::cout << "UIControllerGameIntegration: Hiding all UI when Roblox not running" << std::endl;
                 break;
                 
-            case GameDetector::GameState::Unknown:
+            case GameState::Unknown:
                 // Unknown state, don't change anything
                 break;
                 
@@ -188,8 +188,8 @@ namespace iOS {
     }
     
     // Get the current game state
-    GameDetector::GameState UIControllerGameIntegration::GetGameState() const {
-        return m_gameDetector ? m_gameDetector->GetState() : GameDetector::GameState::Unknown;
+    GameState UIControllerGameIntegration::GetGameState() const {
+        return m_gameDetector ? m_gameDetector->GetState() : GameState::Unknown;
     }
     
     // Check if player is in a game
@@ -204,24 +204,24 @@ namespace iOS {
         }
         
         // Get current game state
-        GameDetector::GameState state = m_gameDetector->GetState();
+        GameState state = m_gameDetector->GetState();
         
         // Update button visibility
         switch (state) {
-            case GameDetector::GameState::InGame:
+            case GameState::InGame:
                 // In game, show button
                 m_uiController->SetButtonVisible(true);
                 break;
                 
-            case GameDetector::GameState::Menu:
-            case GameDetector::GameState::Loading:
-            case GameDetector::GameState::Leaving:
+            case GameState::Menu:
+            case GameState::Loading:
+            case GameState::Leaving:
                 // At menu or loading or leaving, hide button if set to show only in-game
                 m_uiController->SetButtonVisible(!m_showButtonOnlyInGame);
                 break;
                 
-            case GameDetector::GameState::NotRunning:
-            case GameDetector::GameState::Unknown:
+            case GameState::NotRunning:
+            case GameState::Unknown:
                 // Not running or unknown, hide everything
                 m_uiController->Hide();
                 m_uiController->SetButtonVisible(false);

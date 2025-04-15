@@ -384,12 +384,13 @@ endif()
 message(STATUS "Building iOS Roblox Executor with real implementations (no stubs)")
 # Include our wrapper files directly
 add_library(lua_wrapper STATIC 
+    source/lua_wrapper.c 
+    source/lua_wrapper_impl.c 
+)
+
 target_include_directories(lua_wrapper PUBLIC 
     source 
     source/lua_stub 
-)
-    source/lua_wrapper.c 
-    source/lua_wrapper_impl.c 
 )
 # Link the wrapper with the main library
 target_link_libraries(roblox_executor PRIVATE lua_wrapper)

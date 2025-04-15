@@ -4,6 +4,7 @@
 // Define essential compatibility macros for Lua/Luau headers
 // These MUST be defined before including any Lua headers
 
+// Main API export macros
 #ifndef LUA_API
 #define LUA_API extern
 #endif
@@ -12,8 +13,13 @@
 #define LUALIB_API extern
 #endif
 
+// Format attribute macro needs to take format and args, but we define it empty for non-GCC
 #ifndef LUA_PRINTF_ATTR
-#define LUA_PRINTF_ATTR(fmt, args)
+#ifdef __GNUC__
+#define LUA_PRINTF_ATTR(fmt,args) __attribute__((format(printf, fmt, args)))
+#else
+#define LUA_PRINTF_ATTR(fmt,args)
+#endif
 #endif
 
 // LUA_NORETURN definition based on compiler
@@ -27,10 +33,9 @@
 #endif
 #endif
 
-// l_noret must be defined without the LUA_NORETURN suffix first
-// The Lua headers will redefine it with the suffix
-#ifndef l_noret
-#define l_noret void
+// Don't define l_noret at all - let Lua header define it completely
+#ifdef l_noret
+#undef l_noret
 #endif
 
 // Additional compatibility macros
@@ -40,4 +45,16 @@
 
 #ifndef luai_apicheck
 #define luai_apicheck(L, e) lua_check(e)
+#endif
+
+// Forward-declare critical functions that might cause linking issues
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Forward declaration of string formatting function
+LUA_API LUA_PRINTF_ATTR(2, 3) const char* lua_pushfstringL(struct lua_State* L, const char* fmt, ...);
+
+#ifdef __cplusplus
+}
 #endif

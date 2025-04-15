@@ -29,9 +29,6 @@ set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
 set(LUA_LIBRARIES "")
 add_definitions(
     -DCI_BUILD=1
-    -DLUA_API=extern
-    -DLUALIB_API=extern
-    -DLUA_PRINTF_ATTR=
 )
 
 # Include directories 

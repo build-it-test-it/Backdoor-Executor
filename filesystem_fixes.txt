@@ -1,6 +1,0 @@
-1. Replace CombinePaths with JoinPaths
-2. Fix WriteFile to match header (handle 3 parameter version)
-3. Fix Delete to be DeleteFile
-4. Fix Rename to be RenameFile
-5. Fix FileInfo constructor calls
-6. Fix FileType issues (Regular -> File, Symlink -> File)

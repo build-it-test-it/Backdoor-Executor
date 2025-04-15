@@ -8,6 +8,9 @@
     #error "lua_isolation.h should not be included in Objective-C++ files. Use the bridge interface instead."
 #endif
 
+// Include compatibility definitions first
+#include "../lua_compatibility.h"
+
 // Include real Lua headers directly
 #include "../luau/lua.h"
 #include "../luau/lualib.h"

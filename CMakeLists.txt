@@ -27,7 +27,12 @@ set(DOBBY_LIBRARY ${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a)
 # For CI, use internal headers
 set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
 set(LUA_LIBRARIES "")
-add_definitions(-DCI_BUILD=1)
+add_definitions(
+    -DCI_BUILD=1
+    -DLUA_API=extern
+    -DLUALIB_API=extern
+    -DLUA_PRINTF_ATTR=
+)
 
 # Include directories 
 include_directories(

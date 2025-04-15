@@ -1,32 +1,8 @@
 // Force C99 mode to ensure compatibility
 #define _XOPEN_SOURCE 600
 
-// Define essential compatibility macros
-#ifndef LUA_API
-#define LUA_API extern
-#endif
-
-#ifndef LUALIB_API 
-#define LUALIB_API extern
-#endif
-
-#ifndef LUA_PRINTF_ATTR
-#define LUA_PRINTF_ATTR(fmt, args)
-#endif
-
-#ifndef l_noret
-#define l_noret void
-#endif
-
-#ifndef LUA_NORETURN
-#ifdef __GNUC__
-#define LUA_NORETURN __attribute__((__noreturn__))
-#elif defined(_MSC_VER)
-#define LUA_NORETURN __declspec(noreturn)
-#else
-#define LUA_NORETURN
-#endif
-#endif
+// Include central compatibility header
+#include "cpp/lua_compatibility.h"
 
 // Now include Lua headers from internal project
 #include "cpp/luau/lua.h"

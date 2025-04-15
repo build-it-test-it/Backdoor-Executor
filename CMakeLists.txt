@@ -86,35 +86,26 @@ endif()
 set(DOBBY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/dobby/include)
 set(DOBBY_LIBRARY ${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a)
 
-# Define CI build flag
-set(CI_BUILD OFF)
-# Check if we're running in GitHub Actions
-if(DEFINED ENV{GITHUB_ACTIONS})
-  set(CI_BUILD ON)
-  message(STATUS "Running in CI environment")
-endif()
+# Always set CI build flag directly without any env var checks
+# Use -DCI_BUILD=OFF on command line to disable
+option(CI_BUILD "Build in CI environment" ON)
 
-# Our Lua strategy is simple:
-# - In CI, use the project's built-in Lua headers
-# - Otherwise try to use system headers
-if(CI_BUILD)
-  # In CI, just use internal headers
-  message(STATUS "CI: Using internal Lua headers")
-  set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
-  set(LUA_LIBRARIES "")
-  add_definitions(-DCI_BUILD=1)
-else
-  # Try to find system Lua
+# Define LUA_INCLUDE_DIR globally 
+set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
+set(LUA_LIBRARIES "")
+
+# For non-CI builds, try to use system Lua
+if(NOT CI_BUILD)
+  message(STATUS "Attempting to use system Lua")
   find_package(Lua QUIET)
-  
-  if(NOT LUA_FOUND)
-    # Fallback to internal headers if Lua not found
-    message(STATUS "Lua not found, using internal headers")
-    set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
-    set(LUA_LIBRARIES "")
+  if(LUA_FOUND)
+    message(STATUS "Using system Lua: ${LUA_INCLUDE_DIR}")
   else
-    message(STATUS "Using system Lua from: ${LUA_INCLUDE_DIR}")
+    message(STATUS "System Lua not found, using internal headers")
   endif()
+else
+  message(STATUS "CI Build: Using internal Lua headers")
+  add_definitions(-DCI_BUILD=1)
 endif()
 
 # Include directories 

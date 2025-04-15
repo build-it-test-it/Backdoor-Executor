@@ -496,12 +496,12 @@ namespace iOS {
         logEntry << "=================================================\n";
         
         // Write to log file if FileSystem is available
-        if (!FileSystem::GetLogPath().empty()) {
+        if (!iOS::FileSystem::GetLogPath().empty()) {
             // Use direct path construction instead of private CombinePaths method
-            std::string logPath = FileSystem::GetLogPath() + 
+            std::string logPath = iOS::FileSystem::GetLogPath() + 
                                   "/execution_" + std::to_string(time(nullptr)) + ".log";
             
-            FileSystem::WriteFile(logPath, logEntry.str());
+            iOS::FileSystem::WriteFile(logPath, logEntry.str());
         }
         
         // Output to console

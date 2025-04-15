@@ -1,4 +1,4 @@
-// Fixed FileSystem implementation to match header
+// FileSystem implementation for iOS
 #include "FileSystem.h"
 #include <fstream>
 #include <iostream>
@@ -125,7 +125,7 @@ namespace iOS {
     
     bool FileSystem::EnsureDirectoryExists(const std::string& path) {
         if (Exists(path)) {
-            if (DirectoryExists(path)) {
+            if (GetFileInfo(path).m_type == FileType::Directory) {
                 return true;
             }
             // It exists but is not a directory
@@ -281,103 +281,17 @@ namespace iOS {
         NSString* nsOldPath = [NSString stringWithUTF8String:safeOldPath.c_str()];
         NSString* nsNewPath = [NSString stringWithUTF8String:safeNewPath.c_str()];
         
-        NSError* error = nil;
-        BOOL success = [fileManager moveItemAtPath:nsOldPath toPath:nsNewPath error:&error];
-        return success;
-        #else
-        // Simple implementation for non-Objective-C
-        return rename(safeOldPath.c_str(), safeNewPath.c_str()) == 0# Let's create a more targeted fix focusing on the specific issues in FileSystem.mm
-echo "Creating targeted fixes for FileSystem.mm..."
+        NSError* err# Let's check the exact text in ExecutionEngine.mm and then make the edit
+grep -A5 "FileSystem::GetLogPath" source/cpp/ios/ExecutionEngine.mm
 
-# Let's check if the file exists
-ls -la source/cpp/ios/FileSystem.mm || echo "FileSystem.mm not found"
-
-# Check if our FileSystem.mm.fixed file was created
-ls -la source/cpp/ios/FileSystem.mm.fixed || echo "FileSystem.mm.fixed not found"
-
-# Create a targeted fix script
-cat > fix_filesystem_targeted.sh << 'EOF'
+# Now let's create a fixed version with the proper namespace
+cat > fix_execution_engine.sh << 'EOF'
 #!/bin/bash
-# Targeted fixes for FileSystem.mm based on the error messages
+# Fix namespace issues in ExecutionEngine.mm
 
-# Make sure the file exists
-if [ ! -f "source/cpp/ios/FileSystem.mm" ]; then
-  echo "Error: source/cpp/ios/FileSystem.mm not found"
-  exit 1
-fi
+# Add iOS:: namespace to all FileSystem references
+sed -i 's/FileSystem::GetLogPath/iOS::FileSystem::GetLogPath/g' source/cpp/ios/ExecutionEngine.mm
+sed -i 's/FileSystem::WriteFile/iOS::FileSystem::WriteFile/g' source/cpp/ios/ExecutionEngine.mm
 
-# Create a backup
-cp source/cpp/ios/FileSystem.mm source/cpp/ios/FileSystem.mm.bak
-
-# 1. Fix CombinePaths to JoinPaths
-echo "Fixing CombinePaths references..."
-sed -i 's/CombinePaths/JoinPaths/g' source/cpp/ios/FileSystem.mm
-
-# 2. Fix CreateFile to WriteFile (with special handling for the 3-param version)
-echo "Fixing CreateFile references..."
-# First fix the function definition
-sed -i 's/bool FileSystem::CreateFile(const std::string& path, const std::string& content)/bool FileSystem::WriteFile(const std::string& path, const std::string& content)/g' source/cpp/ios/FileSystem.mm
-
-# 3. Fix FileSystem::FileInfo scope issues
-echo "Fixing FileInfo scope issues..."
-sed -i 's/FileSystem::FileInfo/FileInfo/g' source/cpp/ios/FileSystem.mm
-
-# 4. Fix FileType::Regular to FileType::File
-echo "Fixing FileType enum values..."
-sed -i 's/FileType::Regular/FileType::File/g' source/cpp/ios/FileSystem.mm
-sed -i 's/FileType::Symlink/FileType::File/g' source/cpp/ios/FileSystem.mm
-
-# 5. Fix FileInfo constructor issue (removing the 'name' parameter)
-echo "Fixing FileInfo constructor calls..."
-# This is trickier since we need to modify the constructor call pattern
-# Let's find the lines with the FileInfo constructor calls
-grep -n "return FileInfo(" source/cpp/ios/FileSystem.mm
-
-# 6. Fix any 'GetFileType' reference that's missing in the header
-echo "Fixing GetFileType references..."
-sed -i 's/if (GetFileType(path) == FileType::Directory)/if (GetFileInfo(path).m_type == FileType::Directory)/g' source/cpp/ios/FileSystem.mm
-
-# 7. Fix the WriteFile with 3 parameters
-echo "Fixing WriteFile with 3 parameters..."
-# Let's find the line with WriteFile that has 3 parameters
-grep -n "WriteFile.*append" source/cpp/ios/FileSystem.mm
-# For now, let's just modify the call site to use 2 parameters
-sed -i 's/WriteFile(safePath, content, false)/WriteFile(safePath, content)/g' source/cpp/ios/FileSystem.mm
-
-# 8. Fix Delete to DeleteFile
-echo "Fixing Delete references..."
-sed -i 's/bool FileSystem::Delete/bool FileSystem::DeleteFile/g' source/cpp/ios/FileSystem.mm
-
-# 9. Fix Rename to RenameFile
-echo "Fixing Rename references..."
-sed -i 's/bool FileSystem::Rename/bool FileSystem::RenameFile/g' source/cpp/ios/FileSystem.mm
-
-# 10. Fix any remaining issues with function definitions
-echo "Fixing remaining function definition issues..."
-# Add implementations for missing functions if needed
-
-# 11. Fix the FileInfo constructor call with 7 parameters
-# This is more complex and might need a custom fix
-grep -n -A3 "return FileInfo" source/cpp/ios/FileSystem.mm
-
-# Let's make a more targeted fix for this specific issue if it exists
-if grep -q "return FileInfo.*name" source/cpp/ios/FileSystem.mm; then
-  echo "Fixing FileInfo constructor with name parameter..."
-  # Find the line where this happens
-  FILEINFO_LINE=$(grep -n "return FileInfo.*name" source/cpp/ios/FileSystem.mm | cut -d: -f1)
-  if [ ! -z "$FILEINFO_LINE" ]; then
-    # Extract the line
-    FILEINFO_CALL=$(sed -n "${FILEINFO_LINE}p" source/cpp/ios/FileSystem.mm)
-    # Remove the "name" parameter
-    # This is a simplistic approach - may need manual fixing
-    NEW_CALL=$(echo "$FILEINFO_CALL" | sed 's/FileInfo(\([
-^
-,]*\), \([
-^
-,]*\), /FileInfo(\1, /g')
-    # Replace the line
-    sed -i "${FILEINFO_LINE}s/.*/$NEW_CALL/" source/cpp/ios/FileSystem.mm
-  fi
-fi
-
-echo "Targeted fixes applied to FileSystem.mm"
+# Check other FileSystem references
+sed -i 's/FileSystem::/iOS::FileSystem::/g' source/cpp/ios/ExecutionEngine.mm

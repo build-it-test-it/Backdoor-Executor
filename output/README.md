@@ -1,9 +1,8 @@
 # iOS Roblox Executor
 
-This directory contains the compiled dynamic library for iOS Roblox integration.
+This directory contains the compiled dynamic library for the iOS Roblox executor.
 
-## Directory Structure
+## Structure
 
-- `libmylibrary.dylib` - iOS dynamic library
-- `Resources/` - Required resources
-  - `AIData/` - AI configuration data
+- `libmylibrary.dylib` - The main executable dylib file
+- `Resources/AIData/` - AI configuration for script generation and vulnerability detection

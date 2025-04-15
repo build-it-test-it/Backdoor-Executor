@@ -1,0 +1,37 @@
+# Build directories
+build/
+bin/
+lib/
+*.o
+*.obj
+*.a
+*.la
+*.lo
+*.dylib
+*.so
+*.dll
+
+# Backup files
+*~
+*.bak
+*.backup
+*.swp
+*.old
+*.tmp
+*.temp
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Logs
+*.log
+logs/

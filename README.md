@@ -1,35 +1,38 @@
-# Roblox Executor iOS
+# iOS Roblox Executor
 
-An advanced iOS executor for Roblox with integrated AI functionality for script generation and vulnerability detection.
+This repository contains the iOS Roblox Executor, a dynamic library for enhancing Roblox on iOS devices.
 
 ## Features
 
-- Lua script execution
-- Local AI-powered script generation
-- Game vulnerability detection
-- Advanced anti-detection capabilities
-- Fully offline operation
+- Memory reading and writing
+- Method hooking for Roblox iOS app
+- Script execution within Roblox 
+- UI injection for executor interface
+- AI-powered script generation and optimization
 
 ## Building
 
-To build the project, use the provided CMake configuration:
+To build the project:
 
 ```bash
-mkdir -p build
-cmake -S . -B build -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS
-cmake --build build --config Release -j4
+mkdir build && cd build
+cmake ..
+make
 ```
 
-## Dependencies
+This will generate `libmylibrary.dylib` in the build directory.
 
-- Lua
-- Dobby (optional, for hooking functionality)
-- LuaFileSystem
+## Directory Structure
+
+- `source/` - Source code
+  - `source/cpp/` - C++ implementation
+  - `source/cpp/ios/` - iOS-specific code
+  - `source/cpp/memory/` - Memory manipulation utilities
+- `output/` - Build output directory
+  - `output/Resources/` - Resource files
+- `cmake/` - CMake modules and utilities
 
 ## AI Features
 
-The executor includes a completely local AI system for:
-- Generating scripts based on natural language descriptions
-- Detecting vulnerabilities in Roblox games
-- Analyzing and improving scripts automatically
-
+The executor includes AI-powered features for script generation and optimization. 
+Configuration files for these features are located in `output/Resources/AIData/`.

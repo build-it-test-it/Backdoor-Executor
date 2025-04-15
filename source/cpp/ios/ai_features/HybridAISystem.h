@@ -24,6 +24,18 @@ namespace AIFeatures {
  */
 class HybridAISystem {
 public:
+    // Request structure for AI processing
+    struct AIRequest {
+        std::string m_query;         // User query or request
+        std::string m_context;       // Additional context information
+        std::string m_gameInfo;      // Game-specific information
+        std::vector<std::string> m_history; // Conversation history
+        
+        AIRequest(const std::string& query = "", const std::string& context = "", 
+                 const std::string& gameInfo = "")
+            : m_query(query), m_context(context), m_gameInfo(gameInfo) {}
+    };
+    
     // Response structure for AI processing
     struct AIResponse {
         bool m_success;              // Success flag
@@ -43,6 +55,9 @@ public:
               m_errorMessage(errorMessage) {}
     };
     
+    // Define ResponseCallback type
+    typedef std::function<void(const AIResponse&)> ResponseCallback;
+    
     // Online mode enum
     enum class OnlineMode {
         Auto,       // Automatically use online when available, fallback to offline
@@ -51,12 +66,6 @@ public:
         OfflineOnly,   // Always use offline mode
         OnlineOnly     // Always use online mode (will fail if no connectivity)
     };
-    bool m_isInLowMemoryMode;                 // Low memory mode flag
-    bool m_networkConnected;                  // Network connectivity flag
-    OnlineMode m_onlineMode;                  // Current online mode
-    std::string m_apiEndpoint;                // API endpoint for online processing
-    
-    // Local models
     void* m_scriptAssistantModel;             // Opaque pointer to script assistant model
     void* m_scriptGeneratorModel;             // Opaque pointer to script generator model
     void* m_debugAnalyzerModel;               // Opaque pointer to debug analyzer model

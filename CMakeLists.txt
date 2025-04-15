@@ -86,7 +86,38 @@ endif()
 set(DOBBY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/dobby/include)
 set(DOBBY_LIBRARY ${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a)
 
-# Include directories
+# Define CI build flag
+set(CI_BUILD OFF)
+# Check if we're running in GitHub Actions
+if(DEFINED ENV{GITHUB_ACTIONS})
+  set(CI_BUILD ON)
+  message(STATUS "Running in CI environment")
+endif()
+
+# Our Lua strategy is simple:
+# - In CI, use the project's built-in Lua headers
+# - Otherwise try to use system headers
+if(CI_BUILD)
+  # In CI, just use internal headers
+  message(STATUS "CI: Using internal Lua headers")
+  set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
+  set(LUA_LIBRARIES "")
+  add_definitions(-DCI_BUILD=1)
+else
+  # Try to find system Lua
+  find_package(Lua QUIET)
+  
+  if(NOT LUA_FOUND)
+    # Fallback to internal headers if Lua not found
+    message(STATUS "Lua not found, using internal headers")
+    set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
+    set(LUA_LIBRARIES "")
+  else
+    message(STATUS "Using system Lua from: ${LUA_INCLUDE_DIR}")
+  endif()
+endif()
+
+# Include directories 
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/source
@@ -95,34 +126,12 @@ include_directories(
     ${DOBBY_INCLUDE_DIR}
 )
 
-# Simple CI detection - assume we're in CI during GitHub Actions
-option(CI_BUILD "Build in CI environment" OFF)
-if(DEFINED ENV{GITHUB_ACTIONS})
-  set(CI_BUILD ON)
-  message(STATUS "Building in CI environment")
-endif()
-
-# Try to find Lua, but don't require it
-message(STATUS "Looking for Lua installation")
-find_package(Lua QUIET)
-
-# Set Lua paths - use internal headers if in CI or Lua not found
-if(NOT LUA_FOUND OR CI_BUILD)
-  # Fallback to internal headers
-  message(STATUS "Using internal Lua headers")
-  set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
-  set(LUA_LIBRARIES "")
-  
-  # Mark that we're in CI build
-  add_definitions(-DCI_BUILD=1)
-else
-  # Using system Lua installation
-  message(STATUS "Using system Lua: ${LUA_LIBRARIES}")
-endif()
-
 # LuaFileSystem object library
 add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
-target_include_directories(lfs_obj PRIVATE ${CMAKE_SOURCE_DIR}/source ${LUA_INCLUDE_DIR})
+target_include_directories(lfs_obj PRIVATE 
+    ${CMAKE_SOURCE_DIR}/source
+    ${LUA_INCLUDE_DIR}
+)
 target_compile_definitions(lfs_obj PRIVATE LUA_COMPAT_5_1=1)
 if(NOT CI_BUILD)
   target_compile_definitions(lfs_obj PRIVATE LUA_HOMEBREW_HEADERS=1)

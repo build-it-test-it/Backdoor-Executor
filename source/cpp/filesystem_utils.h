@@ -1,4 +1,4 @@
-// Standard filesystem utilities - using std::filesystem
+// Standard filesystem utilities - using std::filesystem (from scratch)
 #pragma once
 
 #include <filesystem>
@@ -229,9 +229,10 @@ namespace FileUtils {
                     time - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
                 time_t modTime = std::chrono::system_clock::to_time_t(sctp);
                 
-                // Check permissions (simplified)
-                bool canRead = fs::status(entry, ec).permissions() & fs::perms::owner_read;
-                bool canWrite = fs::status(entry, ec).permissions() & fs::perms::owner_write;
+                // Fixed permissions check - explicitly compare with none
+                auto perms = fs::status(entry, ec).permissions();
+                bool canRead = (perms & fs::perms::owner_read) != fs::perms::none;
+                bool canWrite = (perms & fs::perms::owner_write) != fs::perms::none;
                 
                 files.emplace_back(entryPath, isDir, size, modTime, canRead, canWrite);
             }

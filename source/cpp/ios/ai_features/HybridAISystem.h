@@ -18,33 +18,25 @@ namespace AIFeatures {
  * @class HybridAISystem
  * @brief AI system that works both online and offline
  * 
- * This class provides an AI system that can work in both online and offline modes.
- * It uses local models when offline or as a fallback, but can enhance its capabilities
- * by connecting to external services when online connectivity is available.
+ * This class implements a hybrid AI system that can work in both online and offline
+ * modes, automatically switching between them based on connectivity and performance
+ * requirements.
  */
 class HybridAISystem {
 public:
-    // AI request structure
+    // Request structure for AI processing
     struct AIRequest {
-        std::string m_query;         // User query
-        std::string m_context;       // Additional context (e.g., script content)
-        std::string m_requestType;   // Request type (e.g., "script_generation", "debug")
-        uint64_t m_timestamp;        // Request timestamp
-        bool m_forceOffline;         // Force offline processing (even if online is available)
+        std::string m_query;         // User query or request
+        std::string m_context;       // Additional context information
+        std::string m_gameInfo;      // Game-specific information
+        std::vector<std::string> m_history; // Conversation history
         
-        AIRequest() : m_timestamp(0), m_forceOffline(false) {}
-        
-        AIRequest(const std::string& query, 
-                 const std::string& context = "", 
-                 const std::string& requestType = "general",
-                 bool forceOffline = false)
-            : m_query(query), m_context(context), m_requestType(requestType),
-              m_forceOffline(forceOffline),
-              m_timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch()).count()) {}
+        AIRequest(const std::string& query = "", const std::string& context = "", 
+                 const std::string& gameInfo = "")
+            : m_query(query), m_context(context), m_gameInfo(gameInfo) {}
     };
     
-    // AI response structure
+    // Response structure for AI processing
     struct AIResponse {
         bool m_success;              // Success flag
         std::string m_content;       // Response content
@@ -53,12 +45,18 @@ public:
         uint64_t m_processingTime;   // Processing time in milliseconds
         std::string m_errorMessage;  // Error message if failed
         
-        
         AIResponse(bool success, const std::string& content = "", 
                   const std::string& scriptCode = "", uint64_t processingTime = 0,
-            : m_success(success), m_content(content), m_scriptCode(scriptCode),
-              m_processingTime(processingTime), m_errorMessage(errorMessage),
+                  const std::string& errorMessage = "") 
+            : m_success(success), 
+              m_content(content), 
+              m_scriptCode(scriptCode),
+              m_processingTime(processingTime), 
+              m_errorMessage(errorMessage) {}
     };
+    
+    // Define ResponseCallback type
+    typedef std::function<void(const AIResponse&)> ResponseCallback;
     
     // Online mode enum
     enum class OnlineMode {
@@ -68,19 +66,6 @@ public:
         OfflineOnly,   // Always use offline mode
         OnlineOnly     // Always use online mode (will fail if no connectivity)
     };
-    
-    // Callback for AI responses
-    using ResponseCallback = std::function<void(const AIResponse&)>;
-    
-private:
-    bool m_initialized;                       // Initialization flag
-    bool m_localModelsLoaded;                 // Local models loaded flag
-    bool m_isInLowMemoryMode;                 // Low memory mode flag
-    bool m_networkConnected;                  // Network connectivity flag
-    OnlineMode m_onlineMode;                  // Current online mode
-    std::string m_apiEndpoint;                // API endpoint for online processing
-    
-    // Local models
     void* m_scriptAssistantModel;             // Opaque pointer to script assistant model
     void* m_scriptGeneratorModel;             // Opaque pointer to script generator model
     void* m_debugAnalyzerModel;               // Opaque pointer to debug analyzer model

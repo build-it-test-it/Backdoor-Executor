@@ -71,6 +71,39 @@ namespace AdvancedBypass {
         ~LoadstringSupport();
         
         /**
+         * @brief Initialize the loadstring support
+         * @return True if initialization succeeded, false otherwise
+         */
+        bool Initialize();
+        
+        /**
+         * @brief Check if loadstring support is available
+         * @return True if available, false otherwise
+         */
+        bool IsAvailable() const;
+        
+        /**
+         * @brief Get the injection script for loadstring support
+         * @return Lua script for loadstring implementation
+         */
+        std::string GetInjectionScript() const;
+        
+        /**
+         * @brief Wrap a script with loadstring support
+         * @param script The script to wrap
+         * @param chunkName Optional name for the chunk
+         * @return Wrapped script ready for execution
+         */
+        std::string WrapScript(const std::string& script, const std::string& chunkName = "");
+        
+        /**
+         * @brief Inject loadstring support into a script
+         * @param script The script to inject support into
+         * @return Script with loadstring support injected
+         */
+        std::string InjectSupport(const std::string& script);
+        
+        /**
          * @brief Generate loadstring code for a script
          * @param code Script code to load
          * @param chunkName Optional chunk name for error reporting

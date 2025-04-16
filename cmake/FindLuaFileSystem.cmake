@@ -13,33 +13,26 @@ function(add_lfs_target)
     # Create an object library for lfs.c
     add_library(lfs_obj OBJECT ${CMAKE_SOURCE_DIR}/source/lfs.c)
     
-    # First try the internal Luau headers from the project
-    set(INTERNAL_LUAU_DIR "${CMAKE_SOURCE_DIR}/source/cpp/luau")
+    # First try to find it using Homebrew
+    execute_process(
+        COMMAND brew --prefix luau
+        OUTPUT_VARIABLE LUAU_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
     
-    if(EXISTS "${INTERNAL_LUAU_DIR}/lua.h")
-        set(LUAU_INCLUDE_DIR ${INTERNAL_LUAU_DIR})
-        message(STATUS "Using internal Luau headers from: ${LUAU_INCLUDE_DIR}")
+    if(LUAU_PREFIX)
+        set(LUAU_INCLUDE_DIR "${LUAU_PREFIX}/include")
+        message(STATUS "Found Homebrew Luau include directory: ${LUAU_INCLUDE_DIR}")
     else()
         # Try to get from environment variables
         if(DEFINED ENV{LUAU_INCLUDE_DIR})
             set(LUAU_INCLUDE_DIR $ENV{LUAU_INCLUDE_DIR})
             message(STATUS "Using Luau include dir from environment: ${LUAU_INCLUDE_DIR}")
         else()
-            # Try to find it using Homebrew
-            execute_process(
-                COMMAND brew --prefix luau
-                OUTPUT_VARIABLE LUAU_PREFIX
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                ERROR_QUIET
-            )
-            
-            if(LUAU_PREFIX)
-                set(LUAU_INCLUDE_DIR "${LUAU_PREFIX}/include")
-                message(STATUS "Found Homebrew Luau include directory: ${LUAU_INCLUDE_DIR}")
-            else()
-                message(WARNING "Luau include directory not found. Using internal headers.")
-                set(LUAU_INCLUDE_DIR "${INTERNAL_LUAU_DIR}")
-            endif()
+            # Fallback to system headers
+            message(STATUS "Using system Lua headers")
+            set(LUAU_INCLUDE_DIR "/usr/local/include")
         endif()
     endif()
     

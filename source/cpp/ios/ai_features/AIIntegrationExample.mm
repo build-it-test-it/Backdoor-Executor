@@ -49,7 +49,6 @@ public:
         m_aiConfig = std::make_shared<AIConfig>();
         
         // Configure AI system to be completely offline
-        m_aiConfig->SetCloudEnabled(false);
         m_aiConfig->SetOfflineModelGenerationEnabled(true);
         m_aiConfig->SetContinuousLearningEnabled(true);
         m_aiConfig->SetModelImprovement(AIConfig::ModelImprovement::Local);

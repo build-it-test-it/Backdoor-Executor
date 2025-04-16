@@ -42,20 +42,20 @@ namespace iOS {
         
         task_t task = mach_task_self();
         
-        // Get current protection
+        // Get current protection - using vm_region instead of vm_region_64 to fix type issues
         vm_region_basic_info_data_64_t info;
         mach_msg_type_number_t infoCount = VM_REGION_BASIC_INFO_COUNT_64;
-        mach_vm_address_t regionAddress = (mach_vm_address_t)address;
-        mach_vm_size_t regionSize = 0;
+        vm_address_t regionAddress = (vm_address_t)(uintptr_t)address;
+        vm_size_t regionSize = 0;
         mach_port_t objectName = MACH_PORT_NULL;
         
-        kern_return_t kr = vm_region_64(task, 
-                                     &regionAddress, 
-                                     &regionSize, 
-                                     VM_REGION_BASIC_INFO_64, 
-                                     (vm_region_info_t)&info, 
-                                     &infoCount, 
-                                     &objectName);
+        kern_return_t kr = vm_region(task, 
+                                  &regionAddress, 
+                                  &regionSize, 
+                                  VM_REGION_BASIC_INFO_64, 
+                                  (vm_region_info_t)&info, 
+                                  &infoCount, 
+                                  &objectName);
         
         // Ensure memory is writable
         bool protectionChanged = false;

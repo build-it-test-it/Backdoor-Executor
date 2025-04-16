@@ -9,17 +9,19 @@
 #include <mutex>
 
 // Forward declarations for Objective-C runtime types
+// Don't define IMP since it's already defined in objc/objc.h
 #ifdef __APPLE__
 typedef void* Class;
 typedef void* Method;
 typedef void* SEL;
-typedef void* IMP;
+// Use custom name to avoid conflict with system IMP
+typedef void* HookIMP;
 typedef void* id;
 #else
 typedef void* Class;
 typedef void* Method;
 typedef void* SEL;
-typedef void* IMP;
+typedef void* HookIMP;
 typedef void* id;
 #endif
 
@@ -76,5 +78,5 @@ namespace Hooks {
 // Initialize static members
 std::unordered_map<void*, void*> Hooks::HookEngine::s_hookedFunctions;
 std::mutex Hooks::HookEngine::s_hookMutex;
-std::map<std::string, std::pair<void*, void*>> Hooks::ObjcMethodHook::s_hookedMethods;
+std::map<std::string, std::pair<Class, SEL>> Hooks::ObjcMethodHook::s_hookedMethods;
 std::mutex Hooks::ObjcMethodHook::s_methodMutex;

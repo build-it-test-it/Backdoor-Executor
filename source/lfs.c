@@ -1,12 +1,17 @@
-// Using stub Lua headers
-#include "lua_stub/lua.h"
-#include "lua_stub/lualib.h"
+// Force C99 mode to ensure compatibility
+#define _XOPEN_SOURCE 600
 
-// Include Lua in proper order with essential definitions first
+// Include central compatibility header
+#include "cpp/lua_compatibility.h"
 
-// Include Lua in proper order with essential definitions first
+// Now include Lua headers from internal project
+#include "cpp/luau/lua.h"
+#include "cpp/luau/lualib.h"
 
-// Using real Lua headers directly
+// Define fallbacks for any missing functions
+#ifndef chdir_error
+#define chdir_error strerror(errno)
+#endif
 
 
 

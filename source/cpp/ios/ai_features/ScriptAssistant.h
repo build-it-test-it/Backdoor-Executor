@@ -88,6 +88,8 @@ namespace AIFeatures {
         
         // User interaction methods
         void ProcessUserInput(const std::string& input);
+        void ReleaseUnusedResources();
+        uint64_t GetMemoryUsage() const;
         void GenerateScript(const std::string& description);
         void AnalyzeGame(const GameContext& context);
         void OptimizeScript(const std::string& script);

@@ -21,7 +21,7 @@ namespace LocalModels {
  * personalized responses based on user proficiency level and interaction history,
  * continuously improving its capabilities through self-learning.
  */
-class GeneralAssistantModel : public LocalModelBase {
+class GeneralAssistantModel : public ::iOS::AIFeatures::LocalModels::LocalModelBase {
 public:
     // Message type enumeration
     enum class MessageType {
@@ -112,7 +112,7 @@ public:
      * @param modelPath Path to model data
      * @return True if initialization is successful
      */
-    bool Initialize(const std::string& modelPath) override;
+    bool Initialize(const std::string& modelPath);
     
     /**
      * @brief Process user input and generate a response
@@ -161,14 +161,14 @@ public:
      * @brief Check if model is initialized
      * @return True if initialized
      */
-    bool IsInitialized() const override;
+    bool IsInitialized() const;
     
     /**
      * @brief Set model path
      * @param path Path to model files
      * @return True if path was valid and set
      */
-    bool SetModelPath(const std::string& path) override;
+    bool SetModelPath(const std::string& path);
     
     /**
      * @brief Reset conversation history
@@ -180,18 +180,18 @@ public:
      * @brief Get model version
      * @return Model version string
      */
-    std::string GetVersion() const override;
+    std::string GetVersion() const;
     
     /**
      * @brief Get memory usage in bytes
      * @return Memory usage
      */
-    size_t GetMemoryUsage() const override;
+    uint64_t GetMemoryUsage() const;
     
     /**
      * @brief Release unused memory resources
      */
-    void ReleaseUnusedResources() override;
+    void ReleaseUnusedResources();
     
     /**
      * @brief Provide information about another AI model

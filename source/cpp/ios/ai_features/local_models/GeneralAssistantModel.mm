@@ -312,7 +312,7 @@ std::string GeneralAssistantModel::GetVersion() const {
 }
 
 // Get memory usage
-size_t GeneralAssistantModel::GetMemoryUsage() const {
+uint64_t GeneralAssistantModel::GetMemoryUsage() const {
     std::lock_guard<std::mutex> lock(m_mutex);
     
     // Calculate approximate memory usage

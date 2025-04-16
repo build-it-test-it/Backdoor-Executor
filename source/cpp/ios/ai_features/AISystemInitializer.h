@@ -1,20 +1,19 @@
-
-#include "../objc_isolation.h"
 #pragma once
 
+#include "../objc_isolation.h"
 #include "AIConfig.h"
 #include "AIIntegration.h"
 #include "local_models/VulnerabilityDetectionModel.h"
 #include "local_models/ScriptGenerationModel.h"
+#include "local_models/GeneralAssistantModel.h"
 #include "SelfModifyingCodeSystem.h"
 
 #include <string>
 #include <memory>
 #include <mutex>
-#include <thread>
-#include <atomic>
 #include <functional>
-#include <unordered_map>
+#include <vector>
+#include <map>
 
 namespace iOS {
 namespace AIFeatures {
@@ -38,111 +37,68 @@ public:
         Failed         // Initialization failed
     };
     
-    // Training priority enumeration
-    enum class TrainingPriority {
-        Low,
-        Medium,
-        High,
-        Critical
-    };
+    // Model status update callback
+    using ModelStatusCallback = std::function<void(const std::string& modelName, InitState state, float progress, float accuracy)>;
     
-    // Fallback strategy enumeration
-    enum class FallbackStrategy {
-        BasicPatterns,     // Use basic patterns only
-        CachedResults,     // Use cached results
-        PatternMatching,   // Use simple pattern matching
-        RuleBased,         // Use rule-based approach
-        HybridApproach     // Combine multiple strategies
-    };
+    // Error callback
+    using ErrorCallback = std::function<void(const std::string& errorMessage)>;
     
-    // Training request structure
-    struct TrainingRequest {
-        std::string m_modelName;
-        std::string m_dataPath;
-        TrainingPriority m_priority;
-        bool m_forceRetrain;
-        std::function<void(float, float)> m_progressCallback;
-        
-        TrainingRequest()
-            : m_priority(TrainingPriority::Medium), m_forceRetrain(false) {}
-    };
+    // Model update callback
+    using ModelUpdateCallback = std::function<void(const std::string& modelName, float progress)>;
     
-    // Model status structure
-    struct ModelStatus {
-        std::string m_name;
-        std::string m_version;
-        InitState m_state;
-        float m_trainingProgress;
-        float m_accuracy;
-        uint64_t m_lastTrainingTime;
-        uint64_t m_lastUsedTime;
-        
-        ModelStatus()
-            : m_state(InitState::NotStarted), m_trainingProgress(0.0f),
-              m_accuracy(0.0f), m_lastTrainingTime(0), m_lastUsedTime(0) {}
-    };
-    
-public:
+private:
     // Singleton instance
     static std::unique_ptr<AISystemInitializer> s_instance;
     static std::mutex s_instanceMutex;
     
-    // Mutex for thread safety
-    mutable std::mutex m_mutex;
+    // Configuration
+    AIConfig m_config;
+    std::string m_dataPath;
+    std::string m_modelDataPath;
     
     // Initialization state
     InitState m_initState;
+    float m_initProgress;
+    
+    // Callbacks
+    ModelStatusCallback m_modelStatusCallback;
+    ErrorCallback m_errorCallback;
+    
+    // Thread safety
+    mutable std::mutex m_mutex;
     
     // Models
     std::shared_ptr<LocalModels::VulnerabilityDetectionModel> m_vulnDetectionModel;
+    std::shared_ptr<LocalModels::GeneralAssistantModel> m_generalAssistantModel;
     std::shared_ptr<LocalModels::ScriptGenerationModel> m_scriptGenModel;
     
     // Self-modifying code system
     std::shared_ptr<SelfModifyingCodeSystem> m_selfModifyingSystem;
     
-    // AI configuration
-    std::shared_ptr<AIConfig> m_config;
+    // Script assistant
+    std::shared_ptr<ScriptAssistant> m_scriptAssistant;
     
-    // Data paths
-    std::string m_dataRootPath;
-    std::string m_modelDataPath;
-    std::string m_trainingDataPath;
-    std::string m_cacheDataPath;
+    // Model statuses
+    struct ModelStatus {
+        InitState state;
+        float progress;
+        float accuracy;
+        
+        ModelStatus() : state(InitState::NotStarted), progress(0.0f), accuracy(0.0f) {}
+    };
     
-    // Training thread
-    std::thread m_trainingThread;
-    std::atomic<bool> m_trainingThreadRunning;
-    std::mutex m_trainingQueueMutex;
-    std::vector<TrainingRequest> m_trainingQueue;
+    std::map<std::string, ModelStatus> m_modelStatuses;
     
-    // Model status
-    std::unordered_map<std::string, ModelStatus> m_modelStatus;
+    // Private constructor (singleton)
+    AISystemInitializer();
     
-    // Fallback systems
-    FallbackStrategy m_currentFallbackStrategy;
-    std::unordered_map<std::string, std::string> m_fallbackPatterns;
-    std::unordered_map<std::string, std::string> m_cachedResults;
-    
-    // Usage statistics
-    uint64_t m_vulnDetectionCount;
-    uint64_t m_scriptGenCount;
-    uint64_t m_fallbackUsageCount;
-    
-    // Internal methods
+    // Initialize components
     bool InitializeDataPaths();
     bool InitializeModels();
-    bool InitializeSelfModifyingSystem();
-    bool InitializeFallbackSystems();
+    bool InitializeScriptAssistant();
     
-    void TrainingThreadFunc();
-    bool TrainModel(const TrainingRequest& request);
+    // Update model status
     void UpdateModelStatus(const std::string& modelName, InitState state, float progress, float accuracy);
-    
-    std::string GetFallbackVulnerabilityDetectionResult(const std::string& script);
-    std::string GetFallbackScriptGenerationResult(const std::string& description);
-    
-    // Constructor
-    explicit AISystemInitializer();
     
 public:
     /**
@@ -152,17 +108,29 @@ public:
     
     /**
      * @brief Get singleton instance
-     * @return Reference to singleton instance
+     * @return Instance
      */
-    static AISystemInitializer& GetInstance();
+    static AISystemInitializer* GetInstance();
     
     /**
-     * @brief Initialize AI system
-     * @param dataRootPath Root path for AI data
+     * @brief Initialize the AI system
      * @param config AI configuration
-     * @return True if initialization succeeded or is in progress
+     * @param progressCallback Progress callback
+     * @return True if initialization succeeded or was already complete
      */
-    bool Initialize(const std::string& dataRootPath, std::shared_ptr<AIConfig> config);
+    bool Initialize(const AIConfig& config, std::function<void(float)> progressCallback = nullptr);
+    
+    /**
+     * @brief Set model status callback
+     * @param callback Callback to invoke when model status changes
+     */
+    void SetModelStatusCallback(ModelStatusCallback callback);
+    
+    /**
+     * @brief Set error callback
+     * @param callback Callback to invoke when errors occur
+     */
+    void SetErrorCallback(ErrorCallback callback);
     
     /**
      * @brief Get initialization state
@@ -171,17 +139,42 @@ public:
     InitState GetInitState() const;
     
     /**
+     * @brief Get initialization progress
+     * @return Progress value (0.0-1.0)
+     */
+    float GetInitProgress() const;
+    
+    /**
+     * @brief Get configuration
+     * @return AI configuration
+     */
+    const AIConfig& GetConfig() const;
+    
+    /**
+     * @brief Update configuration
+     * @param config New configuration
+     * @return True if update was successful
+     */
+    bool UpdateConfig(const AIConfig& config);
+    
+    /**
+     * @brief Get model data path
+     * @return Path to model data
+     */
+    const std::string& GetModelDataPath() const;
+    
+    /**
+     * @brief Get model status
+     * @param modelName Model name
+     * @return Model status
+     */
+    ModelStatus GetModelStatus(const std::string& modelName) const;
+    
+    /**
      * @brief Get vulnerability detection model
      * @return Shared pointer to vulnerability detection model
      */
     std::shared_ptr<LocalModels::VulnerabilityDetectionModel> GetVulnerabilityDetectionModel();
-    
-    /**
-     * @brief Enable detection of ALL vulnerability types
-     * Enhances vulnerability detection to identify all possible security issues
-     * @return True if successfully enabled
-     */
-    bool EnableAllVulnerabilityTypes();
     
     /**
      * @brief Get script generation model
@@ -190,151 +183,88 @@ public:
     std::shared_ptr<LocalModels::ScriptGenerationModel> GetScriptGenerationModel();
     
     /**
+     * @brief Get general assistant model
+     * @return Shared pointer to general assistant model
+     */
+    std::shared_ptr<LocalModels::GeneralAssistantModel> GetGeneralAssistantModel() const;
+    
+    /**
      * @brief Get self-modifying code system
      * @return Shared pointer to self-modifying code system
      */
     std::shared_ptr<SelfModifyingCodeSystem> GetSelfModifyingSystem();
     
     /**
-     * @brief Detect vulnerabilities in script
-     * This will use the trained model if available, or fall back to basic detection
-     * @param script Script to analyze
-     * @param gameType Type of game (for context)
-     * @param isServerScript Whether this is a server script (for context)
-     * @return JSON string with detected vulnerabilities
+     * @brief Get script assistant
+     * @return Shared pointer to script assistant
      */
-    std::string DetectVulnerabilities(const std::string& script, 
-                                     const std::string& gameType = "Generic",
-                                     bool isServerScript = false);
+    std::shared_ptr<ScriptAssistant> GetScriptAssistant();
+    
+    /**
+     * @brief Detect vulnerabilities in script
+     * @param script Script content
+     * @param onComplete Completion callback
+     */
+    void DetectVulnerabilities(const std::string& script, std::function<void(const std::vector<VulnerabilityDetection::Vulnerability>&)> onComplete);
     
     /**
      * @brief Generate script from description
-     * This will use the trained model if available, or fall back to templates
      * @param description Script description
-     * @param gameType Type of game (for context)
-     * @param isServerScript Whether this is a server script (for context)
-     * @return Generated script
+     * @param onComplete Completion callback
      */
-    std::string GenerateScript(const std::string& description,
-                              const std::string& gameType = "Generic",
-                              bool isServerScript = false);
+    void GenerateScript(const std::string& description, std::function<void(const std::string&)> onComplete);
     
     /**
-     * @brief Request model training
-     * @param modelName Name of model to train
-     * @param priority Training priority
-     * @param forceRetrain Force retraining even if model is already trained
-     * @param progressCallback Callback for training progress
-     * @return True if training request was queued
+     * @brief Improve script
+     * @param script Original script
+     * @param instructions Improvement instructions
+     * @param onComplete Completion callback
      */
-    bool RequestTraining(const std::string& modelName,
-                        TrainingPriority priority = TrainingPriority::Medium,
-                        bool forceRetrain = false,
-                        std::function<void(float, float)> progressCallback = nullptr);
+    void ImproveScript(const std::string& script, const std::string& instructions, std::function<void(const std::string&)> onComplete);
     
     /**
-     * @brief Get model status
-     * @param modelName Name of model
-     * @return Model status
+     * @brief Process script with AI model
+     * @param script Script to process
+     * @param action Action to perform
+     * @param onComplete Completion callback
      */
-    ModelStatus GetModelStatus(const std::string& modelName) const;
+    void ProcessScript(const std::string& script, const std::string& action, std::function<void(const std::string&)> onComplete);
     
     /**
-     * @brief Get all model statuses
-     * @return Map of model names to statuses
+     * @brief Release unused resources to reduce memory usage
      */
-    std::unordered_map<std::string, ModelStatus> GetAllModelStatuses() const;
+    void ReleaseUnusedResources();
     
     /**
-     * @brief Set fallback strategy
-     * @param strategy Fallback strategy
+     * @brief Calculate total memory usage of AI components
+     * @return Memory usage in bytes
      */
-    void SetFallbackStrategy(FallbackStrategy strategy);
+    uint64_t CalculateMemoryUsage() const;
     
     /**
-     * @brief Get fallback strategy
-     * @return Current fallback strategy
+     * @brief Get the current model improvement mode
+     * @return Model improvement mode
      */
-    FallbackStrategy GetFallbackStrategy() const;
+    AIConfig::ModelImprovement GetModelImprovementMode() const;
     
     /**
-     * @brief Force self-improvement cycle
-     * @return True if improvement succeeded
+     * @brief Set model improvement mode
+     * @param mode Model improvement mode
      */
-    bool ForceSelfImprovement();
+    void SetModelImprovementMode(AIConfig::ModelImprovement mode);
     
     /**
-     * @brief Add training data for vulnerability detection
-     * @param script Script
-     * @param vulnerabilities JSON string with vulnerabilities
-     * @return True if data was added
+     * @brief Check if models are available for offline use
+     * @return True if all required models are available
      */
-    bool AddVulnerabilityTrainingData(const std::string& script, const std::string& vulnerabilities);
+    bool AreModelsAvailableOffline() const;
     
     /**
-     * @brief Add training data for script generation
-     * @param description Script description
-     * @param script Generated script
-     * @param rating Rating (0-1)
-     * @return True if data was added
+     * @brief Train models with available data
+     * @param updateCallback Progress update callback
+     * @return True if training started successfully
      */
-    bool AddScriptGenerationTrainingData(const std::string& description, 
-                                        const std::string& script,
-                                        float rating);
-    
-    /**
-     * @brief Provide feedback on vulnerability detection
-     * @param script Script
-     * @param detectionResult Detection result
-     * @param correctDetections Map of detection index to correctness
-     * @return True if feedback was processed
-     */
-    bool ProvideVulnerabilityFeedback(const std::string& script,
-                                     const std::string& detectionResult,
-                                     const std::unordered_map<int, bool>& correctDetections);
-    
-    /**
-     * @brief Provide feedback on script generation
-     * @param description Script description
-     * @param generatedScript Generated script
-     * @param userScript User-modified script
-     * @param rating Rating (0-1)
-     * @return True if feedback was processed
-     */
-    bool ProvideScriptGenerationFeedback(const std::string& description,
-                                        const std::string& generatedScript,
-                                        const std::string& userScript,
-                                        float rating);
-    
-    /**
-     * @brief Check if models are ready for use
-     * @return True if models are ready
-     */
-    bool AreModelsReady() const;
-    
-    /**
-     * @brief Get a report on system status
-     * @return JSON string with system status
-     */
-    std::string GetSystemStatusReport() const;
-    
-    /**
-     * @brief Check if system is in fallback mode
-     * @return True if in fallback mode
-     */
-    bool IsInFallbackMode() const;
-    
-    /**
-     * @brief Resume training thread if paused
-     * @return True if resumed
-     */
-    bool ResumeTraining();
-    
-    /**
-     * @brief Pause training thread
-     * @return True if paused
-     */
-    bool PauseTraining();
+    bool TrainModels(ModelUpdateCallback updateCallback = nullptr);
 };
 
 } // namespace AIFeatures

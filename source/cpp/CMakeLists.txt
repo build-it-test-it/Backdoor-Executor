@@ -124,6 +124,15 @@ target_compile_definitions(roblox_execution PRIVATE
     ENABLE_ANTI_TAMPER=1
 )
 
+# Add CI-specific definitions for CI builds
+if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS} OR CI_BUILD)
+    target_compile_definitions(roblox_execution PRIVATE
+        CI_BUILD=1
+        SKIP_IOS_INTEGRATION=1
+    )
+    message(STATUS "CI build detected - adding CI-specific definitions")
+endif()
+
 # Set include directories
 target_include_directories(roblox_execution PUBLIC
     ${CMAKE_SOURCE_DIR}/source

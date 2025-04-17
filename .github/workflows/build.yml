@@ -109,8 +109,8 @@ jobs:
           -DUSE_DOBBY=ON \
           -DDIRECT_VM_INCLUDE=ON \
           -DCMAKE_VERBOSE_MAKEFILE=ON \
-          -DDISABLE_LUAU_ERRORS=ON \
-          -DCI_BUILD=ON
+          -DCMAKE_CXX_FLAGS="-fobjc-arc -DOBJC_USE_ARC=1" \
+          -DCMAKE_OBJCXX_FLAGS="-fobjc-arc -DOBJC_USE_ARC=1"
 
         # Show CMake configuration for debugging
         echo "CMake configuration from cache:"

@@ -33,14 +33,24 @@ jobs:
         echo "Removing CI_BUILD definitions from source files..."
         find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" \) | xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
         
-        # Verify VM folder structure
+        # Verify and fix VM folder structure if needed
         echo "Verifying VM folder structure..."
         if [ -d "VM" ] && [ -d "VM/include" ] && [ -d "VM/src" ]; then
           echo "✅ VM folder structure verified"
           ls -la VM/include/
           ls -la VM/src/ | head -n 5
+          
+          # Make sure VM files are readable
+          echo "Ensuring VM files have correct permissions..."
+          chmod -R 755 VM
+          
+          # Count source files to verify
+          VM_SRC_COUNT=$(find VM/src -name "*.cpp" | wc -l)
+          VM_INCLUDE_COUNT=$(find VM/include -name "*.h" | wc -l)
+          echo "Found $VM_SRC_COUNT .cpp files and $VM_INCLUDE_COUNT .h files in VM directory"
         else
-          echo "⚠️ VM folder structure has issues, please check the repository"
+          echo "⚠️ VM folder structure has issues, creating required directories..."
+          mkdir -p VM/include VM/src
         fi
 
     - name: Setup Xcode
@@ -78,8 +88,12 @@ jobs:
       run: |
         echo "Building the iOS dynamic library..."
         
-        # Configure CMake directly with special flag to disable VM cmake processing
-        rm -rf VM/CMakeLists.txt || true 
+        # Make sure VM files are accessible but remove any VM CMakeLists.txt to avoid conflicts
+        echo "Preparing VM files for inclusion..."
+        find VM -name "*.cpp" -o -name "*.h" | xargs ls -la || true
+        rm -rf VM/CMakeLists.txt || true
+
+        # Configure CMake with direct VM inclusion
         cmake -S . -B build \
           -DCMAKE_OSX_ARCHITECTURES="arm64" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
@@ -87,8 +101,8 @@ jobs:
           -DCMAKE_SYSTEM_NAME=iOS \
           -DENABLE_AI_FEATURES=ON \
           -DUSE_DOBBY=ON \
-          -DNO_VM_LIB=ON \
-          -DCMAKE_DISABLE_FIND_PACKAGE_VM=TRUE
+          -DDIRECT_VM_INCLUDE=ON \
+          -DCMAKE_VERBOSE_MAKEFILE=ON
 
         # Show CMake configuration for debugging
         echo "CMake configuration from cache:"

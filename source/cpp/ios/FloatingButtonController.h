@@ -87,6 +87,12 @@ namespace iOS {
         bool Toggle();
         
         /**
+         * @brief Set button visibility state
+         * @param visible True to show, false to hide
+         */
+        void SetVisible(bool visible);
+        
+        /**
          * @brief Check if button is visible
          * @return True if visible, false otherwise
          */

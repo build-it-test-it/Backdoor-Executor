@@ -1,6 +1,11 @@
 // objc_isolation.h - Isolation layer for Objective-C and C++ interoperability
 #pragma once
 
+// Standard library includes
+#include <string>
+#include <vector>
+#include <map>
+
 // Include iOS compatibility header first
 #include "ios_compat.h"
 

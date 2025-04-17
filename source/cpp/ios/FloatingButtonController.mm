@@ -683,6 +683,15 @@ namespace iOS {
         return m_isVisible;
     }
     
+    // Set visibility
+    void FloatingButtonController::SetVisible(bool visible) {
+        if (visible) {
+            Show();
+        } else {
+            Hide();
+        }
+    }
+    
     // Check visibility
     bool FloatingButtonController::IsVisible() const {
         return m_isVisible;

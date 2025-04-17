@@ -87,7 +87,7 @@ namespace AdvancedBypass {
         }
     }
     
-    // Send HTTP request with all parameters
+    // Send HTTP request with all parameters (private method)
     void HttpClient::SendRequest(const std::string& url, 
                                const std::string& method, 
                                const std::unordered_map<std::string, std::string>& headers,
@@ -96,13 +96,7 @@ namespace AdvancedBypass {
                                CompletionCallback callback) {
         // Ensure initialized
         if (!m_initialized && !Initialize()) {
-            RequestResult result;
-            result.m_success = false;
-            result.m_statusCode = -1;
-            result.m_error = "HTTP client failed to initialize";
-            result.m_body = "";
-            result.m_requestTime = 0;
-            result.m_content = "";
+            RequestResult result(false, -1, "HTTP client failed to initialize", "", 0);
             callback(result);
             return;
         }
@@ -121,13 +115,7 @@ namespace AdvancedBypass {
                 NSURL* nsUrl = [NSURL URLWithString:urlString];
                 
                 if (!nsUrl) {
-                    RequestResult result;
-                    result.m_success = false;
-                    result.m_statusCode = -1;
-                    result.m_error = "Invalid URL: " + url;
-                    result.m_body = "";
-                    result.m_content = "";
-                    result.m_requestTime = 0;
+                    RequestResult result(false, -1, "Invalid URL: " + url, "", 0);
                     dispatch_async(dispatch_get_main_queue(), 
 ^
 {
@@ -173,43 +161,41 @@ namespace AdvancedBypass {
                         std::chrono::system_clock::now().time_since_epoch()).count();
                     uint64_t requestTime = endTime - startTime;
                     
-                    // Create result object
-                    RequestResult result;
+                    // Create result object with initial values
+                    bool success = false;
+                    int statusCode = 0;
+                    std::string errorStr = "";
+                    std::string content = "";
+                    std::unordered_map<std::string, std::string> responseHeaders;
                     
                     if (error) {
                         // Handle error
-                        result.m_success = false;
-                        result.m_statusCode = (int)[error code];
-                        result.m_error = [[error localizedDescription] UTF8String];
-                        result.m_body = "";
-                        result.m_content = "";
-                        result.m_requestTime = requestTime;
+                        success = false;
+                        statusCode = (int)[error code];
+                        errorStr = [[error localizedDescription] UTF8String];
                     } else {
                         // Handle success
                         NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
-                        result.m_success = (httpResponse.statusCode >= 200 && httpResponse.statusCode < 300);
-                        result.m_statusCode = (int)httpResponse.statusCode;
+                        success = (httpResponse.statusCode >= 200 && httpResponse.statusCode < 300);
+                        statusCode = (int)httpResponse.statusCode;
                         
                         // Get response data
                         if (data) {
                             // Convert data to string
-                            std::string responseString((const char*)[data bytes], [data length]);
-                            result.m_body = responseString;
-                            result.m_content = responseString;
-                        } else {
-                            result.m_body = "";
-                            result.m_content = "";
+                            content = std::string((const char*)[data bytes], [data length]);
                         }
-                        
-                        result.m_requestTime = requestTime;
                         
                         // Get response headers
                         NSDictionary* respHeaders = httpResponse.allHeaderFields;
                         for (NSString* key in respHeaders) {
                             NSString* value = respHeaders[key];
-                            result.m_headers[[key UTF8String]] = [value UTF8String];
+                            responseHeaders[[key UTF8String]] = [value UTF8String];
                         }
                     }
+                    
+                    // Create final result with all data
+                    RequestResult result(success, statusCode, errorStr, content, requestTime);
+                    result.m_headers = responseHeaders;
                     
                     // Call callback on main thread
                     dispatch_async(dispatch_get_main_queue(), 
@@ -223,13 +209,7 @@ namespace AdvancedBypass {
                 [task resume];
             }
             @catch (NSException* exception) {
-                RequestResult result;
-                result.m_success = false;
-                result.m_statusCode = -1;
-                result.m_error = [[exception reason] UTF8String];
-                result.m_body = "";
-                result.m_content = "";
-                result.m_requestTime = 0;
+                RequestResult result(false, -1, [[exception reason] UTF8String], "", 0);
                 
                 dispatch_async(dispatch_get_main_queue(), 
 ^
@@ -240,251 +220,58 @@ namespace AdvancedBypass {
         });
     }
     
-    // GET request (async)
-    void HttpClient::GetAsync(const std::string& url, CompletionCallback callback, int timeout) {
-        SendRequest(url, "GET", {}, "", timeout > 0 ? timeout : m_defaultTimeout, callback);
-    }
-    
-    // GET request with headers (async)
-    void HttpClient::GetAsync(const std::string& url, 
-                           const std::unordered_map<std::string, std::string>& headers,
-                           CompletionCallback callback,
-                           int timeout) {
-        SendRequest(url, "GET", headers, "", timeout > 0 ? timeout : m_defaultTimeout, callback);
-    }
-    
-    // POST request (async)
-    void HttpClient::PostAsync(const std::string& url, 
-                             const std::string& body,
-                             CompletionCallback callback,
-                             int timeout) {
-        std::unordered_map<std::string, std::string> headers = {
-            {"Content-Type", "application/x-www-form-urlencoded"}
-        };
-        SendRequest(url, "POST", headers, body, timeout > 0 ? timeout : m_defaultTimeout, callback);
-    }
-    
-    // POST request with headers (async)
-    void HttpClient::PostAsync(const std::string& url, 
-                             const std::unordered_map<std::string, std::string>& headers,
-                             const std::string& body,
-                             CompletionCallback callback,
-                             int timeout) {
-        SendRequest(url, "POST", headers, body, timeout > 0 ? timeout : m_defaultTimeout, callback);
-    }
-    
-    // Upload file (sync)
-    bool HttpClient::UploadFile(const std::string& url, 
-                              const std::string& filePath,
-                              std::string& responseText,
-                              std::string& error) {
-        // Check if file exists
-        NSString* nsFilePath = [NSString stringWithUTF8String:filePath.c_str()];
-        if (![[NSFileManager defaultManager] fileExistsAtPath:nsFilePath]) {
-            error = "File not found: " + filePath;
-            return false;
-        }
-        
-        // Create semaphore for sync wait
+    // Synchronous GET request implementation
+    HttpClient::RequestResult HttpClient::Get(const std::string& url, int timeout) {
+        // Create a semaphore for synchronous wait
         dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
         
-        // Success flag
-        __block bool success = false;
+        // Response data
+        RequestResult result;
         
-        // Upload the file asynchronously but wait for it to complete
-        UploadFileAsync(url, filePath, [&](const RequestResult& result) {
-            success = result.m_success;
-            responseText = result.m_body;
-            if (!result.m_success) {
-                error = result.m_error;
-            }
+        // Make async call but wait for completion
+        GetAsync(url, [&result, &semaphore](const RequestResult& asyncResult) {
+            result = asyncResult;
             dispatch_semaphore_signal(semaphore);
-        });
+        }, timeout);
         
         // Wait for completion
         dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
         
-        return success;
+        return result;
     }
     
-    // Upload file async
-    void HttpClient::UploadFileAsync(const std::string& url, 
-                                   const std::string& filePath,
-                                   CompletionCallback callback,
-                                   int timeout) {
-        // Ensure initialized
-        if (!m_initialized && !Initialize()) {
-            RequestResult result;
-            result.m_success = false;
-            result.m_statusCode = -1;
-            result.m_error = "HTTP client failed to initialize";
-            result.m_body = "";
-            result.m_content = "";
-            result.m_requestTime = 0;
-            callback(result);
-            return;
-        }
+    // Asynchronous GET request
+    void HttpClient::GetAsync(const std::string& url, CompletionCallback callback, int timeout) {
+        SendRequest(url, "GET", {}, "", timeout > 0 ? timeout : m_defaultTimeout, callback);
+    }
+    
+    // Synchronous POST request implementation
+    HttpClient::RequestResult HttpClient::Post(const std::string& url, const std::string& body, int timeout) {
+        // Create a semaphore for synchronous wait
+        dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
         
-        // Check if file exists
-        NSString* nsFilePath = [NSString stringWithUTF8String:filePath.c_str()];
-        if (![[NSFileManager defaultManager] fileExistsAtPath:nsFilePath]) {
-            RequestResult result;
-            result.m_success = false;
-            result.m_statusCode = -1;
-            result.m_error = "File not found: " + filePath;
-            result.m_body = "";
-            result.m_content = "";
-            result.m_requestTime = 0;
-            callback(result);
-            return;
-        }
+        // Response data
+        RequestResult result;
         
-        // Get start time for performance tracking
-        uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch()).count();
+        // Make async call but wait for completion
+        PostAsync(url, body, [&result, &semaphore](const RequestResult& asyncResult) {
+            result = asyncResult;
+            dispatch_semaphore_signal(semaphore);
+        }, timeout);
         
-        // Perform on background thread
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), 
-^
-{
-            @try {
-                // Create URL
-                NSString* urlString = [NSString stringWithUTF8String:url.c_str()];
-                NSURL* nsUrl = [NSURL URLWithString:urlString];
-                
-                if (!nsUrl) {
-                    RequestResult result;
-                    result.m_success = false;
-                    result.m_statusCode = -1;
-                    result.m_error = "Invalid URL: " + url;
-                    result.m_body = "";
-                    result.m_content = "";
-                    result.m_requestTime = 0;
-                    dispatch_async(dispatch_get_main_queue(), 
-^
-{
-                        callback(result);
-                    });
-                    return;
-                }
-                
-                // Create request
-                NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:nsUrl];
-                [request setHTTPMethod:@"POST"];
-                
-                // Set timeout
-                int actualTimeout = timeout > 0 ? timeout : m_defaultTimeout;
-                [request setTimeoutInterval:actualTimeout];
-                
-                // Create boundary string for multipart
-                NSString* boundary = [NSString stringWithFormat:@"Boundary-%@", [[NSUUID UUID] UUIDString]];
-                NSString* contentType = [NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary];
-                [request setValue:contentType forHTTPHeaderField:@"Content-Type"];
-                
-                // Create body data
-                NSMutableData* body = [NSMutableData data];
-                
-                // Add start boundary
-                [body appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-                
-                // Get filename from path
-                NSString* fileName = [[nsFilePath lastPathComponent] stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLPathAllowedCharacterSet]];
-                
-                // Add content disposition
-                [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"file\"; filename=\"%@\"\r\n", fileName] dataUsingEncoding:NSUTF8StringEncoding]];
-                
-                // Add content type
-                [body appendData:[@"Content-Type: application/octet-stream\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
-                
-                // Add file data
-                NSData* fileData = [NSData dataWithContentsOfFile:nsFilePath];
-                [body appendData:fileData];
-                [body appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
-                
-                // Add end boundary
-                [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-                
-                // Set body
-                [request setHTTPBody:body];
-                
-                // Get session using proper ARC bridging
-                NSURLSession* session = (__bridge NSURLSession*)m_session;
-                
-                // Create upload task
-                NSURLSessionUploadTask* task = [session uploadTaskWithRequest:request
-                                                                    fromData:body
-                                                            completionHandler:
-^
-(NSData* data, NSURLResponse* response, NSError* error) {
-                    // Calculate request time
-                    uint64_t endTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::system_clock::now().time_since_epoch()).count();
-                    uint64_t requestTime = endTime - startTime;
-                    
-                    // Create result object
-                    RequestResult result;
-                    
-                    if (error) {
-                        // Handle error
-                        result.m_success = false;
-                        result.m_statusCode = (int)[error code];
-                        result.m_error = [[error localizedDescription] UTF8String];
-                        result.m_body = "";
-                        result.m_content = "";
-                        result.m_requestTime = requestTime;
-                    } else {
-                        // Handle success
-                        NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
-                        result.m_success = (httpResponse.statusCode >= 200 && httpResponse.statusCode < 300);
-                        result.m_statusCode = (int)httpResponse.statusCode;
-                        
-                        // Get response data
-                        if (data) {
-                            std::string responseString((const char*)[data bytes], [data length]);
-                            result.m_body = responseString;
-                            result.m_content = responseString;
-                        } else {
-                            result.m_body = "";
-                            result.m_content = "";
-                        }
-                        
-                        result.m_requestTime = requestTime;
-                        
-                        // Get headers
-                        NSDictionary* respHeaders = httpResponse.allHeaderFields;
-                        for (NSString* key in respHeaders) {
-                            NSString* value = [respHeaders objectForKey:key];
-                            result.m_headers[[key UTF8String]] = [value UTF8String];
-                        }
-                    }
-                    
-                    // Call callback on main thread
-                    dispatch_async(dispatch_get_main_queue(), 
-^
-{
-                        callback(result);
-                    });
-                }];
-                
-                // Start task
-                [task resume];
-            }
-            @catch (NSException* exception) {
-                RequestResult result;
-                result.m_success = false;
-                result.m_statusCode = -1;
-                result.m_error = [[exception reason] UTF8String];
-                result.m_body = "";
-                result.m_content = "";
-                result.m_requestTime = 0;
-                
-                dispatch_async(dispatch_get_main_queue(), 
-^
-{
-                    callback(result);
-                });
-            }
-        });
+        // Wait for completion
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        
+        return result;
+    }
+    
+    // Asynchronous POST request
+    void HttpClient::PostAsync(const std::string& url, const std::string& body, 
+                           CompletionCallback callback, int timeout) {
+        std::unordered_map<std::string, std::string> headers = {
+            {"Content-Type", "application/x-www-form-urlencoded"}
+        };
+        SendRequest(url, "POST", headers, body, timeout > 0 ? timeout : m_defaultTimeout, callback);
     }
 }
 }

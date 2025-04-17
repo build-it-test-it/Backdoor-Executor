@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ci_compat.h"  // Include our CI compatibility header
+#include "mem.hpp"      // Include memory utility functions
 
 #include <string>
 #include <vector>
@@ -64,8 +65,8 @@ namespace Memory {
                 // In CI builds, just return 0 to avoid any actual memory access
                 return 0;
             #else
-                // Get Roblox module info - getLibBase is provided by the platform-specific implementation
-                uintptr_t base = getLibBase("libroblox.so");
+                // Get Roblox module info - using Memory::GetLibraryBase from mem.hpp
+                uintptr_t base = Memory::GetLibraryBase("libroblox.so");
                 if (!base) return 0;
                 
                 // Approximate module size - in real implementation, should get actual size

@@ -666,8 +666,33 @@ namespace UI {
     }
 
     void MainViewController::SwitchToTab(Tab tab, bool animated) {
-        // Handle tab switch (placeholder implementation)
+        // Handle tab switch to the specified tab
         m_currentTab = tab;
+    
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (m_viewController && m_tabBar) {
+                UIViewController* viewController = (__bridge UIViewController*)m_viewController;
+                UITabBar* tabBar = (__bridge UITabBar*)m_tabBar;
+            
+                // Select the tab in the UI
+                tabBar.selectedItem = tabBar.items[(int)tab];
+            
+                // Switch content views based on tab
+                for (const auto& pair : m_tabViewControllers) {
+                    UIView* tabView = (__bridge UIView*)pair.second;
+                    tabView.hidden = (pair.first != std::to_string((int)tab));
+                }
+            
+                // Apply animation if requested
+                if (animated) {
+                    // Crossfade animation
+                    CATransition* transition = [CATransition animation];
+                    transition.duration = 0.3;
+                    transition.type = kCATransitionFade;
+                    [viewController.view.layer addAnimation:transition forKey:kCATransition];
+                }
+            }
+        });
     }
 
     void MainViewController::HandleGameStateChanged(GameDetector::GameState oldState, GameDetector::GameState newState) {
@@ -695,13 +720,102 @@ namespace UI {
     }
 
     void MainViewController::ApplyVisualStyle(VisualStyle style) {
-        // Apply visual style (placeholder implementation)
+        // Apply the specified visual style to the UI
         m_visualStyle = style;
+    
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (!m_viewController) return;
+        
+            UIViewController* viewController = (__bridge UIViewController*)m_viewController;
+            UIBlurEffect* blurEffect = nil;
+        
+            switch (style) {
+                case VisualStyle::Light:
+                    viewController.view.backgroundColor = [UIColor colorWithRed:0.95 green:0.95 blue:0.95 alpha:0.9];
+                    blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleLight];
+                    break;
+                
+                case VisualStyle::Dark:
+                    viewController.view.backgroundColor = [UIColor colorWithRed:0.1 green:0.1 blue:0.1 alpha:0.9];
+                    blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+                    break;
+                
+                case VisualStyle::Dynamic:
+                    // Use system appearance
+                    if (@available(iOS 13.0, *)) {
+                        bool isDarkMode = viewController.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark;
+                        viewController.view.backgroundColor = isDarkMode ? 
+                            [UIColor colorWithRed:0.1 green:0.1 blue:0.1 alpha:0.9] : 
+                            [UIColor colorWithRed:0.95 green:0.95 blue:0.95 alpha:0.9];
+                        blurEffect = [UIBlurEffect effectWithStyle:isDarkMode ? 
+                            UIBlurEffectStyleDark : UIBlurEffectStyleLight];
+                    } else {
+                        // Default to dark on older iOS
+                        viewController.view.backgroundColor = [UIColor colorWithRed:0.1 green:0.1 blue:0.1 alpha:0.9];
+                        blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+                    }
+                    break;
+            }
+        
+            // Update blur effect
+            if (m_blurEffectView && blurEffect) {
+                UIVisualEffectView* blurView = (__bridge UIVisualEffectView*)m_blurEffectView;
+                blurView.effect = blurEffect;
+            }
+        
+            // Update color scheme
+            UpdateColorScheme(m_colorScheme);
+        });
     }
 
     void MainViewController::UpdateNavigationMode(NavigationMode mode) {
-        // Update navigation mode (placeholder implementation)
+        // Update the UI navigation mode
         m_navigationMode = mode;
+    
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (!m_viewController) return;
+        
+            UIViewController* viewController = (__bridge UIViewController*)m_viewController;
+        
+            switch (mode) {
+                case NavigationMode::Tabs:
+                    // Show tab bar if it exists
+                    if (m_tabBar) {
+                        UITabBar* tabBar = (__bridge UITabBar*)m_tabBar;
+                        tabBar.hidden = NO;
+                    }
+                
+                    // Hide navigation bar if it exists
+                    if (m_navigationController) {
+                        UINavigationController* navController = (__bridge UINavigationController*)m_navigationController;
+                        navController.navigationBar.hidden = YES;
+                    }
+                    break;
+                
+                case NavigationMode::Stack:
+                    // Hide tab bar if it exists
+                    if (m_tabBar) {
+                        UITabBar* tabBar = (__bridge UITabBar*)m_tabBar;
+                        tabBar.hidden = YES;
+                    }
+                
+                    // Show navigation bar if it exists
+                    if (m_navigationController) {
+                        UINavigationController* navController = (__bridge UINavigationController*)m_navigationController;
+                        navController.navigationBar.hidden = NO;
+                    } else {
+                        // Create navigation controller if it doesn't exist
+                        UINavigationController* navController = [[UINavigationController alloc] 
+                            initWithRootViewController:viewController];
+                        navController.navigationBar.translucent = YES;
+                        navController.navigationBar.barStyle = UIBarStyleBlack;
+                    
+                        // Store reference
+                        m_navigationController = (__bridge_retained void*)navController;
+                    }
+                    break;
+            }
+        });
     }
 
     void MainViewController::OptimizeUIForCurrentMemoryUsage() {

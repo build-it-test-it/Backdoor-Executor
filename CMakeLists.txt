@@ -166,14 +166,13 @@ if(NOT DIRECT_VM_SOURCES)
         message(STATUS "⚠️ Not enough VM source files found - this may cause build failures")
         message(STATUS "Please ensure all VM source files are properly present in VM/src directory")
     
-        # For CI builds, we can optionally disable errors
-        if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS} OR DISABLE_LUAU_ERRORS OR CI_BUILD)
-            message(STATUS "CI build detected - continuing despite missing VM files")
-            # Don't include any missing VM files in the build
-            set(DIRECT_VM_SOURCES "")
-        else()
-            # For local builds, we'll continue with whatever files we have, but build may fail
-            message(STATUS "Local build - continuing with available VM files")
+        # For production builds, we'll continue with whatever files we have
+        message(STATUS "Production build - using available VM files")
+        
+        # Ensure we have enough files to build successfully
+        if(EXISTING_VM_FILES LESS 5)
+            message(STATUS "Not enough VM source files found! This will cause build failures.")
+            message(STATUS "Please ensure all VM source files are properly present in VM/src directory")
         endif()
     endif()
 endif()
@@ -258,7 +257,7 @@ else()
     )
     message(STATUS "Building without VM source files (will not have VM functionality)")
     # Define a macro so code can conditionally compile
-    target_compile_definitions(mylibrary PRIVATE CI_BUILD_NO_VM=1)
+    target_compile_definitions(mylibrary PRIVATE PRODUCTION_BUILD=1)
 endif()
 
 # Set target properties

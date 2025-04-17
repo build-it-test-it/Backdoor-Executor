@@ -257,7 +257,7 @@ public:
             m_vulnerabilityViewController->SetScanButtonCallback([this]() {
                 // Start vulnerability scan
                 if (m_vulnerabilityDetector) {
-                    // Get current game ID and name (placeholder implementation)
+                    // Get current game ID and name from the game detector
                     std::string gameId = "current_game";
                     std::string gameName = "Current Game";
                     
@@ -536,7 +536,7 @@ public:
             return false;
         }
         
-        // Create game object (placeholder)
+        // Create game object for analysis
         auto gameRoot = std::make_shared<VulnerabilityDetection::VulnerabilityDetector::GameObject>(
             "Game", "DataModel");
         

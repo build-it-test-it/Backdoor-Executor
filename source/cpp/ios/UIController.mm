@@ -71,6 +71,9 @@
 @property (nonatomic, copy) BOOL (^saveScriptCallback)(NSDictionary *);
 @property (nonatomic, copy) NSArray * (^loadScriptsCallback)(void);
 
+// C++ Main view controller wrapper
+@property (nonatomic, strong) id mainViewController;
+
 // Setup UI elements
 - (void)setupUI;
 - (void)setupMainView;
@@ -126,6 +129,9 @@
         _savedScripts = [NSMutableArray array];
         _consoleText = @"-- Console output will appear here\n";
         _buttonVisible = YES;
+        
+        // Create a main view controller wrapper
+        _mainViewController = [[NSObject alloc] init];
         
         // Initialize UI elements
         [self setupUI];
@@ -1249,4 +1255,18 @@ namespace iOS {
             m_uiView = nullptr;
         }
     }
+}
+
+// Implementation of the GetMainViewController method
+std::shared_ptr<UI::MainViewController> UIController::GetMainViewController() const {
+    // Create a new MainViewController instance if needed
+    static std::shared_ptr<UI::MainViewController> mainViewController = 
+        std::make_shared<UI::MainViewController>();
+    
+    // Associate with our view controller
+    if (m_uiView) {
+        mainViewController->SetNativeViewController(m_uiView);
+    }
+    
+    return mainViewController;
 }

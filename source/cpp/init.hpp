@@ -20,6 +20,10 @@
 #include "ios/UIController.h"
 #include "ios/PatternScanner.h"
 #include "anti_detection/obfuscator.hpp"
+#include "ios/ai_features/AIIntegration.h"
+#include "ios/ai_features/AIIntegrationManager.h"
+#include "ios/ai_features/ScriptAssistant.h"
+#include "ios/ai_features/SignatureAdaptation.h"
 
 namespace RobloxExecutor {
 
@@ -32,6 +36,7 @@ struct InitOptions {
     bool enableSecurity = true;
     bool enableJailbreakBypass = true;
     bool enableUI = true;
+    bool enableAIFeatures = true;
     
     // Logging options
     std::string logDir = "";  // Empty means default location
@@ -56,6 +61,12 @@ struct InitOptions {
     bool enableScriptCaching = true;
     int defaultObfuscationLevel = 3;
     
+    // AI options
+    bool enableAIScriptGeneration = true;
+    bool enableAIVulnerabilityDetection = true;
+    bool enableAISignatureAdaptation = true;
+    std::string aiModelsPath = "";  // Empty means default location
+    
     // Custom initialization callbacks
     std::function<void()> preInitCallback = nullptr;
     std::function<void()> postInitCallback = nullptr;
@@ -73,6 +84,7 @@ struct SystemStatus {
     bool jailbreakBypassInitialized = false;
     bool uiInitialized = false;
     bool executionEngineInitialized = false;
+    bool aiFeaturesInitialized = false;
     bool allSystemsInitialized = false;
     
     std::string GetStatusString() const {
@@ -99,6 +111,12 @@ private:
     static std::shared_ptr<iOS::ScriptManager> s_scriptManager;
     static std::unique_ptr<iOS::UIController> s_uiController;
     
+    // AI Components
+    static void* s_aiIntegration;
+    static std::shared_ptr<iOS::AIFeatures::AIIntegrationManager> s_aiManager;
+    static std::shared_ptr<iOS::AIFeatures::ScriptAssistant> s_scriptAssistant;
+    static std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> s_signatureAdaptation;
+    
 public:
     // Get system status
     static const SystemStatus& GetStatus() {
@@ -118,6 +136,26 @@ public:
     // Get UI controller
     static iOS::UIController* GetUIController() {
         return s_uiController.get();
+    }
+    
+    // Get AI integration
+    static void* GetAIIntegration() {
+        return s_aiIntegration;
+    }
+    
+    // Get AI manager
+    static std::shared_ptr<iOS::AIFeatures::AIIntegrationManager> GetAIManager() {
+        return s_aiManager;
+    }
+    
+    // Get script assistant
+    static std::shared_ptr<iOS::AIFeatures::ScriptAssistant> GetScriptAssistant() {
+        return s_scriptAssistant;
+    }
+    
+    // Get signature adaptation
+    static std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> GetSignatureAdaptation() {
+        return s_signatureAdaptation;
     }
     
     // Initialize the system with options
@@ -488,6 +526,20 @@ SystemStatus SystemState::s_status;
 std::shared_ptr<iOS::ExecutionEngine> SystemState::s_executionEngine;
 std::shared_ptr<iOS::ScriptManager> SystemState::s_scriptManager;
 std::unique_ptr<iOS::UIController> SystemState::s_uiController;
+
+// Initialize AI static members
+void* SystemState::s_aiIntegration = nullptr;
+std::shared_ptr<iOS::AIFeatures::AIIntegrationManager> SystemState::s_aiManager = nullptr;
+std::shared_ptr<iOS::AIFeatures::ScriptAssistant> SystemState::s_scriptAssistant = nullptr;
+std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> SystemState::s_signatureAdaptation = nullptr;
+
+// Add AI features include for AI-specific declarations
+#ifdef __APPLE__
+#include "ios/ai_features/AIIntegration.h"
+#include "ios/ai_features/AIIntegrationManager.h"
+#include "ios/ai_features/ScriptAssistant.h"
+#include "ios/ai_features/SignatureAdaptation.h"
+#endif
 
 // Convenience function for global initialization
 inline bool Initialize(const InitOptions& options = InitOptions()) {

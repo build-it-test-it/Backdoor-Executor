@@ -120,15 +120,20 @@ void AIIntegrationManager::InitializeComponents() {
         
         // Initialize AI System Initializer for enhanced AI capabilities
         ReportStatus(StatusUpdate("Initializing enhanced AI system...", 0.65f));
-        m_aiSystemInitializer = std::make_shared<AISystemInitializer>();
-        bool aiSystemInitialized = m_aiSystemInitializer->Initialize(
-            m_config.GetModelPath(),
-            std::make_shared<AIConfig>(m_config)
+        // Get the singleton instance instead of creating a new one
+        m_aiSystemInitializer = std::shared_ptr<AISystemInitializer>(AISystemInitializer::GetInstance(), 
+            [](AISystemInitializer*) { /* No deletion - it's a singleton */ });
+            
+        // Initialize with config properly
+        bool aiSystemInitialized = m_aiSystemInitializer->Initialize(m_config,
+            [this](float progress) {
+                std::cout << "AI System initialization progress: " << (progress * 100.0f) << "%" << std::endl;
+            }
         );
         
         if (aiSystemInitialized) {
-            // Enable comprehensive vulnerability detection
-            m_aiSystemInitializer->EnableAllVulnerabilityTypes();
+            // We've successfully initialized
+            std::cout << "AISystemInitializer successfully initialized" << std::endl;
         }
         
         // Create and initialize script assistant
@@ -415,44 +420,59 @@ void AIIntegrationManager::SetAPIKey(const std::string& apiKey) {
 }
 
 // Set online mode
-void AIIntegrationManager::SetOnlineMode(AIConfig::OnlineMode mode) {
+void AIIntegrationManager::SetOnlineMode(::iOS::AIFeatures::HybridAISystem::OnlineMode mode) {
+    // Update config - convert hybrid mode to config mode
+    AIConfig::OnlineMode configMode;
+    
+    // Convert hybrid mode to config mode
+    switch (mode) {
+        case HybridAISystem::OnlineMode::Auto:
+            configMode = AIConfig::OnlineMode::Auto;
+            break;
+        case HybridAISystem::OnlineMode::PreferOffline:
+            configMode = AIConfig::OnlineMode::PreferOffline;
+            break;
+        case HybridAISystem::OnlineMode::PreferOnline:
+            configMode = AIConfig::OnlineMode::PreferOnline;
+            break;
+        case HybridAISystem::OnlineMode::OfflineOnly:
+            configMode = AIConfig::OnlineMode::OfflineOnly;
+            break;
+        case HybridAISystem::OnlineMode::OnlineOnly:
+            configMode = AIConfig::OnlineMode::OnlineOnly;
+            break;
+        default:
+            configMode = AIConfig::OnlineMode::Auto;
+            break;
+    }
+    
     // Update config
-    m_config.SetOnlineMode(mode);
+    m_config.SetOnlineMode(configMode);
     m_config.Save();
     
     // Update components
     if (m_hybridAI) {
-        HybridAISystem::OnlineMode hybridMode;
-        
-        // Convert config mode to hybrid mode
-        switch (mode) {
-            case AIConfig::OnlineMode::Auto:
-                hybridMode = HybridAISystem::OnlineMode::Auto;
-                break;
-            case AIConfig::OnlineMode::PreferOffline:
-                hybridMode = HybridAISystem::OnlineMode::PreferOffline;
-                break;
-            case AIConfig::OnlineMode::PreferOnline:
-                hybridMode = HybridAISystem::OnlineMode::PreferOnline;
-                break;
-            case AIConfig::OnlineMode::OfflineOnly:
-                hybridMode = HybridAISystem::OnlineMode::OfflineOnly;
-                break;
-            case AIConfig::OnlineMode::OnlineOnly:
-                hybridMode = HybridAISystem::OnlineMode::OnlineOnly;
-                break;
-            default:
-                hybridMode = HybridAISystem::OnlineMode::Auto;
-                break;
-        }
-        
-        m_hybridAI->SetOnlineMode(hybridMode);
+        m_hybridAI->SetOnlineMode(mode);
     }
 }
 
 // Get online mode
-AIConfig::OnlineMode AIIntegrationManager::GetOnlineMode() const {
-    return m_config.GetOnlineMode();
+::iOS::AIFeatures::HybridAISystem::OnlineMode AIIntegrationManager::GetOnlineMode() const {
+    // Convert config mode to hybrid mode
+    switch (m_config.GetOnlineMode()) {
+        case AIConfig::OnlineMode::Auto:
+            return HybridAISystem::OnlineMode::Auto;
+        case AIConfig::OnlineMode::PreferOffline:
+            return HybridAISystem::OnlineMode::PreferOffline;
+        case AIConfig::OnlineMode::PreferOnline:
+            return HybridAISystem::OnlineMode::PreferOnline;
+        case AIConfig::OnlineMode::OfflineOnly:
+            return HybridAISystem::OnlineMode::OfflineOnly;
+        case AIConfig::OnlineMode::OnlineOnly:
+            return HybridAISystem::OnlineMode::OnlineOnly;
+        default:
+            return HybridAISystem::OnlineMode::Auto;
+    }
 }
 
 // Set model quality
@@ -515,7 +535,8 @@ void AIIntegrationManager::HandleAppBackground() {
     m_config.Save();
     
     // Release resources if needed
-    if (m_config.GetOption("release_memory_in_background", "true") == "true") {
+    // Get configuration settings (need to use a public API instead of private GetOption)
+    if (m_config.IsMemoryReleaseEnabled()) {
         HandleMemoryWarning();
     }
 }

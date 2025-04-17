@@ -1,5 +1,5 @@
-#include "../objc_isolation.h"
 #pragma once
+#include "../../objc_isolation.h"
 
 #include <string>
 #include <map>

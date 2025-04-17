@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../objc_isolation.h"
+#include "../../objc_isolation.h"
 #include "AIConfig.h"
 #include "AIIntegration.h"
 #include "local_models/VulnerabilityDetectionModel.h"

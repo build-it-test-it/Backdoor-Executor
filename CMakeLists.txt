@@ -106,9 +106,56 @@ include_directories(${LUA_INCLUDE_DIR})
 add_definitions(-DUSE_LUAU=1)
 add_definitions(-DLUAU_FASTINT_SUPPORT=1)
 
-# Add VM subdirectory first to ensure it's built before other dependencies
-# Use a specific binary directory name to avoid conflicts
-add_subdirectory(VM VM_build)
+# Instead of building VM as a separate library, include its headers directly
+# Set paths to VM headers
+include_directories(${CMAKE_SOURCE_DIR}/VM/include)
+
+# Collect VM source files for direct compilation
+file(GLOB_RECURSE VM_SOURCES
+    ${CMAKE_SOURCE_DIR}/VM/src/*.cpp
+)
+
+# Add VM source files directly to our build
+add_library(luau_vm STATIC ${VM_SOURCES})
+target_include_directories(luau_vm PUBLIC 
+    ${CMAKE_SOURCE_DIR}/VM/include
+    ${CMAKE_SOURCE_DIR}/VM/src
+)
+
+# Set compiler flags/definitions for VM sources
+if(APPLE)
+    target_compile_options(luau_vm PRIVATE 
+        -Wall 
+        -fPIC
+        -fno-exceptions 
+        -fno-rtti
+    )
+    
+    if(CMAKE_SYSTEM_NAME MATCHES "iOS")
+        target_compile_options(luau_vm PRIVATE
+            -fembed-bitcode
+            -mios-version-min=13.0
+        )
+    endif()
+endif()
+
+target_compile_definitions(luau_vm PRIVATE 
+    LUA_API=LUAI_FUNC
+    LUALIB_API=LUAI_FUNC
+    LUAU_FASTINT_SUPPORT=1
+    USE_LUAU=1
+)
+
+# Set properties for the VM library
+set_target_properties(luau_vm PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+)
+
+# Create compatibility alias for Lua::lua
+add_library(Lua::lua ALIAS luau_vm)
 
 # Add remaining subdirectories
 add_subdirectory(source/cpp)

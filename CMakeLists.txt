@@ -78,8 +78,9 @@ endif()
 set(LUAU_ROOT "${CMAKE_SOURCE_DIR}/VM" CACHE PATH "Root directory of Luau installation")
 set(LUAU_INCLUDE_DIR "${LUAU_ROOT}/include" CACHE PATH "Directory containing Luau headers")
 
-# Build the Luau VM from local source
-add_subdirectory(VM)
+# We're including VM source files directly in the main library rather than as a separate target
+# DO NOT add_subdirectory here - we removed VM/CMakeLists.txt to prevent conflicts
+# add_subdirectory(VM)  
 
 # Set LUA variables for compatibility with rest of the build
 set(LUA_INCLUDE_DIR "${LUAU_INCLUDE_DIR}")

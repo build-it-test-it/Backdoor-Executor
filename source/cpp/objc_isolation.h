@@ -132,11 +132,11 @@ typedef enum {
     kErrorNetworkFailure = -10
 } ErrorCode;
 
-// Platform detection
+// Platform detection (using a unique name to avoid conflicts with system headers)
 #ifdef __APPLE__
-    #define PLATFORM_IOS 1
+    #define EXECUTOR_PLATFORM_IOS 1
 #else
-    #define PLATFORM_IOS 0
+    #define EXECUTOR_PLATFORM_IOS 0
 #endif
 
 // Common function prototypes for platform abstraction

@@ -1,5 +1,6 @@
 // UIController.mm - Production-grade implementation for iOS
 #include "UIController.h"
+#include "ui/MainViewController.h"
 #include <iostream>
 #include <sstream>
 #include "../filesystem_utils.h"
@@ -1257,16 +1258,13 @@ namespace iOS {
     }
 }
 
-// Implementation of the GetMainViewController method
+// Implementation of the GetMainViewController method is in UIController.cpp
+// to avoid duplicate symbol errors. This is just a stub to avoid build errors.
+/*
 std::shared_ptr<UI::MainViewController> UIController::GetMainViewController() const {
-    // Create a new MainViewController instance if needed
-    static std::shared_ptr<UI::MainViewController> mainViewController = 
-        std::make_shared<UI::MainViewController>();
-    
-    // Associate with our view controller
-    if (m_uiView) {
-        mainViewController->SetNativeViewController(m_uiView);
-    }
-    
-    return mainViewController;
+    // Implementation in UIController.cpp
+    return nullptr;
+}
+*/
+// Implementation moved to UIController.cpp to avoid duplicate symbol definition
 }

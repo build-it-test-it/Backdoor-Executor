@@ -1,4 +1,3 @@
-#include "../memory/ci_compat.h"
 // Pattern scanner for memory searching
 #pragma once
 

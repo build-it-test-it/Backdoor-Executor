@@ -119,14 +119,6 @@ public:
      * @return Script category
      */
     static ScriptCategory StringToCategory(const std::string& str);
-
-protected:
-    // Implement the pure virtual methods from LocalModelBase
-    virtual bool InitializeModel() override;
-    virtual bool TrainModel(TrainingProgressCallback progressCallback = nullptr) override;
-    virtual std::string PredictInternal(const std::string& input) override;
-    virtual std::vector<float> FeaturizeInput(const std::string& input) override;
-    virtual std::string ProcessOutput(const std::vector<float>& output) override;
 };
 
 } // namespace LocalModels

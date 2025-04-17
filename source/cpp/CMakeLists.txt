@@ -132,8 +132,12 @@ target_include_directories(roblox_execution PUBLIC
     ${CMAKE_SOURCE_DIR}/external/dobby/include
 )
 
-# Link against lua
-target_link_libraries(roblox_execution luau_vm)
+# We now include VM sources directly in main library, no need to link against luau_vm
+# instead, ensure we have the right include paths
+target_include_directories(roblox_execution PRIVATE
+    ${CMAKE_SOURCE_DIR}/VM/include
+    ${CMAKE_SOURCE_DIR}/VM/src
+)
 
 # Find Dobby and link if available
 find_package(Dobby QUIET)

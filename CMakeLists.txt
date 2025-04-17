@@ -106,56 +106,60 @@ include_directories(${LUA_INCLUDE_DIR})
 add_definitions(-DUSE_LUAU=1)
 add_definitions(-DLUAU_FASTINT_SUPPORT=1)
 
-# Instead of building VM as a separate library, include its headers directly
-# Set paths to VM headers
+# Use a completely different target name to avoid conflicts
+# Include paths to VM headers
 include_directories(${CMAKE_SOURCE_DIR}/VM/include)
 
-# Collect VM source files for direct compilation
-file(GLOB_RECURSE VM_SOURCES
-    ${CMAKE_SOURCE_DIR}/VM/src/*.cpp
+message(STATUS "Using VM headers from: ${CMAKE_SOURCE_DIR}/VM/include")
+
+# Include VM sources directly in the executable - we'll compile them together with our app
+# rather than as a separate library to avoid conflicts and linking issues
+set(VM_SRC_DIR ${CMAKE_SOURCE_DIR}/VM/src)
+
+# These files will be included directly in the final executable
+set(DIRECT_VM_SOURCES
+    ${VM_SRC_DIR}/lapi.cpp
+    ${VM_SRC_DIR}/laux.cpp
+    ${VM_SRC_DIR}/lbaselib.cpp
+    ${VM_SRC_DIR}/lbitlib.cpp
+    ${VM_SRC_DIR}/lbuffer.cpp
+    ${VM_SRC_DIR}/lbuflib.cpp
+    ${VM_SRC_DIR}/lbuiltins.cpp
+    ${VM_SRC_DIR}/ldblib.cpp
+    ${VM_SRC_DIR}/ldebug.cpp
+    ${VM_SRC_DIR}/ldo.cpp
+    ${VM_SRC_DIR}/lfunc.cpp
+    ${VM_SRC_DIR}/lgc.cpp
+    ${VM_SRC_DIR}/lgcdebug.cpp
+    ${VM_SRC_DIR}/linit.cpp
+    ${VM_SRC_DIR}/lmathlib.cpp
+    ${VM_SRC_DIR}/lmem.cpp
+    ${VM_SRC_DIR}/lnumprint.cpp
+    ${VM_SRC_DIR}/lobject.cpp
+    ${VM_SRC_DIR}/loslib.cpp
+    ${VM_SRC_DIR}/lperf.cpp
+    ${VM_SRC_DIR}/lstate.cpp
+    ${VM_SRC_DIR}/lstring.cpp
+    ${VM_SRC_DIR}/lstrlib.cpp
+    ${VM_SRC_DIR}/ltable.cpp
+    ${VM_SRC_DIR}/ltablib.cpp
+    ${VM_SRC_DIR}/ltm.cpp
+    ${VM_SRC_DIR}/ludata.cpp
+    ${VM_SRC_DIR}/lutf8lib.cpp
+    ${VM_SRC_DIR}/lveclib.cpp
+    ${VM_SRC_DIR}/lvmexecute.cpp
+    ${VM_SRC_DIR}/lvmload.cpp
+    ${VM_SRC_DIR}/lvmutils.cpp
 )
 
-# Add VM source files directly to our build
-add_library(luau_vm STATIC ${VM_SOURCES})
-target_include_directories(luau_vm PUBLIC 
-    ${CMAKE_SOURCE_DIR}/VM/include
-    ${CMAKE_SOURCE_DIR}/VM/src
-)
-
-# Set compiler flags/definitions for VM sources
-if(APPLE)
-    target_compile_options(luau_vm PRIVATE 
-        -Wall 
-        -fPIC
-        -fno-exceptions 
-        -fno-rtti
-    )
-    
-    if(CMAKE_SYSTEM_NAME MATCHES "iOS")
-        target_compile_options(luau_vm PRIVATE
-            -fembed-bitcode
-            -mios-version-min=13.0
-        )
+# Check and report which VM source files actually exist
+foreach(SOURCE_FILE ${DIRECT_VM_SOURCES})
+    if(NOT EXISTS "${SOURCE_FILE}")
+        message(WARNING "VM source file not found: ${SOURCE_FILE}")
     endif()
-endif()
+endforeach()
 
-target_compile_definitions(luau_vm PRIVATE 
-    LUA_API=LUAI_FUNC
-    LUALIB_API=LUAI_FUNC
-    LUAU_FASTINT_SUPPORT=1
-    USE_LUAU=1
-)
-
-# Set properties for the VM library
-set_target_properties(luau_vm PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    C_VISIBILITY_PRESET hidden
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON
-)
-
-# Create compatibility alias for Lua::lua
-add_library(Lua::lua ALIAS luau_vm)
+message(STATUS "VM source files will be compiled directly with the application")
 
 # Add remaining subdirectories
 add_subdirectory(source/cpp)
@@ -179,10 +183,11 @@ if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "=========================================")
 endif()
 
-# Create the final dynamic library
+# Create the final dynamic library - include VM source files directly
 add_library(mylibrary SHARED 
     source/library.cpp
     source/lfs.c
+    ${DIRECT_VM_SOURCES}
 )
 
 # Set target properties
@@ -191,18 +196,38 @@ set_target_properties(mylibrary PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
 )
 
+# Set VM-specific compiler flags and definitions
+target_compile_definitions(mylibrary PRIVATE
+    LUA_API=LUAI_FUNC
+    LUALIB_API=LUAI_FUNC
+    LUAU_FASTINT_SUPPORT=1
+    USE_LUAU=1
+)
+
+if(APPLE)
+    target_compile_options(mylibrary PRIVATE 
+        -fno-exceptions 
+        -fno-rtti
+    )
+    
+    if(CMAKE_SYSTEM_NAME MATCHES "iOS")
+        target_compile_options(mylibrary PRIVATE
+            -fembed-bitcode
+            -mios-version-min=13.0
+        )
+    endif()
+endif()
+
 # Link with our static library and dependencies
 target_link_libraries(mylibrary
     PRIVATE
     roblox_execution
 )
 
-# Link directly with Luau VM
-target_link_libraries(mylibrary PRIVATE luau_vm)
-
-# Additional include paths and flags
+# Additional include paths and flags - include VM source directory
 target_include_directories(mylibrary PRIVATE 
     ${LUA_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/VM/src
     ${CMAKE_SOURCE_DIR}/source
 )
 

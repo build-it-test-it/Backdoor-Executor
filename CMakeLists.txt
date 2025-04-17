@@ -107,7 +107,8 @@ add_definitions(-DUSE_LUAU=1)
 add_definitions(-DLUAU_FASTINT_SUPPORT=1)
 
 # Add VM subdirectory first to ensure it's built before other dependencies
-add_subdirectory(VM)
+# Use a specific binary directory name to avoid conflicts
+add_subdirectory(VM VM_build)
 
 # Add remaining subdirectories
 add_subdirectory(source/cpp)

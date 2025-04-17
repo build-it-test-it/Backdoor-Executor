@@ -1,15 +1,31 @@
 // Force C99 mode to ensure compatibility
 #define _XOPEN_SOURCE 600
 
-// Include the Lua compatibility header which defines all necessary functions
-#include "cpp/lua_compatibility.h"
-
-// Additional includes for LFS
+// Include standard headers first
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#include <io.h>
+#else
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <utime.h>
+#include <sys/param.h> // For MAXPATHLEN
+#endif
+
+// Include the Lua compatibility header which defines all necessary functions
+#include "cpp/lua_compatibility.h"
+
+// Ensure we use our compatibility layer's definitions
+#undef new_lib
 
 // Define fallbacks for any missing functions
 #ifndef chdir_error

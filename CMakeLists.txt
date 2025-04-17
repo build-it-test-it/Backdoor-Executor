@@ -23,6 +23,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Options
 option(USE_DOBBY "Use Dobby for hooking" ON)
+option(USE_LUAU "Use Luau (Roblox's Lua) instead of standard Lua" ON)
 option(ENABLE_AI_FEATURES "Enable AI features" ON)
 option(ENABLE_ADVANCED_BYPASS "Enable advanced bypass features" ON)
 option(BUILD_TESTING "Build tests" OFF)

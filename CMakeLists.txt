@@ -73,13 +73,19 @@ if(USE_DOBBY)
     add_definitions(-DUSE_DOBBY=1)
 endif()
 
-# Find and setup Lua
+# Find and setup Lua with our custom module
 find_package(Lua REQUIRED)
 
-# Add Lua bundled library (can be compiled from sources if needed)
+# Create Lua interface library that links to the real Lua library
 add_library(lua_bundled INTERFACE)
 target_include_directories(lua_bundled INTERFACE ${LUA_INCLUDE_DIR})
-target_link_libraries(lua_bundled INTERFACE ${LUA_LIBRARIES})
+target_link_libraries(lua_bundled INTERFACE Lua::lua)
+
+# Additional directories needed for Lua
+if(EXISTS ${LUA_INCLUDE_DIR})
+  message(STATUS "Setting up Lua include directories: ${LUA_INCLUDE_DIR}")
+  include_directories(${LUA_INCLUDE_DIR})
+endif()
 
 # Add subdirectories
 add_subdirectory(source/cpp)

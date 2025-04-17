@@ -166,6 +166,7 @@ namespace AdvancedBypass {
                     int statusCode = 0;
                     std::string errorStr = "";
                     std::string content = "";
+                    std::unordered_map<std::string, std::string> responseHeaders;
                     
                     if (error) {
                         // Handle error
@@ -184,18 +185,17 @@ namespace AdvancedBypass {
                             content = std::string((const char*)[data bytes], [data length]);
                         }
                         
-                        // We can't store the headers in the RequestResult since it doesn't have an m_headers field
-                        // Just log a few important ones for debugging
-                        if (m_useCache) {
-                            NSDictionary* respHeaders = httpResponse.allHeaderFields;
-                            NSString* contentType = respHeaders[@"Content-Type"];
-                            NSString* cacheControl = respHeaders[@"Cache-Control"];
-                            NSLog(@"Response headers - Content-Type: %@, Cache-Control: %@", contentType, cacheControl);
+                        // Get response headers
+                        NSDictionary* respHeaders = httpResponse.allHeaderFields;
+                        for (NSString* key in respHeaders) {
+                            NSString* value = respHeaders[key];
+                            responseHeaders[[key UTF8String]] = [value UTF8String];
                         }
                     }
                     
                     // Create final result with all data
                     RequestResult result(success, statusCode, errorStr, content, requestTime);
+                    result.m_headers = responseHeaders;
                     
                     // Call callback on main thread
                     dispatch_async(dispatch_get_main_queue(), 

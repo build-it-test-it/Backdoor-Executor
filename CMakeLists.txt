@@ -77,15 +77,26 @@ endif()
 # Find and setup Lua with our custom module
 find_package(Lua REQUIRED)
 
-# Create Lua interface library that links to the real Lua library
+# Create Lua interface library that links to the real Lua/Luau library
 add_library(lua_bundled INTERFACE)
 target_include_directories(lua_bundled INTERFACE ${LUA_INCLUDE_DIR})
 target_link_libraries(lua_bundled INTERFACE Lua::lua)
 
-# Additional directories needed for Lua
+# Additional directories needed for Lua/Luau
 if(EXISTS ${LUA_INCLUDE_DIR})
-  message(STATUS "Setting up Lua include directories: ${LUA_INCLUDE_DIR}")
+  message(STATUS "Setting up Lua/Luau include directories: ${LUA_INCLUDE_DIR}")
   include_directories(${LUA_INCLUDE_DIR})
+endif()
+
+# Log information about Lua/Luau to help debug build issues
+message(STATUS "Lua/Luau Library: ${LUA_LIBRARY}")
+message(STATUS "Lua/Luau Include Directory: ${LUA_INCLUDE_DIR}")
+message(STATUS "Using Luau (Roblox Lua): ${USE_LUAU}")
+
+# Additional compile definitions when using Luau
+if(USE_LUAU)
+  add_definitions(-DUSE_LUAU=1)
+  add_definitions(-DLUAU_FASTINT_SUPPORT=1)
 endif()
 
 # Add subdirectories

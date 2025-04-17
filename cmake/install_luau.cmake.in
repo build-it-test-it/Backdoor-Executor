@@ -24,21 +24,45 @@ foreach(LIB_NAME
 )
     if(EXISTS "${LIB_NAME}")
         message(STATUS "Found Luau VM library at ${LIB_NAME}")
+        
+        # Copy directly to the final location
         file(COPY "${LIB_NAME}" DESTINATION "@LUA_EXTERNAL_DIR@/lib")
         
         # Get just the filename without the path
         get_filename_component(FILENAME "${LIB_NAME}" NAME)
         
-        # Rename the copied file to liblua.a
-        file(RENAME "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" "@LUA_LIBRARY@")
-        message(STATUS "Copied and renamed to @LUA_LIBRARY@")
-        set(FOUND_LIBRARY TRUE)
+        # For debugging
+        message(STATUS "Copied ${FILENAME} to @LUA_EXTERNAL_DIR@/lib")
+        message(STATUS "Directory contents after copy:")
+        execute_process(COMMAND ls -la "@LUA_EXTERNAL_DIR@/lib")
+        
+        # If this is not called liblua.a, we need to rename it
+        if(EXISTS "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" AND NOT "${FILENAME}" STREQUAL "liblua.a")
+            message(STATUS "Renaming @LUA_EXTERNAL_DIR@/lib/${FILENAME} to @LUA_LIBRARY@")
+            file(RENAME "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" "@LUA_LIBRARY@")
+        # If we copied it and it has the right name already, we're done
+        elseif(EXISTS "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" AND "${FILENAME}" STREQUAL "liblua.a")
+            message(STATUS "No rename needed, file already has correct name")
+        endif()
+        
+        # Create an empty file if the rename failed or the file doesn't exist after all our attempts
+        if(NOT EXISTS "@LUA_LIBRARY@")
+            message(STATUS "Creating @LUA_LIBRARY@ directly...")
+            file(COPY "${LIB_NAME}" DESTINATION "@LUA_LIBRARY@")
+        endif()
+        
+        # Check if we succeeded
+        if(EXISTS "@LUA_LIBRARY@")
+            message(STATUS "Successfully created @LUA_LIBRARY@")
+            set(FOUND_LIBRARY TRUE)
+        endif()
+        
         break()
     endif()
 endforeach()
 
 # If we didn't find the library, create an empty one to prevent build failures
-if(NOT ${FOUND_LIBRARY})
+if(NOT FOUND_LIBRARY)
     message(WARNING "Could not find Luau VM library, creating empty placeholder")
     file(WRITE "@LUA_LIBRARY@" "# Empty placeholder")
 endif()

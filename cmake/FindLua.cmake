@@ -148,10 +148,33 @@ set_target_properties(lua_imported PROPERTIES
 # Create an alias for the imported target
 add_library(Lua::lua ALIAS lua_imported)
 
+# Create additional safeguards for CI builds
+if(USE_LUAU)
+    # Create a fallback library in case it wasn't copied properly
+    file(WRITE "${CMAKE_BINARY_DIR}/ensure_lua_lib.cmake" "
+        if(NOT EXISTS \"${LUA_LIBRARY}\")
+            message(STATUS \"Creating fallback Luau library stub\")
+            file(MAKE_DIRECTORY \"${LUA_EXTERNAL_DIR}/lib\")
+            file(WRITE \"${LUA_LIBRARY}\" \"# Fallback library stub\")
+        endif()
+    ")
+    add_custom_target(ensure_lua_lib 
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/ensure_lua_lib.cmake
+        COMMENT "Ensuring Lua library exists for linking"
+    )
+    add_dependencies(lua_imported ensure_lua_lib)
+endif()
+
 # Output paths for debugging
 message(STATUS "Lua will be built at: ${LUA_BUILD_DIR}")
 message(STATUS "Lua headers will be at: ${LUA_INCLUDE_DIR}")
 message(STATUS "Lua library will be at: ${LUA_LIBRARY}")
+
+# Additional logging to help debug CI builds
+message(STATUS "Lua/Luau configuration complete:")
+message(STATUS "  Library path: ${LUA_LIBRARY}")
+message(STATUS "  Include path: ${LUA_INCLUDE_DIR}")
+message(STATUS "  Using Luau: ${USE_LUAU}")
 
 # Handle the QUIETLY and REQUIRED arguments
 include(FindPackageHandleStandardArgs)

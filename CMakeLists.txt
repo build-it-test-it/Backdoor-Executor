@@ -106,57 +106,40 @@ include_directories(${LUA_INCLUDE_DIR})
 add_definitions(-DUSE_LUAU=1)
 add_definitions(-DLUAU_FASTINT_SUPPORT=1)
 
-# Use a completely different target name to avoid conflicts
-# Include paths to VM headers
+# Set up for direct inclusion of VM files in main library target
 include_directories(${CMAKE_SOURCE_DIR}/VM/include)
 
 message(STATUS "Using VM headers from: ${CMAKE_SOURCE_DIR}/VM/include")
 
-# Include VM sources directly in the executable - we'll compile them together with our app
-# rather than as a separate library to avoid conflicts and linking issues
-set(VM_SRC_DIR ${CMAKE_SOURCE_DIR}/VM/src)
-
-# These files will be included directly in the final executable
-set(DIRECT_VM_SOURCES
-    ${VM_SRC_DIR}/lapi.cpp
-    ${VM_SRC_DIR}/laux.cpp
-    ${VM_SRC_DIR}/lbaselib.cpp
-    ${VM_SRC_DIR}/lbitlib.cpp
-    ${VM_SRC_DIR}/lbuffer.cpp
-    ${VM_SRC_DIR}/lbuflib.cpp
-    ${VM_SRC_DIR}/lbuiltins.cpp
-    ${VM_SRC_DIR}/ldblib.cpp
-    ${VM_SRC_DIR}/ldebug.cpp
-    ${VM_SRC_DIR}/ldo.cpp
-    ${VM_SRC_DIR}/lfunc.cpp
-    ${VM_SRC_DIR}/lgc.cpp
-    ${VM_SRC_DIR}/lgcdebug.cpp
-    ${VM_SRC_DIR}/linit.cpp
-    ${VM_SRC_DIR}/lmathlib.cpp
-    ${VM_SRC_DIR}/lmem.cpp
-    ${VM_SRC_DIR}/lnumprint.cpp
-    ${VM_SRC_DIR}/lobject.cpp
-    ${VM_SRC_DIR}/loslib.cpp
-    ${VM_SRC_DIR}/lperf.cpp
-    ${VM_SRC_DIR}/lstate.cpp
-    ${VM_SRC_DIR}/lstring.cpp
-    ${VM_SRC_DIR}/lstrlib.cpp
-    ${VM_SRC_DIR}/ltable.cpp
-    ${VM_SRC_DIR}/ltablib.cpp
-    ${VM_SRC_DIR}/ltm.cpp
-    ${VM_SRC_DIR}/ludata.cpp
-    ${VM_SRC_DIR}/lutf8lib.cpp
-    ${VM_SRC_DIR}/lveclib.cpp
-    ${VM_SRC_DIR}/lvmexecute.cpp
-    ${VM_SRC_DIR}/lvmload.cpp
-    ${VM_SRC_DIR}/lvmutils.cpp
+# Note: We're using file(GLOB) to find all VM source files dynamically
+# This is more resilient than hardcoded paths, especially if files are missing
+file(GLOB_RECURSE DIRECT_VM_SOURCES 
+    "${CMAKE_SOURCE_DIR}/VM/src/*.cpp"
 )
 
-# Check and report which VM source files actually exist
+if(NOT DIRECT_VM_SOURCES)
+    message(WARNING "No VM source files found in ${CMAKE_SOURCE_DIR}/VM/src/! Check directory structure.")
+    
+    # Provide a fallback list of essential files in case GLOB fails
+    set(VM_SRC_DIR ${CMAKE_SOURCE_DIR}/VM/src)
+    set(DIRECT_VM_SOURCES
+        ${VM_SRC_DIR}/lapi.cpp
+        ${VM_SRC_DIR}/lbaselib.cpp
+        ${VM_SRC_DIR}/linit.cpp
+        ${VM_SRC_DIR}/ldo.cpp
+        ${VM_SRC_DIR}/lgc.cpp
+        ${VM_SRC_DIR}/lstate.cpp
+        ${VM_SRC_DIR}/lobject.cpp
+        ${VM_SRC_DIR}/lstring.cpp
+        ${VM_SRC_DIR}/ltable.cpp
+        ${VM_SRC_DIR}/lmem.cpp
+    )
+endif()
+
+# Print list of VM source files for debugging
+message(STATUS "Found VM source files:")
 foreach(SOURCE_FILE ${DIRECT_VM_SOURCES})
-    if(NOT EXISTS "${SOURCE_FILE}")
-        message(WARNING "VM source file not found: ${SOURCE_FILE}")
-    endif()
+    message(STATUS "  ${SOURCE_FILE}")
 endforeach()
 
 message(STATUS "VM source files will be compiled directly with the application")
@@ -183,6 +166,33 @@ if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "=========================================")
 endif()
 
+# First create an interface library for VM source files with appropriate settings
+add_library(vm_sources INTERFACE)
+target_include_directories(vm_sources INTERFACE 
+    ${CMAKE_SOURCE_DIR}/VM/include
+    ${CMAKE_SOURCE_DIR}/VM/src
+)
+
+# Set source-specific compiler flags directly on the VM sources
+target_compile_definitions(vm_sources INTERFACE
+    LUA_API=__attribute__\(\(visibility\(\"default\"\)\)\)
+    LUALIB_API=__attribute__\(\(visibility\(\"default\"\)\)\)
+    LUAI_FUNC=__attribute__\(\(visibility\(\"hidden\"\)\)\)
+    LUAU_FASTINT_SUPPORT=1
+    USE_LUAU=1
+)
+
+# Define a variable for flags we need for all VM sources
+if(APPLE)
+    set(VM_COMPILE_FLAGS "-fno-exceptions -fno-rtti -fPIC -Wall")
+    if(CMAKE_SYSTEM_NAME MATCHES "iOS")
+        set(VM_COMPILE_FLAGS "${VM_COMPILE_FLAGS} -fembed-bitcode -mios-version-min=13.0")
+    endif()
+endif()
+
+# Apply these flags to the interface library
+set_property(TARGET vm_sources PROPERTY INTERFACE_COMPILE_OPTIONS ${VM_COMPILE_FLAGS})
+
 # Create the final dynamic library - include VM source files directly
 add_library(mylibrary SHARED 
     source/library.cpp
@@ -194,12 +204,20 @@ add_library(mylibrary SHARED
 set_target_properties(mylibrary PROPERTIES
     OUTPUT_NAME "mylibrary"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET default
+    CXX_VISIBILITY_PRESET default
+    VISIBILITY_INLINES_HIDDEN ON
 )
 
-# Set VM-specific compiler flags and definitions
+# Link against our VM interface library to get all its settings
+target_link_libraries(mylibrary PRIVATE vm_sources)
+
+# Additionally set these flags directly on the main target
 target_compile_definitions(mylibrary PRIVATE
-    LUA_API=LUAI_FUNC
-    LUALIB_API=LUAI_FUNC
+    LUA_API=__attribute__\(\(visibility\(\"default\"\)\)\)
+    LUALIB_API=__attribute__\(\(visibility\(\"default\"\)\)\)
+    LUAI_FUNC=__attribute__\(\(visibility\(\"hidden\"\)\)\)
     LUAU_FASTINT_SUPPORT=1
     USE_LUAU=1
 )

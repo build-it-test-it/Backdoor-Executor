@@ -463,7 +463,8 @@ namespace iOS {
             // Store the button and apply initial position
             #if __has_feature(objc_arc)
             // In ARC mode, use CFBridgingRetain to transfer ownership to C++
-            m_buttonView = CFBridgingRetain(button);
+            // Cast needed to convert const void* to void* (safe in this case since we own the object)
+            m_buttonView = (void*)CFBridgingRetain(button);
             #else
             // In non-ARC mode, use manual retain
             m_buttonView = (void*)button;

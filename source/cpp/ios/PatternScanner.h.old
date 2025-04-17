@@ -8,8 +8,8 @@
 #include <mutex>
 #include <cstdint>
 
-// We don't need to forward declare UIImage - it's already defined in UIKit
-// and forward-declaring it in C++ context causes conflicts
+// Forward declarations
+class UIImage;
 
 namespace iOS {
     // Pattern scanning utilities for iOS

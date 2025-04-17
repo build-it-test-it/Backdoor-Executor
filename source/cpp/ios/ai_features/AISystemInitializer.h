@@ -15,6 +15,15 @@
 #include <vector>
 #include <map>
 
+// Forward declarations for vulnerability detection
+namespace iOS {
+namespace AIFeatures {
+namespace VulnerabilityDetection {
+    struct Vulnerability;
+}
+}
+}
+
 namespace iOS {
 namespace AIFeatures {
 
@@ -52,7 +61,7 @@ private:
     static std::mutex s_instanceMutex;
     
     // Configuration
-    AIConfig m_config;
+    ::iOS::AIFeatures::AIConfig m_config;
     std::string m_dataPath;
     std::string m_modelDataPath;
     
@@ -68,15 +77,15 @@ private:
     mutable std::mutex m_mutex;
     
     // Models
-    std::shared_ptr<LocalModels::VulnerabilityDetectionModel> m_vulnDetectionModel;
-    std::shared_ptr<LocalModels::GeneralAssistantModel> m_generalAssistantModel;
-    std::shared_ptr<LocalModels::ScriptGenerationModel> m_scriptGenModel;
+    std::shared_ptr<::iOS::AIFeatures::LocalModels::VulnerabilityDetectionModel> m_vulnDetectionModel;
+    std::shared_ptr<::iOS::AIFeatures::LocalModels::GeneralAssistantModel> m_generalAssistantModel;
+    std::shared_ptr<::iOS::AIFeatures::LocalModels::ScriptGenerationModel> m_scriptGenModel;
     
     // Self-modifying code system
-    std::shared_ptr<SelfModifyingCodeSystem> m_selfModifyingSystem;
+    std::shared_ptr<::iOS::AIFeatures::SelfModifyingCodeSystem> m_selfModifyingSystem;
     
     // Script assistant
-    std::shared_ptr<ScriptAssistant> m_scriptAssistant;
+    std::shared_ptr<::iOS::AIFeatures::ScriptAssistant> m_scriptAssistant;
     
     // Model statuses
     struct ModelStatus {
@@ -118,7 +127,7 @@ public:
      * @param progressCallback Progress callback
      * @return True if initialization succeeded or was already complete
      */
-    bool Initialize(const AIConfig& config, std::function<void(float)> progressCallback = nullptr);
+    bool Initialize(const ::iOS::AIFeatures::AIConfig& config, std::function<void(float)> progressCallback = nullptr);
     
     /**
      * @brief Set model status callback
@@ -148,14 +157,14 @@ public:
      * @brief Get configuration
      * @return AI configuration
      */
-    const AIConfig& GetConfig() const;
+    const ::iOS::AIFeatures::AIConfig& GetConfig() const;
     
     /**
      * @brief Update configuration
      * @param config New configuration
      * @return True if update was successful
      */
-    bool UpdateConfig(const AIConfig& config);
+    bool UpdateConfig(const ::iOS::AIFeatures::AIConfig& config);
     
     /**
      * @brief Get model data path
@@ -174,38 +183,38 @@ public:
      * @brief Get vulnerability detection model
      * @return Shared pointer to vulnerability detection model
      */
-    std::shared_ptr<LocalModels::VulnerabilityDetectionModel> GetVulnerabilityDetectionModel();
+    std::shared_ptr<::iOS::AIFeatures::LocalModels::VulnerabilityDetectionModel> GetVulnerabilityDetectionModel();
     
     /**
      * @brief Get script generation model
      * @return Shared pointer to script generation model
      */
-    std::shared_ptr<LocalModels::ScriptGenerationModel> GetScriptGenerationModel();
+    std::shared_ptr<::iOS::AIFeatures::LocalModels::ScriptGenerationModel> GetScriptGenerationModel();
     
     /**
      * @brief Get general assistant model
      * @return Shared pointer to general assistant model
      */
-    std::shared_ptr<LocalModels::GeneralAssistantModel> GetGeneralAssistantModel() const;
+    std::shared_ptr<::iOS::AIFeatures::LocalModels::GeneralAssistantModel> GetGeneralAssistantModel() const;
     
     /**
      * @brief Get self-modifying code system
      * @return Shared pointer to self-modifying code system
      */
-    std::shared_ptr<SelfModifyingCodeSystem> GetSelfModifyingSystem();
+    std::shared_ptr<::iOS::AIFeatures::SelfModifyingCodeSystem> GetSelfModifyingSystem();
     
     /**
      * @brief Get script assistant
      * @return Shared pointer to script assistant
      */
-    std::shared_ptr<ScriptAssistant> GetScriptAssistant();
+    std::shared_ptr<::iOS::AIFeatures::ScriptAssistant> GetScriptAssistant();
     
     /**
      * @brief Detect vulnerabilities in script
      * @param script Script content
      * @param onComplete Completion callback
      */
-    void DetectVulnerabilities(const std::string& script, std::function<void(const std::vector<VulnerabilityDetection::Vulnerability>&)> onComplete);
+    void DetectVulnerabilities(const std::string& script, std::function<void(const std::vector<::iOS::AIFeatures::VulnerabilityDetection::Vulnerability>&)> onComplete);
     
     /**
      * @brief Generate script from description
@@ -245,13 +254,13 @@ public:
      * @brief Get the current model improvement mode
      * @return Model improvement mode
      */
-    AIConfig::ModelImprovement GetModelImprovementMode() const;
+    ::iOS::AIFeatures::AIConfig::ModelImprovement GetModelImprovementMode() const;
     
     /**
      * @brief Set model improvement mode
      * @param mode Model improvement mode
      */
-    void SetModelImprovementMode(AIConfig::ModelImprovement mode);
+    void SetModelImprovementMode(::iOS::AIFeatures::AIConfig::ModelImprovement mode);
     
     /**
      * @brief Check if models are available for offline use

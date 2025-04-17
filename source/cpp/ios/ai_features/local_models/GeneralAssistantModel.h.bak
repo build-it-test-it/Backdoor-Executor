@@ -214,7 +214,7 @@ public:
      * @brief Train the model on new data
      * @return True if training was successful
      */
-    bool Train();
+    bool Train() override;
     
     /**
      * @brief Set user interests

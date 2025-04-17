@@ -205,7 +205,7 @@ public:
      * @param str String representation
      * @return Script category
      */
-}; // namespace LocalModels
+} // namespace LocalModels
 } // namespace AIFeatures
 } // namespace iOS
     /**

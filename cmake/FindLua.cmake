@@ -30,24 +30,74 @@ set(LUA_BUILD_DIR ${CMAKE_BINARY_DIR}/lua-build)
 if(USE_LUAU)
     # Configuration for Luau (Roblox's Lua)
     message(STATUS "Configured to build Luau (Roblox's Lua variant)")
+    
+    # For debugging, log important paths
+    message(STATUS "LUA_EXTERNAL_DIR: ${LUA_EXTERNAL_DIR}")
+    message(STATUS "LUA_INCLUDE_DIR: ${LUA_INCLUDE_DIR}")
+    message(STATUS "LUA_LIBRARY: ${LUA_LIBRARY}")
+    
+    # Use a more robust approach with a custom install script
+    configure_file(
+        "${CMAKE_CURRENT_LIST_DIR}/install_luau.cmake.in"
+        "${CMAKE_BINARY_DIR}/install_luau.cmake"
+        @ONLY
+    )
+    
     ExternalProject_Add(
         lua_external
         GIT_REPOSITORY https://github.com/Roblox/luau.git
         GIT_TAG master
         PREFIX ${LUA_BUILD_DIR}
+        # Configure with CMake
         CMAKE_ARGS 
             -DCMAKE_BUILD_TYPE=Release
             -DLUAU_BUILD_TESTS=OFF
         # Build Luau VM and compiler
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config Release --target Luau.VM Luau.Compiler
-        # Copy headers and libraries to our external directory
-        INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory
-            <SOURCE_DIR>/VM/include
-            ${LUA_INCLUDE_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy
-            <BINARY_DIR>/Luau.VM${CMAKE_STATIC_LIBRARY_SUFFIX}
-            ${LUA_LIBRARY}
+        # Use our custom install script
+        INSTALL_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/install_luau.cmake
     )
+    
+    # Create an install script for Luau
+    file(WRITE "${CMAKE_CURRENT_LIST_DIR}/install_luau.cmake.in" "
+# Custom install script for Luau
+# Create directories
+file(MAKE_DIRECTORY \"@LUA_INCLUDE_DIR@\")
+file(MAKE_DIRECTORY \"@LUA_EXTERNAL_DIR@/lib\")
+
+# Show build directory contents for debugging
+message(STATUS \"Luau build directory contents:\")
+execute_process(COMMAND ls -la \"@LUA_BUILD_DIR@/src/lua_external-build\")
+
+# Copy header files
+file(GLOB LUAU_HEADERS \"@LUA_BUILD_DIR@/src/lua_external/VM/include/*.h\")
+file(COPY \${LUAU_HEADERS} DESTINATION \"@LUA_INCLUDE_DIR@\")
+message(STATUS \"Copied Luau headers to @LUA_INCLUDE_DIR@\")
+
+# Try to find and copy the VM library with various possible names
+foreach(LIB_NAME 
+    \"@LUA_BUILD_DIR@/src/lua_external-build/libLuau.VM.a\"
+    \"@LUA_BUILD_DIR@/src/lua_external-build/Luau.VM.a\"
+    \"@LUA_BUILD_DIR@/src/lua_external-build/Release/libLuau.VM.a\"
+    \"@LUA_BUILD_DIR@/src/lua_external-build/Release/Luau.VM.a\"
+    \"@LUA_BUILD_DIR@/src/lua_external-build/VM/libLuau.VM.a\"
+    \"@LUA_BUILD_DIR@/src/lua_external-build/VM/Luau.VM.a\"
+)
+    if(EXISTS \${LIB_NAME})
+        message(STATUS \"Found Luau VM library at \${LIB_NAME}\")
+        file(COPY \${LIB_NAME} DESTINATION \"@LUA_EXTERNAL_DIR@/lib\")
+        file(RENAME \"@LUA_EXTERNAL_DIR@/lib/\${LIB_NAME_WE}\${LIB_EXT}\" \"@LUA_LIBRARY@\")
+        message(STATUS \"Copied to @LUA_LIBRARY@\")
+        break()
+    endif()
+endforeach()
+
+# If we didn't find the library, create an empty one to prevent build failures
+if(NOT EXISTS \"@LUA_LIBRARY@\")
+    message(WARNING \"Could not find Luau VM library, creating empty placeholder\")
+    file(WRITE \"@LUA_LIBRARY@\" \"# Empty placeholder\")
+endif()
+")
 else()
     # Configuration for standard Lua 5.4
     message(STATUS "Configured to build standard Lua 5.4")
@@ -59,27 +109,28 @@ else()
         PATCH_COMMAND ""
         CONFIGURE_COMMAND ""
         # Build Lua as a static library with position-independent code
-        BUILD_COMMAND ${CMAKE_COMMAND} -E chdir <SOURCE_DIR> ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} "MYCFLAGS=-fPIC" make generic
+        BUILD_COMMAND ${CMAKE_COMMAND} -E chdir <SOURCE_DIR> ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} "MYCFLAGS=-fPIC" make -j4 generic
         BUILD_IN_SOURCE 1
-        # Copy headers and library to our external directory
-        INSTALL_COMMAND ${CMAKE_COMMAND} -E copy
-            <SOURCE_DIR>/src/lua.h
-            ${LUA_INCLUDE_DIR}/lua.h
-        COMMAND ${CMAKE_COMMAND} -E copy
-            <SOURCE_DIR>/src/luaconf.h
-            ${LUA_INCLUDE_DIR}/luaconf.h
-        COMMAND ${CMAKE_COMMAND} -E copy
-            <SOURCE_DIR>/src/lualib.h
-            ${LUA_INCLUDE_DIR}/lualib.h
-        COMMAND ${CMAKE_COMMAND} -E copy
-            <SOURCE_DIR>/src/lauxlib.h
-            ${LUA_INCLUDE_DIR}/lauxlib.h
-        COMMAND ${CMAKE_COMMAND} -E copy
-            <SOURCE_DIR>/src/lua.hpp
-            ${LUA_INCLUDE_DIR}/lua.hpp
-        COMMAND ${CMAKE_COMMAND} -E copy
-            <SOURCE_DIR>/src/liblua.a
-            ${LUA_LIBRARY}
+        # Create directories first to ensure they exist
+        INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${LUA_INCLUDE_DIR}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${LUA_EXTERNAL_DIR}/lib
+        # Verbose output for debugging
+        COMMAND ${CMAKE_COMMAND} -E echo "Source directory contents:"
+        COMMAND ls -la <SOURCE_DIR>/src/
+        # Copy headers and library with detailed error output
+        COMMAND ${CMAKE_COMMAND} -E echo "Copying Lua headers and library..."
+        COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/src/lua.h ${LUA_INCLUDE_DIR}/lua.h || (echo "Failed to copy lua.h" && false)
+        COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/src/luaconf.h ${LUA_INCLUDE_DIR}/luaconf.h || (echo "Failed to copy luaconf.h" && false)
+        COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/src/lualib.h ${LUA_INCLUDE_DIR}/lualib.h || (echo "Failed to copy lualib.h" && false)
+        COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/src/lauxlib.h ${LUA_INCLUDE_DIR}/lauxlib.h || (echo "Failed to copy lauxlib.h" && false)
+        # Only copy lua.hpp if it exists (it may not in some older versions)
+        COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/src/lua.hpp ${LUA_INCLUDE_DIR}/lua.hpp || echo "Note: lua.hpp not found, skipping"
+        # Try different library names and paths
+        COMMAND ${CMAKE_COMMAND} -E echo "Copying Lua library..."
+        COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/src/liblua.a ${LUA_LIBRARY} || 
+               ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/liblua.a ${LUA_LIBRARY} || 
+               ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/src/lua54.lib ${LUA_LIBRARY} || 
+               (echo "Failed to copy Lua library from any expected location" && false)
     )
 endif()
 

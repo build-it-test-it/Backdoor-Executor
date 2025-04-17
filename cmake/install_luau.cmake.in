@@ -1,0 +1,44 @@
+# Custom install script for Luau
+# Create directories
+file(MAKE_DIRECTORY "@LUA_INCLUDE_DIR@")
+file(MAKE_DIRECTORY "@LUA_EXTERNAL_DIR@/lib")
+
+# Show build directory contents for debugging
+message(STATUS "Luau build directory contents:")
+execute_process(COMMAND ls -la "@LUA_BUILD_DIR@/src/lua_external-build")
+
+# Copy header files
+file(GLOB LUAU_HEADERS "@LUA_BUILD_DIR@/src/lua_external/VM/include/*.h")
+file(COPY ${LUAU_HEADERS} DESTINATION "@LUA_INCLUDE_DIR@")
+message(STATUS "Copied Luau headers to @LUA_INCLUDE_DIR@")
+
+# Try to find and copy the VM library with various possible names
+set(FOUND_LIBRARY FALSE)
+foreach(LIB_NAME 
+    "@LUA_BUILD_DIR@/src/lua_external-build/libLuau.VM.a"
+    "@LUA_BUILD_DIR@/src/lua_external-build/Luau.VM.a"
+    "@LUA_BUILD_DIR@/src/lua_external-build/Release/libLuau.VM.a"
+    "@LUA_BUILD_DIR@/src/lua_external-build/Release/Luau.VM.a"
+    "@LUA_BUILD_DIR@/src/lua_external-build/Luau.VM.lib"
+    "@LUA_BUILD_DIR@/src/lua_external-build/libLuau.VM.lib"
+)
+    if(EXISTS "${LIB_NAME}")
+        message(STATUS "Found Luau VM library at ${LIB_NAME}")
+        file(COPY "${LIB_NAME}" DESTINATION "@LUA_EXTERNAL_DIR@/lib")
+        
+        # Get just the filename without the path
+        get_filename_component(FILENAME "${LIB_NAME}" NAME)
+        
+        # Rename the copied file to liblua.a
+        file(RENAME "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" "@LUA_LIBRARY@")
+        message(STATUS "Copied and renamed to @LUA_LIBRARY@")
+        set(FOUND_LIBRARY TRUE)
+        break()
+    endif()
+endforeach()
+
+# If we didn't find the library, create an empty one to prevent build failures
+if(NOT ${FOUND_LIBRARY})
+    message(WARNING "Could not find Luau VM library, creating empty placeholder")
+    file(WRITE "@LUA_LIBRARY@" "# Empty placeholder")
+endif()

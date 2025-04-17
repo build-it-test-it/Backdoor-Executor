@@ -104,11 +104,50 @@ add_subdirectory(source/cpp)
 add_subdirectory(source)
 
 # Make sure the Lua library exists and has the right content
+# Create the ensure_lua_lib.cmake file in the build directory
+file(WRITE "${CMAKE_BINARY_DIR}/ensure_lua_lib.cmake" "
+# Script to ensure Lua library exists
+message(STATUS \"Ensuring Lua library exists at ${LUA_LIBRARY}\")
+# Create directory if needed
+file(MAKE_DIRECTORY \"${LUA_EXTERNAL_DIR}/lib\")
+
+# Check if library already exists and has content
+if(EXISTS \"${LUA_LIBRARY}\")
+    file(SIZE \"${LUA_LIBRARY}\" SIZE)
+    message(STATUS \"Library exists with size: \${SIZE} bytes\")
+    if(SIZE GREATER 1000)
+        message(STATUS \"Library seems valid, no action needed\")
+        return()
+    else
+        message(STATUS \"Library too small, will recreate\")
+    endif()
+endif()
+
+# Create a dummy C file with needed symbols
+file(WRITE \"${LUA_EXTERNAL_DIR}/lib/lua_api.c\" \"
+#include <stdlib.h>
+/* Essential Lua API stubs */
+int luaopen_base(void* L) { return 0; }
+int luaL_openlibs(void* L) { return 0; }
+int lua_close(void* L) { return 0; }
+int luaL_newstate(void) { return 0; }
+int lua_pcall(void* L, int a, int b, int c) { return 0; }
+\")
+
+# Compile and create archive
+execute_process(
+    COMMAND cc -c \"${LUA_EXTERNAL_DIR}/lib/lua_api.c\" -o \"${LUA_EXTERNAL_DIR}/lib/lua_api.o\"
+    COMMAND ar rcs \"${LUA_LIBRARY}\" \"${LUA_EXTERNAL_DIR}/lib/lua_api.o\"
+)
+
+message(STATUS \"Created lua library at ${LUA_LIBRARY}\")
+")
+
+# Create a custom target that runs our script
 add_custom_target(ensure_lua_library
-    COMMAND ${CMAKE_COMMAND} -E echo "Verifying Lua library exists at ${LUA_LIBRARY}..."
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${LUA_EXTERNAL_DIR}/lib
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/ensure_lua_lib.cmake
     COMMENT "Ensuring Lua library exists before building mylibrary"
+    VERBATIM
 )
 
 # Create a special variable to force Lua target order

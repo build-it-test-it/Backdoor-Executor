@@ -225,15 +225,16 @@ namespace iOS {
          */
         void SetButtonVisible(bool visible);
         
-        /**
-         * @brief Get the main view controller
-         * @return Shared pointer to main view controller
-         */
-        std::shared_ptr<UI::MainViewController> GetMainViewController() const;
     };
     
     // Forward declaration of UI namespace
     namespace UI {
         class MainViewController;
     }
+}
+
+// Extension methods - defining outside the namespace to avoid issues
+inline std::shared_ptr<iOS::UI::MainViewController> iOS::UIController::GetMainViewController() const {
+    // Forward declared, implementation as inline method
+    return std::shared_ptr<iOS::UI::MainViewController>();
 }

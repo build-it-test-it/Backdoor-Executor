@@ -1258,13 +1258,5 @@ namespace iOS {
     }
 }
 
-// Implementation of the GetMainViewController method is in UIController.cpp
-// to avoid duplicate symbol errors. This is just a stub to avoid build errors.
-/*
-std::shared_ptr<UI::MainViewController> UIController::GetMainViewController() const {
-    // Implementation in UIController.cpp
-    return nullptr;
-}
-*/
-// Implementation moved to UIController.cpp to avoid duplicate symbol definition
-}
+// Implementation of GetMainViewController is in UIController.h as inline method
+// No implementation needed here

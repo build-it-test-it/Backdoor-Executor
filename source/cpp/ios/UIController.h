@@ -33,6 +33,9 @@ namespace iOS {
             std::string m_content;
             int64_t m_timestamp;
             
+            // Default constructor
+            ScriptInfo() : m_name(""), m_content(""), m_timestamp(0) {}
+            
             ScriptInfo(const std::string& name, const std::string& content, int64_t timestamp = 0)
                 : m_name(name), m_content(content), m_timestamp(timestamp) {}
         };

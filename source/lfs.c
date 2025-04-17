@@ -1,12 +1,31 @@
 // Force C99 mode to ensure compatibility
 #define _XOPEN_SOURCE 600
 
-// Include central compatibility header
+// Include standard headers first
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#include <io.h>
+#else
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <utime.h>
+#include <sys/param.h> // For MAXPATHLEN
+#endif
+
+// Include the Lua compatibility header which defines all necessary functions
 #include "cpp/lua_compatibility.h"
 
-// Now include Lua headers from internal project
-#include "cpp/luau/lua.h"
-#include "cpp/luau/lualib.h"
+// Ensure we use our compatibility layer's definitions
+#undef new_lib
 
 // Define fallbacks for any missing functions
 #ifndef chdir_error
@@ -745,7 +764,7 @@ static int dir_iter_factory(lua_State * L)
 {
   const char *path = luaL_checkstring(L, 1);
   dir_data *d;
-  lua_pushcfunction(L, dir_iter, "dir_iter");
+  lua_pushcclosure(L, dir_iter, 0);
   d = (dir_data *) lua_newuserdata(L, sizeof(dir_data));
   luaL_getmetatable(L, DIR_METATABLE);
   lua_setmetatable(L, -2);
@@ -777,14 +796,14 @@ static int dir_create_meta(lua_State * L)
 
   /* Method table */
   lua_newtable(L);
-  lua_pushcfunction(L, dir_iter, "dir_iter");
+  lua_pushcclosure(L, dir_iter, 0);
   lua_setfield(L, -2, "next");
-  lua_pushcfunction(L, dir_close, "dir_close");
+  lua_pushcclosure(L, dir_close, 0);
   lua_setfield(L, -2, "close");
 
   /* Metamethods */
   lua_setfield(L, -2, "__index");
-  lua_pushcfunction(L, dir_close, "dir_close_gc");
+  lua_pushcclosure(L, dir_close, 0);
   lua_setfield(L, -2, "__gc");
 
   /* Removed Lua 5.4 specific code for Luau compatibility */
@@ -801,12 +820,12 @@ static int lock_create_meta(lua_State * L)
 
   /* Method table */
   lua_newtable(L);
-  lua_pushcfunction(L, lfs_unlock_dir, "lfs_unlock_dir");
+  lua_pushcclosure(L, lfs_unlock_dir, 0);
   lua_setfield(L, -2, "free");
 
   /* Metamethods */
   lua_setfield(L, -2, "__index");
-  lua_pushcfunction(L, lfs_unlock_dir, "lfs_unlock_dir_gc");
+  lua_pushcclosure(L, lfs_unlock_dir, 0);
   lua_setfield(L, -2, "__gc");
   return 1;
 }
@@ -1172,14 +1191,14 @@ static int link_info(lua_State * L)
 */
 static void set_info(lua_State * L)
 {
-  lua_pushliteral(L, "Copyright (C) 2003-2017 Kepler Project");
+  lua_pushstring(L, "Copyright (C) 2003-2017 Kepler Project");
   lua_setfield(L, -2, "_COPYRIGHT");
-  lua_pushliteral(L,
+  lua_pushstring(L,
                   "LuaFileSystem is a Lua library developed to complement "
                   "the set of functions related to file systems offered by "
                   "the standard Lua distribution");
   lua_setfield(L, -2, "_DESCRIPTION");
-  lua_pushliteral(L, "LuaFileSystem " LFS_VERSION);
+  lua_pushstring(L, "LuaFileSystem " LFS_VERSION);
   lua_setfield(L, -2, "_VERSION");
 }
 

@@ -35,22 +35,8 @@ jobs:
         echo "Removing CI_BUILD definitions from source files..."
         find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" \) | xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
         
-        # Download Lua source
-        echo "Downloading Lua 5.4.6 source..."
-        curl -L https://www.lua.org/ftp/lua-5.4.6.tar.gz -o lua-5.4.6.tar.gz
-        tar -xzf lua-5.4.6.tar.gz
-        cd lua-5.4.6
-        
-        # Build Lua as a static library with position-independent code
-        echo "Building Lua library..."
-        make MYCFLAGS="-fPIC" generic
-        
-        # Copy Lua headers and library to external directory
-        echo "Installing Lua to external directory..."
-        cp src/lua.h src/luaconf.h src/lualib.h src/lauxlib.h src/lua.hpp $GITHUB_WORKSPACE/external/lua/include/
-        cp src/liblua.a $GITHUB_WORKSPACE/external/lua/lib/
-        
-        cd $GITHUB_WORKSPACE
+        # Let CMake handle the Lua build through our custom FindLua.cmake
+        echo "Lua will be built automatically by CMake..."
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1

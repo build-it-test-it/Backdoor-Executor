@@ -275,7 +275,7 @@ public:
             
             // Set up vulnerability exploit callback
             m_vulnerabilityViewController->SetExploitButtonCallback([this](
-                const AIFeatures::VulnerabilityDetection::VulnerabilityDetector::Vulnerability& vulnerability) {
+                void* vulnerabilityPtr) {
                 // Exploit vulnerability
                 if (m_scriptAssistant) {
                     m_scriptAssistant->ExecuteScript(vulnerability.m_exploitCode);

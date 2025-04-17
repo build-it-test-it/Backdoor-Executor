@@ -18,8 +18,9 @@ else()
 endif()
 
 # Explicitly collect source files by component for better organization and control
+# Note: library.cpp is already included in the main mylibrary target defined in root CMakeLists.txt
+# Including it here would cause duplicate symbol issues
 set(CORE_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/library.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/logging.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/native-lib.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/globals.hpp"

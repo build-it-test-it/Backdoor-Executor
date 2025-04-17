@@ -116,9 +116,18 @@ jobs:
         echo "CMake configuration from cache:"
         cat build/CMakeCache.txt | grep -E "DOBBY|LUA|FLAGS|MODULE_PATH"
         
-        # Build the dynamic library
+        # Build the dynamic library with better error handling
         echo "Building the dynamic library now..."
-        cmake --build build --config Release -j4
+        echo "First build Dobby (prerequisite)..."
+        cmake --build build --config Release -j4 --target dobby_external || true
+        
+        echo "Then build the main library with verbose output..."
+        cd build && make VERBOSE=1 mylibrary || {
+          echo "⚠️ Main library build failed - showing detailed errors:"
+          cat CMakeFiles/CMakeError.log || true
+          cat CMakeFiles/CMakeOutput.log || true
+          exit 1
+        }
         
         # Check the build result
         if [ -f "build/lib/libmylibrary.dylib" ]; then

@@ -204,10 +204,9 @@ public:
             // Initialize vulnerability view controller
             // Create the vulnerability view controller
             m_vulnerabilityViewController = std::make_shared<iOS::UI::VulnerabilityViewController>();
-            m_vulnerabilityViewController->Initialize();
+            bool vulnerabilityVCInitialized = m_vulnerabilityViewController->Initialize();
             
-            // Continue with initialization, assuming it was successful
-            if (true) {
+            if (vulnerabilityVCInitialized) {
                 m_vulnerabilityViewController->SetVulnerabilityDetector(m_vulnerabilityDetector);
             } else {
                 std::cerr << "AIIntegration: Failed to initialize vulnerability view controller" << std::endl;
@@ -276,14 +275,11 @@ public:
             
             // Set up vulnerability exploit callback
             m_vulnerabilityViewController->SetExploitButtonCallback([this](
-                void* vulnerabilityPtr) {
+                const AIFeatures::VulnerabilityDetection::VulnerabilityDetector::Vulnerability& vulnerability) {
                 // Exploit vulnerability
                 if (m_scriptAssistant) {
-                    // This would normally cast the void* back to the correct type
-                    // and then access m_exploitCode, but we're simplifying for now
-                    std::string exploitCode = "print('Exploiting vulnerability')";
-                    m_scriptAssistant->ExecuteScript(exploitCode);
-                    std::cout << "Executed exploit" << std::endl;
+                    m_scriptAssistant->ExecuteScript(vulnerability.m_exploitCode);
+                    std::cout << "Executed exploit: " << vulnerability.m_name << std::endl;
                 }
             });
         }

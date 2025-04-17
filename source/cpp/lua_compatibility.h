@@ -226,7 +226,14 @@ LUA_API void lua_setallocf(lua_State* L, lua_Alloc f, void* ud);
 #define lua_pop(L,n)                lua_settop(L, -(n)-1)
 #define lua_newtable(L)             lua_createtable(L, 0, 0)
 #define lua_register(L,n,f)         (lua_pushcfunction(L, (f)), lua_setglobal(L, (n)))
-#define lua_pushcfunction(L,f)      lua_pushcclosure(L, (f), 0)
+// Undefine the potentially problematic macro
+#undef lua_pushcfunction
+// Define a proper function
+LUA_API void lua_pushcfunction(lua_State* L, lua_CFunction f);
+// The expanded version of the function
+inline void lua_pushcfunction(lua_State* L, lua_CFunction f) {
+    lua_pushcclosure(L, f, 0);
+}
 #define lua_isfunction(L,n)         (lua_type(L, (n)) == LUA_TFUNCTION)
 #define lua_istable(L,n)            (lua_type(L, (n)) == LUA_TTABLE)
 #define lua_islightuserdata(L,n)    (lua_type(L, (n)) == LUA_TLIGHTUSERDATA)

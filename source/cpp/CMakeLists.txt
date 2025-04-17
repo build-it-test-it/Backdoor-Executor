@@ -155,6 +155,7 @@ endif()
 
 # Set include directories
 target_include_directories(roblox_execution PUBLIC
+    ${CMAKE_SOURCE_DIR}/source/cpp/ios # For iOS specific headers
     ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}/source/cpp
     ${CMAKE_SOURCE_DIR}

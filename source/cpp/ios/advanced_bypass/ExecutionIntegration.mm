@@ -2,7 +2,7 @@
 #include "MethodSwizzlingExploit.h"
 #include "DynamicMessageDispatcher.h"
 #include "LoadstringSupport.h"
-#include "../ios_compat.h"
+#include "../../ios_compat.h"
 #include "ExecutionIntegration.h"
 #include <string>
 #include <memory>

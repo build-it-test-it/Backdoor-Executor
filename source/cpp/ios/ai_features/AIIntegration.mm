@@ -1,5 +1,5 @@
 
-#include "../ios_compat.h"
+#include "../../ios_compat.h"
 #include "AIIntegration.h"
 #include "AIConfig.h"
 #include "AISystemInitializer.h"

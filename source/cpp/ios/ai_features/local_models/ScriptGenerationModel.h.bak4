@@ -33,25 +33,6 @@ enum class ScriptCategory {
 class ScriptGenerationModel : public LocalModelBase {
 public:
     /**
-     * @struct GeneratedScript
-     * @brief Represents a generated script with metadata
-     */
-    struct GeneratedScript {
-        std::string m_code;           // The actual script code
-        ScriptCategory m_category;    // Category of the script
-        float m_confidence;           // Confidence score (0.0-1.0)
-        std::string m_description;    // Description of what the script does
-        
-        GeneratedScript() 
-            : m_category(ScriptCategory::GENERAL), m_confidence(0.0f) {}
-        
-        GeneratedScript(const std::string& code, ScriptCategory category = ScriptCategory::GENERAL,
-                       float confidence = 1.0f, const std::string& description = "")
-            : m_code(code), m_category(category), 
-              m_confidence(confidence), m_description(description) {}
-    };
-
-    /**
      * @brief Constructor
      */
     ScriptGenerationModel();
@@ -100,15 +81,6 @@ public:
      * @return Generated script
      */
     std::string GenerateScript(const std::string& prompt, ScriptCategory category);
-
-    /**
-     * @brief Generate a script with metadata
-     * @param prompt User prompt
-     * @param category Script category
-     * @return GeneratedScript object with code and metadata
-     */
-    GeneratedScript GenerateScriptWithMetadata(const std::string& prompt, 
-                                             ScriptCategory category = ScriptCategory::GENERAL);
     
     /**
      * @brief Enhance an existing script

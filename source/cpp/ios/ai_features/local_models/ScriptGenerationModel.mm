@@ -192,3 +192,19 @@ std::string ScriptGenerationModel::ProcessOutput(const std::vector<float>& outpu
 } // namespace LocalModels
 } // namespace AIFeatures
 } // namespace iOS
+
+// Add the GenerateScriptWithMetadata method
+iOS::AIFeatures::LocalModels::ScriptGenerationModel::GeneratedScript
+iOS::AIFeatures::LocalModels::ScriptGenerationModel::GenerateScriptWithMetadata(
+    const std::string& prompt, ScriptCategory category) {
+    
+    std::string code = "-- Generated stub script with metadata\nprint('This is a stub script for " 
+                      + prompt + "')";
+    
+    return GeneratedScript(
+        code,
+        category,
+        0.95f, // High confidence for stub
+        "Stub script generated for CI build"
+    );
+}

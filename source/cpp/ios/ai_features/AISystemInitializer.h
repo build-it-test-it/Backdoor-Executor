@@ -163,7 +163,7 @@ public:
      * @param script Script to analyze
      * @param onComplete Callback for when detection completes
      */
-    void DetectVulnerabilities(const std::string& script, std::function<void(const std::vector<::iOS::AIFeatures::VulnerabilityDetection::Vulnerability>&)> onComplete);
+    void DetectVulnerabilities(const std::string& script, std::function<void(const std::vector<::iOS::AIFeatures::LocalModels::VulnerabilityDetectionModel::Vulnerability>&)> onComplete);
     
     /**
      * @brief Generate a script

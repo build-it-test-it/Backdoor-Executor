@@ -95,7 +95,7 @@ class FileSink : public LogSink {
 private:
     std::string m_filePath;
     std::ofstream m_outFile;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     
 public:
     FileSink(const std::string& filePath) : m_filePath(filePath) {
@@ -138,7 +138,7 @@ class MemorySink : public LogSink {
 private:
     std::vector<LogMessage> m_buffer;
     size_t m_capacity;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     
 public:
     MemorySink(size_t capacity = 1000) : m_capacity(capacity) {
@@ -171,7 +171,7 @@ class Logger {
 private:
     LogLevel m_minLevel;
     std::vector<std::shared_ptr<LogSink>> m_sinks;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     
     // Singleton instance
     static std::unique_ptr<Logger> s_instance;

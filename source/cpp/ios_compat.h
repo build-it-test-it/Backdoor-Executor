@@ -25,7 +25,7 @@
 #include <mach/mach.h>
 #include <mach/mach_types.h>
 #include <mach/mach_init.h>
-#include <mach/mach_vm.h>
+// Exclude mach_vm.h which is unsupported on iOS
 #include <mach/vm_map.h>
 #include <dlfcn.h>
 #include <mach-o/dyld.h>

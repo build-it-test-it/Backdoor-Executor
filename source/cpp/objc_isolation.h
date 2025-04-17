@@ -21,7 +21,9 @@
             typedef struct objc_class *Class;
             typedef struct objc_object *id;
             typedef struct objc_selector *SEL;
-            typedef signed char BOOL;
+            #if !defined(__OBJC__)
+            typedef bool BOOL;
+            #endif
             
             // Common Foundation types for C++ code
             typedef const void* CFTypeRef;

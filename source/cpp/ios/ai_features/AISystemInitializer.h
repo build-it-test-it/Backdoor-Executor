@@ -225,7 +225,7 @@ public:
      * @param script Script content
      * @param onComplete Completion callback
      */
-    void DetectVulnerabilities(const std::string& script, std::function<void(const std::vector<::iOS::AIFeatures::VulnerabilityDetection::Vulnerability>&)> onComplete);
+    void DetectVulnerabilities(const std::string& script, std::function<void(const std::vector<VulnerabilityDetection::Vulnerability>&)> onComplete);
     
     /**
      * @brief Generate script from description

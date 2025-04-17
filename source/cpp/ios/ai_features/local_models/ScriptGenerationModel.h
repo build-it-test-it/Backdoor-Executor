@@ -201,10 +201,15 @@ public:
      * @return True if path was valid and set
      */
     bool SetModelPath(const std::string& path);
+    
+    /**
      * @brief Convert string to category
      * @param str String representation
      * @return Script category
      */
+    ScriptCategory StringToCategory(const std::string& str);
+};
+
 } // namespace LocalModels
 } // namespace AIFeatures
 } // namespace iOS

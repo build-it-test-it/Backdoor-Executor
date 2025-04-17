@@ -1,5 +1,9 @@
 #pragma once
 
+// Include necessary standard headers
+#include <cstdint>
+#include <cstddef>
+
 // Additional macros and utilities for CI compatibility
 
 // Define a macro to check if we're in a CI environment

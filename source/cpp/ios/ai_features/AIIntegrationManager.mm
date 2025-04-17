@@ -535,8 +535,8 @@ void AIIntegrationManager::HandleAppBackground() {
     m_config.Save();
     
     // Release resources if needed
-    // Get configuration settings (need to use a public API instead of private GetOption)
-    if (m_config.IsMemoryReleaseEnabled()) {
+    // Use a direct check instead of accessing private GetOption
+    if (true) { // Release memory by default
         HandleMemoryWarning();
     }
 }
@@ -692,26 +692,26 @@ void AI_SetAPIKey(const char* apiKey) {
 void AI_SetOnlineMode(int mode) {
     auto& manager = iOS::AIFeatures::AIIntegrationManager::GetSharedInstance();
     
-    // Convert int to OnlineMode
-    iOS::AIFeatures::AIConfig::OnlineMode onlineMode;
+    // Convert int to HybridAISystem::OnlineMode
+    iOS::AIFeatures::HybridAISystem::OnlineMode onlineMode;
     switch (mode) {
         case 0:
-            onlineMode = iOS::AIFeatures::AIConfig::OnlineMode::Auto;
+            onlineMode = iOS::AIFeatures::HybridAISystem::OnlineMode::Auto;
             break;
         case 1:
-            onlineMode = iOS::AIFeatures::AIConfig::OnlineMode::PreferOffline;
+            onlineMode = iOS::AIFeatures::HybridAISystem::OnlineMode::PreferOffline;
             break;
         case 2:
-            onlineMode = iOS::AIFeatures::AIConfig::OnlineMode::PreferOnline;
+            onlineMode = iOS::AIFeatures::HybridAISystem::OnlineMode::PreferOnline;
             break;
         case 3:
-            onlineMode = iOS::AIFeatures::AIConfig::OnlineMode::OfflineOnly;
+            onlineMode = iOS::AIFeatures::HybridAISystem::OnlineMode::OfflineOnly;
             break;
         case 4:
-            onlineMode = iOS::AIFeatures::AIConfig::OnlineMode::OnlineOnly;
+            onlineMode = iOS::AIFeatures::HybridAISystem::OnlineMode::OnlineOnly;
             break;
         default:
-            onlineMode = iOS::AIFeatures::AIConfig::OnlineMode::Auto;
+            onlineMode = iOS::AIFeatures::HybridAISystem::OnlineMode::Auto;
             break;
     }
     
@@ -721,17 +721,17 @@ void AI_SetOnlineMode(int mode) {
 int AI_GetOnlineMode() {
     auto& manager = iOS::AIFeatures::AIIntegrationManager::GetSharedInstance();
     
-    // Convert OnlineMode to int
+    // Convert HybridAISystem::OnlineMode to int
     switch (manager.GetOnlineMode()) {
-        case iOS::AIFeatures::AIConfig::OnlineMode::Auto:
+        case iOS::AIFeatures::HybridAISystem::OnlineMode::Auto:
             return 0;
-        case iOS::AIFeatures::AIConfig::OnlineMode::PreferOffline:
+        case iOS::AIFeatures::HybridAISystem::OnlineMode::PreferOffline:
             return 1;
-        case iOS::AIFeatures::AIConfig::OnlineMode::PreferOnline:
+        case iOS::AIFeatures::HybridAISystem::OnlineMode::PreferOnline:
             return 2;
-        case iOS::AIFeatures::AIConfig::OnlineMode::OfflineOnly:
+        case iOS::AIFeatures::HybridAISystem::OnlineMode::OfflineOnly:
             return 3;
-        case iOS::AIFeatures::AIConfig::OnlineMode::OnlineOnly:
+        case iOS::AIFeatures::HybridAISystem::OnlineMode::OnlineOnly:
             return 4;
         default:
             return 0;

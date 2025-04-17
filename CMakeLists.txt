@@ -208,32 +208,39 @@ if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "=========================================")
 endif()
 
-# First create an interface library for VM source files with appropriate settings
-add_library(vm_sources INTERFACE)
-target_include_directories(vm_sources INTERFACE 
-    ${CMAKE_SOURCE_DIR}/VM/include
-    ${CMAKE_SOURCE_DIR}/VM/src
-)
+# Only create the VM sources interface library if we're actually going to use it
+if(DIRECT_VM_SOURCES AND NOT DISABLE_LUAU_ERRORS)
+    # Create an interface library for VM source files with appropriate settings
+    add_library(vm_sources INTERFACE)
+    target_include_directories(vm_sources INTERFACE 
+        ${CMAKE_SOURCE_DIR}/VM/include
+        ${CMAKE_SOURCE_DIR}/VM/src
+    )
 
-# Set source-specific compiler flags directly on the VM sources
-target_compile_definitions(vm_sources INTERFACE
-    LUA_API=__attribute__\(\(visibility\(\"default\"\)\)\)
-    LUALIB_API=__attribute__\(\(visibility\(\"default\"\)\)\)
-    LUAI_FUNC=__attribute__\(\(visibility\(\"hidden\"\)\)\)
-    LUAU_FASTINT_SUPPORT=1
-    USE_LUAU=1
-)
+    # Set source-specific compiler flags directly on the VM sources
+    target_compile_definitions(vm_sources INTERFACE
+        LUA_API=__attribute__\(\(visibility\(\"default\"\)\)\)
+        LUALIB_API=__attribute__\(\(visibility\(\"default\"\)\)\)
+        LUAI_FUNC=__attribute__\(\(visibility\(\"hidden\"\)\)\)
+        LUAU_FASTINT_SUPPORT=1
+        USE_LUAU=1
+    )
 
-# Define a variable for flags we need for all VM sources
-if(APPLE)
-    set(VM_COMPILE_FLAGS "-fno-exceptions -fno-rtti -fPIC -Wall")
-    if(CMAKE_SYSTEM_NAME MATCHES "iOS")
-        set(VM_COMPILE_FLAGS "${VM_COMPILE_FLAGS} -fembed-bitcode -mios-version-min=13.0")
+    # Define a variable for flags we need for all VM sources
+    if(APPLE)
+        set(VM_COMPILE_FLAGS "-fno-exceptions -fno-rtti -fPIC -Wall")
+        if(CMAKE_SYSTEM_NAME MATCHES "iOS")
+            set(VM_COMPILE_FLAGS "${VM_COMPILE_FLAGS} -fembed-bitcode -mios-version-min=13.0")
+        endif()
     endif()
-endif()
 
-# Apply these flags to the interface library
-set_property(TARGET vm_sources PROPERTY INTERFACE_COMPILE_OPTIONS ${VM_COMPILE_FLAGS})
+    # Apply these flags to the interface library
+    set_property(TARGET vm_sources PROPERTY INTERFACE_COMPILE_OPTIONS ${VM_COMPILE_FLAGS})
+    
+    message(STATUS "VM sources interface library created")
+else()
+    message(STATUS "Skipping VM sources interface library - no VM files or disabled")
+endif()
 
 # Create the final dynamic library - include VM source files directly
 # In CI builds we may skip VM sources if they're unavailable
@@ -265,15 +272,23 @@ set_target_properties(mylibrary PROPERTIES
 )
 
 # Link against our VM interface library to get all its settings
-target_link_libraries(mylibrary PRIVATE vm_sources)
+if(DIRECT_VM_SOURCES AND NOT DISABLE_LUAU_ERRORS)
+    target_link_libraries(mylibrary PRIVATE vm_sources)
+endif()
 
-# Additionally set these flags directly on the main target
+# Always apply the necessary definitions for any VM/Lua code
+# These ensure proper symbols are exported/imported regardless of VM source inclusion
 target_compile_definitions(mylibrary PRIVATE
     LUA_API=__attribute__\(\(visibility\(\"default\"\)\)\)
     LUALIB_API=__attribute__\(\(visibility\(\"default\"\)\)\)
     LUAI_FUNC=__attribute__\(\(visibility\(\"hidden\"\)\)\)
     LUAU_FASTINT_SUPPORT=1
     USE_LUAU=1
+)
+
+# Ensure we always have VM include directories available
+target_include_directories(mylibrary PRIVATE
+    ${CMAKE_SOURCE_DIR}/VM/include
 )
 
 if(APPLE)

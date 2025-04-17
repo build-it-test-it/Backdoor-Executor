@@ -156,7 +156,7 @@ if(NOT DIRECT_VM_SOURCES)
             else()
                 set(EXISTING_VM_FILES 1)
             endif()
-        else
+        else()
             message(WARNING "  Missing: ${SOURCE_FILE}")
         endif()
     endforeach()

@@ -139,15 +139,11 @@ target_include_directories(roblox_execution PRIVATE
     ${CMAKE_SOURCE_DIR}/VM/src
 )
 
-# Find Dobby and link if available
-find_package(Dobby QUIET)
-if(Dobby_FOUND)
+# Link against Dobby - it's already found/built in the main CMakeLists.txt
+if(USE_DOBBY)
+    # Dobby is already located and configured in the main CMakeLists.txt
+    # This ensures we only have one Dobby target used throughout the project
     target_link_libraries(roblox_execution Dobby::dobby)
-else()
-    # Try direct linking if the CMake package is not found
-    if(EXISTS "${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a")
-        target_link_libraries(roblox_execution "${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a")
-    endif()
 endif()
 
 # Build tests in debug mode

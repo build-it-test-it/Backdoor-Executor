@@ -156,13 +156,13 @@ if(NOT DIRECT_VM_SOURCES)
         endif()
     endforeach()
     
-    # Final check: if we're missing most files and in CI mode, use minimal implementation
-    if(EXISTING_VM_FILES LESS 5 AND (DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS} OR DIRECT_VM_INCLUDE))
-        message(STATUS "⚠️ CI build with insufficient VM files - using minimal VM implementation")
-        set(DIRECT_VM_SOURCES "${CMAKE_SOURCE_DIR}/source/minimal_vm.cpp")
+    # If we're missing most files, provide a clear error message
+    if(EXISTING_VM_FILES LESS 5)
+        message(STATUS "⚠️ Not enough VM source files found - this may cause build failures")
+        message(STATUS "Please ensure all VM source files are properly present in VM/src directory")
         
-        # Add this definition so code can conditionally adapt
-        add_definitions(-DCI_MINIMAL_VM=1)
+        # We'll continue with whatever files we have, but build may fail
+        # We don't use a minimal implementation as requested by user
     endif()
 endif()
 

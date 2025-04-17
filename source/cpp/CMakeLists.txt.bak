@@ -1,11 +1,10 @@
-# Modified CMakeLists.txt with better error reporting and include paths
 # Production-grade CMakeLists.txt for source/cpp
 
 # Define our base component library
 project(roblox_execution VERSION 1.0.0 LANGUAGES C CXX)
 
 # Set compiler flags for production builds
-set(PRODUCTION_FLAGS "-O3 -fvisibility=hidden -ffunction-sections -fdata-sections -Wall -Wextra -Werror")
+set(PRODUCTION_FLAGS "-O3 -fvisibility=hidden -ffunction-sections -fdata-sections")
 
 # Set flags based on platform
 if(APPLE)
@@ -136,7 +135,6 @@ endif()
 
 # Set include directories
 target_include_directories(roblox_execution PUBLIC
-    ${CMAKE_SOURCE_DIR}/source/cpp
     ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -203,18 +201,5 @@ if(DOXYGEN_FOUND AND BUILD_DOCS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM
-    )
-endif()
-
-# Add explicit comment about objc_isolation.h inclusion
-# After removing fix_paths.sh, we've updated all include paths manually
-# and added source/cpp to the include directories for a belt-and-suspenders approach
-message(STATUS "Using explicit include paths for objc_isolation.h")
-
-# Add extra compiler definitions to help with iOS compatibility
-if(APPLE AND CMAKE_SYSTEM_NAME MATCHES "iOS")
-    target_compile_definitions(roblox_execution PRIVATE
-        IOS_BUILD=1
-        SHOW_ALL_WARNINGS=1
     )
 endif()

@@ -106,13 +106,29 @@ include_directories(${LUA_INCLUDE_DIR})
 add_definitions(-DUSE_LUAU=1)
 add_definitions(-DLUAU_FASTINT_SUPPORT=1)
 
-# Add subdirectories
+# Add VM subdirectory first to ensure it's built before other dependencies
+add_subdirectory(VM)
+
+# Add remaining subdirectories
 add_subdirectory(source/cpp)
 add_subdirectory(source)
 
-# For CI builds only - ensure compatibility
+# For CI builds only - ensure compatibility and enable verbose output
 if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "CI build detected, using local VM implementation")
+    set(CMAKE_VERBOSE_MAKEFILE ON)
+    
+    # Print key configuration variables for debugging
+    message(STATUS "=========== BUILD CONFIGURATION ===========")
+    message(STATUS "CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+    message(STATUS "CMAKE_GENERATOR: ${CMAKE_GENERATOR}")
+    message(STATUS "LUAU_ROOT: ${LUAU_ROOT}")
+    message(STATUS "LUAU_INCLUDE_DIR: ${LUAU_INCLUDE_DIR}")
+    message(STATUS "LUA_INCLUDE_DIR: ${LUA_INCLUDE_DIR}")
+    message(STATUS "LUA_LIBRARY: ${LUA_LIBRARY}")
+    message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
+    message(STATUS "CMAKE_CXX_COMPILER_VERSION: ${CMAKE_CXX_COMPILER_VERSION}")
+    message(STATUS "=========================================")
 endif()
 
 # Create the final dynamic library

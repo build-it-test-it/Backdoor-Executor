@@ -26,12 +26,17 @@ jobs:
         # Create required directories
         mkdir -p external/dobby/include
         mkdir -p external/dobby/lib
+        mkdir -p external/lua/include
+        mkdir -p external/lua/lib
         mkdir -p output/Resources/AIData
         mkdir -p build
         
         # Remove any CI_BUILD definitions from source files
         echo "Removing CI_BUILD definitions from source files..."
         find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" \) | xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
+        
+        # Let CMake handle the Lua build through our custom FindLua.cmake
+        echo "Lua will be built automatically by CMake..."
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1

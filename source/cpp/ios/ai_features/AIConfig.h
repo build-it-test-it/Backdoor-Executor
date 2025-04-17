@@ -17,6 +17,9 @@ namespace AIFeatures {
  * This class holds configuration options for the AI system, including
  * paths, model settings, learning modes, and other parameters. It provides
  * a consistent interface for accessing and modifying configuration values.
+ * 
+ * This implementation focuses on local-only AI models that are created and trained
+ * on the device, without relying on external API services.
  */
 class AIConfig {
 public:
@@ -60,6 +63,7 @@ public:
 
     /**
      * @brief Online mode enumeration
+     * Note: In this implementation, only OfflineOnly is used
      */
     enum class OnlineMode {
         Auto,            // Automatically choose based on connectivity
@@ -307,54 +311,21 @@ public:
     }
     
     /**
-     * @brief Set online mode
-     * @param mode Online mode
+     * @brief Set online mode (always sets to OfflineOnly in this implementation)
+     * @param mode Online mode (ignored)
      */
     void SetOnlineMode(OnlineMode mode) {
-        std::string modeStr;
-        
-        switch (mode) {
-            case OnlineMode::Auto:
-                modeStr = "auto";
-                break;
-            case OnlineMode::PreferOffline:
-                modeStr = "prefer_offline";
-                break;
-            case OnlineMode::PreferOnline:
-                modeStr = "prefer_online";
-                break;
-            case OnlineMode::OfflineOnly:
-                modeStr = "offline_only";
-                break;
-            case OnlineMode::OnlineOnly:
-                modeStr = "online_only";
-                break;
-            default:
-                modeStr = "auto";
-                break;
-        }
-        
-        SetOption("online_mode", modeStr);
+        // Always use offline only mode in this implementation
+        SetOption("online_mode", "offline_only");
     }
     
     /**
-     * @brief Get online mode
+     * @brief Get online mode (always returns OfflineOnly in this implementation)
      * @return Online mode
      */
     OnlineMode GetOnlineMode() const {
-        std::string modeStr = GetOption("online_mode", "auto");
-        
-        if (modeStr == "prefer_offline") {
-            return OnlineMode::PreferOffline;
-        } else if (modeStr == "prefer_online") {
-            return OnlineMode::PreferOnline;
-        } else if (modeStr == "offline_only") {
-            return OnlineMode::OfflineOnly;
-        } else if (modeStr == "online_only") {
-            return OnlineMode::OnlineOnly;
-        } else {
-            return OnlineMode::Auto;
-        }
+        // Always return offline only mode in this implementation
+        return OnlineMode::OfflineOnly;
     }
     
     /**
@@ -400,25 +371,25 @@ public:
     
     /**
      * @brief Get API endpoint
-     * @return API endpoint URL
+     * @return API endpoint URL (empty in this implementation)
      */
     std::string GetAPIEndpoint() const;
     
     /**
      * @brief Set API endpoint
-     * @param endpoint API endpoint URL
+     * @param endpoint API endpoint URL (ignored in this implementation)
      */
     void SetAPIEndpoint(const std::string& endpoint);
     
     /**
      * @brief Get API key
-     * @return API key
+     * @return API key (empty in this implementation)
      */
     std::string GetAPIKey() const;
     
     /**
      * @brief Set API key
-     * @param key API key
+     * @param key API key (ignored in this implementation)
      */
     void SetAPIKey(const std::string& key);
     
@@ -436,13 +407,13 @@ public:
     
     /**
      * @brief Get whether to encrypt communication
-     * @return True if communication should be encrypted
+     * @return True if communication should be encrypted (always false in this implementation)
      */
     bool GetEncryptCommunication() const;
     
     /**
      * @brief Set whether to encrypt communication
-     * @param encrypt True to encrypt communication
+     * @param encrypt True to encrypt communication (ignored in this implementation)
      */
     void SetEncryptCommunication(bool encrypt);
     
@@ -457,6 +428,66 @@ public:
      * @param maxMemory Maximum memory usage in bytes
      */
     void SetMaxMemoryUsage(uint64_t maxMemory);
+    
+    /**
+     * @brief Check if models should be created on startup
+     * @return True if models should be created on startup
+     */
+    bool ShouldCreateModelsOnStartup() const;
+    
+    /**
+     * @brief Check if models should be rebuilt if needed
+     * @return True if models should be rebuilt if needed
+     */
+    bool ShouldRebuildModelsIfNeeded() const;
+    
+    /**
+     * @brief Get the training data path
+     * @return Path to training data
+     */
+    std::string GetTrainingDataPath() const;
+    
+    /**
+     * @brief Check if training data should be saved
+     * @return True if training data should be saved
+     */
+    bool ShouldSaveTrainingData() const;
+    
+    /**
+     * @brief Get training interval in minutes
+     * @return Training interval in minutes
+     */
+    int GetTrainingIntervalMinutes() const;
+    
+    /**
+     * @brief Get initial model size
+     * @return Initial model size (small, medium, large)
+     */
+    std::string GetInitialModelSize() const;
+    
+    /**
+     * @brief Get max training iterations
+     * @return Maximum number of training iterations
+     */
+    int GetMaxTrainingIterations() const;
+    
+    /**
+     * @brief Get script generation examples count
+     * @return Number of script generation examples to keep
+     */
+    int GetScriptGenerationExamplesCount() const;
+    
+    /**
+     * @brief Get training batch size
+     * @return Training batch size
+     */
+    int GetTrainingBatchSize() const;
+    
+private:
+    /**
+     * @brief Ensure all necessary directories exist
+     */
+    void EnsureDirectoriesExist();
 };
 
 } // namespace AIFeatures

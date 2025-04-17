@@ -226,3 +226,17 @@ if(APPLE AND CMAKE_SYSTEM_NAME MATCHES "iOS")
         SHOW_ALL_WARNINGS=1
     )
 endif()
+# Add flags to handle different compilation contexts
+if(APPLE)
+    # Add specific flags for Objective-C++ files
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/ios/ExecutionEngine.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/ios/ScriptManager.mm
+        PROPERTIES COMPILE_FLAGS "-x objective-c++"
+    )
+    # Ensure C++ files dont try to compile Objective-C
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/native-lib.cpp
+        PROPERTIES COMPILE_FLAGS "-DSKIP_IOS_INTEGRATION=1"
+    )
+endif()

@@ -271,14 +271,3 @@ if(DOXYGEN_FOUND AND BUILD_DOCS)
         VERBATIM
     )
 endif()
-
-# CI implementations of abstract model classes
-set(SOURCES ${SOURCES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/ios/ai_features/local_models/ScriptGenerationModel.mm
-    ${CMAKE_CURRENT_SOURCE_DIR}/ios/ai_features/local_models/VulnerabilityDetectionModel.mm
-)
-
-# Add UI header files for CI build
-target_include_directories(roblox_execution PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/ios/ui
-)

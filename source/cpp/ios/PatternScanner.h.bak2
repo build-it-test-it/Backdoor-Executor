@@ -85,11 +85,5 @@ namespace iOS {
         
         // Find a symbol in a module
         static void* FindSymbol(const std::string& moduleName, const std::string& symbolName);
-        
-        // Additional methods that are implemented in PatternScanner.mm but were missing from the header
-        static ScanResult ScanForSignature(const std::string& signature, void* startAddress, void* endAddress);
-        static ScanResult ScanForString(const std::string& str, void* startAddress, void* endAddress);
-        static std::vector<ScanResult> FindAllPatterns(const char* pattern, const char* mask, void* startAddress, void* endAddress);
-        static size_t GetModuleSize(const std::string& moduleName);
     };
 }

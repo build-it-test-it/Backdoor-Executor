@@ -55,13 +55,13 @@ namespace iOS {
     PatternScanner::ScanResult PatternScanner::ScanForPattern(const char* pattern, const char* mask, void* startAddress, void* endAddress) {
         if (!pattern || !mask) {
             std::cerr << "PatternScanner: Null pattern or mask provided" << std::endl;
-            return ScanResult(0);
+            return ScanResult(0, 0);
         }
         
         size_t patternLength = strlen(mask);
         if (patternLength == 0) {
             std::cerr << "PatternScanner: Empty pattern" << std::endl;
-            return ScanResult(0);
+            return ScanResult(0, 0);
         }
         
         // Get process memory bounds if not specified
@@ -74,7 +74,7 @@ namespace iOS {
             startAddress = reinterpret_cast<void*>(GetBaseAddress());
             if (!startAddress) {
                 std::cerr << "PatternScanner: Failed to get base address" << std::endl;
-                return ScanResult(0);
+                return ScanResult(0, 0);
             }
             
             // Use a fixed large size if we can't get actual module size
@@ -87,7 +87,7 @@ namespace iOS {
         
         if (start >= end) {
             std::cerr << "PatternScanner: Invalid address range" << std::endl;
-            return ScanResult(0);
+            return ScanResult(0, 0);
         }
         
         // Create bad character table for Boyer-Moore-Horspool algorithm
@@ -148,7 +148,7 @@ namespace iOS {
         }
         
         // Pattern not found
-        return ScanResult(0);
+        return ScanResult(0, 0);
     }
     
     // Scan for a signature in hex format (e.g., "48 8B 05 ?? ?? ?? ??")
@@ -157,7 +157,7 @@ namespace iOS {
         
         if (pattern.empty()) {
             std::cerr << "PatternScanner: Failed to parse signature: " << signature << std::endl;
-            return ScanResult(0);
+            return ScanResult(0, 0);
         }
         
         return ScanForPattern(reinterpret_cast<const char*>(pattern.data()), mask.c_str(), startAddress, endAddress);
@@ -167,7 +167,7 @@ namespace iOS {
     PatternScanner::ScanResult PatternScanner::ScanForString(const std::string& str, void* startAddress, void* endAddress) {
         if (str.empty()) {
             std::cerr << "PatternScanner: Empty string to scan for" << std::endl;
-            return ScanResult(0);
+            return ScanResult(0, 0);
         }
         
         // Create pattern and mask from string

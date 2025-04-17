@@ -1,36 +1,24 @@
-# Using Pre-installed Luau Libraries
+# Luau Installation Guide
 
-This document explains how to use pre-installed Luau (Roblox Lua) libraries with this project instead of building them during the CMake process.
+This project uses Luau (Roblox's Lua implementation) libraries for script execution. 
 
-## Why Use Pre-installed Luau?
+## Required Files
 
-1. **Faster Builds**: No need to build Luau during each CMake run
-2. **More Control**: Use specific versions of Luau 
-3. **Better Reliability**: Avoid build-time issues with Luau compilation
-4. **Custom Modifications**: Use your custom-built Luau version
+You need to have the following Luau files installed:
 
-## Installation Steps
+1. **Header Files**:
+   - `lua.h`
+   - `luaconf.h`
+   - `lualib.h`
+   - `lauxlib.h`
 
-### 1. Build and Install Luau
+2. **Library Files**:
+   - `libLuau.VM.a` or `Luau.VM.a` (required)
+   - `libLuau.Compiler.a` or `Luau.Compiler.a` (optional)
 
-First, build Luau from source:
+## Default Location
 
-```bash
-# Clone the repository
-git clone https://github.com/Roblox/luau.git
-cd luau
-
-# Create build directory
-mkdir build && cd build
-
-# Configure and build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DLUAU_BUILD_TESTS=OFF
-cmake --build . --target Luau.VM Luau.Compiler
-```
-
-### 2. Organize Luau Files
-
-Organize the Luau files in the expected directory structure:
+By default, the build system looks for Luau files in these locations:
 
 ```
 external/luau/
@@ -45,7 +33,24 @@ external/luau/
     └── libLuau.Compiler.a (or Luau.Compiler.a)
 ```
 
-You can create this structure by:
+## Installing Luau
+
+If you don't already have Luau installed, you can build it from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/Roblox/luau.git
+cd luau
+
+# Create build directory
+mkdir build && cd build
+
+# Configure and build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DLUAU_BUILD_TESTS=OFF
+cmake --build . --target Luau.VM Luau.Compiler
+```
+
+Then place the files in the expected locations:
 
 ```bash
 # Create directories
@@ -60,42 +65,39 @@ cp luau/build/libLuau.VM.a external/luau/build/
 cp luau/build/libLuau.Compiler.a external/luau/build/
 ```
 
-### 3. Configure CMake to Use Pre-installed Luau
+## Custom Locations
 
-When configuring your project with CMake, set the following options:
-
-```bash
-cmake -DUSE_LUAU=ON -DUSE_PREINSTALLED_LUAU=ON ..
-```
-
-If you've placed Luau in a different location, you can specify the paths:
+If your Luau files are in a different location, you can specify the paths when running CMake:
 
 ```bash
-cmake -DUSE_LUAU=ON -DUSE_PREINSTALLED_LUAU=ON \
-      -DLUAU_ROOT=/path/to/luau \
-      -DLUAU_INCLUDE_DIR=/path/to/luau/VM/include \
-      -DLUAU_VM_LIBRARY=/path/to/luau/build/libLuau.VM.a \
-      -DLUAU_COMPILER_LIBRARY=/path/to/luau/build/libLuau.Compiler.a \
-      ..
+cmake \
+  -DLUAU_ROOT=/path/to/luau \
+  -DLUAU_INCLUDE_DIR=/path/to/luau/VM/include \
+  -DLUAU_VM_LIBRARY=/path/to/luau/build/libLuau.VM.a \
+  ..
 ```
 
 ## Troubleshooting
 
-### Missing Headers
+### Missing Headers Error
 
-If CMake can't find Luau headers, verify that:
-- The header files (lua.h, lualib.h, etc.) exist in your include directory
-- The path to `LUAU_INCLUDE_DIR` is correctly set
+If you get an error like:
+```
+Luau headers not found at /path/to/include
+```
 
-### Library Not Found
+Make sure:
+1. The header files exist in the specified directory
+2. Set the correct path with `-DLUAU_INCLUDE_DIR=/correct/path/to/headers`
 
-If CMake can't find Luau libraries, verify that:
-- The library files (libLuau.VM.a, etc.) exist in your build directory
-- The library files have the correct names (may be `Luau.VM.a` instead of `libLuau.VM.a`)
-- The paths to `LUAU_VM_LIBRARY` and `LUAU_COMPILER_LIBRARY` are correctly set
+### Missing Library Error
 
-### Linking Errors
+If you get an error like:
+```
+Luau VM library not found at /path/to/library
+```
 
-If you get linking errors:
-- Make sure the Luau libraries were compiled for your target architecture
-- Check that you're using the correct version of Luau compatible with your code
+Make sure:
+1. The library file exists in the specified directory
+2. Check if the library has a different name (e.g., `Luau.VM.a` instead of `libLuau.VM.a`)
+3. Set the correct path with `-DLUAU_VM_LIBRARY=/correct/path/to/library`

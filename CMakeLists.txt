@@ -24,20 +24,17 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Options
 option(USE_DOBBY "Use Dobby for hooking" ON)
 option(USE_LUAU "Use Luau (Roblox's Lua) instead of standard Lua" ON)
-option(USE_PREINSTALLED_LUAU "Use pre-installed Luau instead of building it" OFF)
 option(ENABLE_AI_FEATURES "Enable AI features" ON)
 option(ENABLE_ADVANCED_BYPASS "Enable advanced bypass features" ON)
 option(BUILD_TESTING "Build tests" OFF)
 option(BUILD_DOCS "Build documentation" OFF)
 
-# Luau specific options
-if(USE_LUAU AND USE_PREINSTALLED_LUAU)
-    # Allow customizing paths to pre-installed Luau
-    set(LUAU_ROOT "${CMAKE_SOURCE_DIR}/external/luau" CACHE PATH "Root directory of pre-installed Luau")
-    set(LUAU_INCLUDE_DIR "${LUAU_ROOT}/VM/include" CACHE PATH "Directory containing Luau headers")
-    set(LUAU_VM_LIBRARY "${LUAU_ROOT}/build/libLuau.VM.a" CACHE FILEPATH "Path to Luau VM library")
-    set(LUAU_COMPILER_LIBRARY "${LUAU_ROOT}/build/libLuau.Compiler.a" CACHE FILEPATH "Path to Luau Compiler library")
-endif()
+# Luau paths configuration
+# These can be overridden when calling CMake with -DLUAU_ROOT=path, etc.
+set(LUAU_ROOT "${CMAKE_SOURCE_DIR}/external/luau" CACHE PATH "Root directory of Luau installation")
+set(LUAU_INCLUDE_DIR "${LUAU_ROOT}/VM/include" CACHE PATH "Directory containing Luau headers")
+set(LUAU_VM_LIBRARY "${LUAU_ROOT}/build/libLuau.VM.a" CACHE FILEPATH "Path to Luau VM library")
+set(LUAU_COMPILER_LIBRARY "${LUAU_ROOT}/build/libLuau.Compiler.a" CACHE FILEPATH "Path to Luau Compiler library (optional)")
 
 # Platform-specific settings
 if(APPLE)
@@ -84,106 +81,94 @@ if(USE_DOBBY)
     add_definitions(-DUSE_DOBBY=1)
 endif()
 
-# Find and setup Lua/Luau
-if(USE_LUAU AND USE_PREINSTALLED_LUAU)
-  # Use pre-installed Luau libraries
-  message(STATUS "Using pre-installed Luau libraries")
-  find_package(PreinstalledLuau REQUIRED)
-  
-  # Set LUA_LIBRARY for compatibility with rest of the build
-  if(NOT DEFINED LUA_LIBRARY AND DEFINED LUAU_VM_LIBRARY)
-    set(LUA_LIBRARY ${LUAU_VM_LIBRARY})
-  endif()
-else
-  # Use the original Lua/Luau build method
-  find_package(Lua REQUIRED)
+# Use pre-installed Luau libraries
+message(STATUS "Using pre-installed Luau libraries")
+
+# Define paths to Luau files (user can override these)
+if(NOT DEFINED LUAU_ROOT)
+    set(LUAU_ROOT "${CMAKE_SOURCE_DIR}/external/luau" CACHE PATH "Root directory of Luau installation")
 endif()
 
-# Create Lua interface library that links to the real Lua/Luau library
+if(NOT DEFINED LUAU_INCLUDE_DIR)
+    set(LUAU_INCLUDE_DIR "${LUAU_ROOT}/VM/include" CACHE PATH "Directory containing Luau headers")
+endif()
+
+if(NOT DEFINED LUAU_VM_LIBRARY)
+    # Try common library names
+    foreach(LIB_PATH 
+        "${LUAU_ROOT}/build/libLuau.VM.a"
+        "${LUAU_ROOT}/build/Luau.VM.a"
+    )
+        if(EXISTS "${LIB_PATH}")
+            set(LUAU_VM_LIBRARY "${LIB_PATH}" CACHE FILEPATH "Path to Luau VM library")
+            break()
+        endif()
+    endforeach()
+endif()
+
+# Set LUA variables for compatibility with rest of the build
+set(LUA_INCLUDE_DIR "${LUAU_INCLUDE_DIR}")
+set(LUA_LIBRARY "${LUAU_VM_LIBRARY}")
+set(LUA_LIBRARIES "${LUAU_VM_LIBRARY}")
+
+# Verify files exist
+message(STATUS "Checking Luau files:")
+message(STATUS "  Include directory: ${LUA_INCLUDE_DIR}")
+message(STATUS "  Library: ${LUA_LIBRARY}")
+
+# Create imported target for Luau VM
+add_library(luau_vm STATIC IMPORTED)
+set_target_properties(luau_vm PROPERTIES
+    IMPORTED_LOCATION "${LUAU_VM_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${LUAU_INCLUDE_DIR}"
+)
+
+# Create compatibility alias
+add_library(Lua::lua ALIAS luau_vm)
+
+# Create Lua interface library
 add_library(lua_bundled INTERFACE)
 target_include_directories(lua_bundled INTERFACE ${LUA_INCLUDE_DIR})
 target_link_libraries(lua_bundled INTERFACE Lua::lua)
 
-# Additional directories needed for Lua/Luau
-if(EXISTS ${LUA_INCLUDE_DIR})
-  message(STATUS "Setting up Lua/Luau include directories: ${LUA_INCLUDE_DIR}")
-  include_directories(${LUA_INCLUDE_DIR})
-endif()
+# Add include directories for easier access
+include_directories(${LUA_INCLUDE_DIR})
 
-# Log information about Lua/Luau
-message(STATUS "Lua/Luau configuration:")
-message(STATUS "  Using pre-installed: ${USE_PREINSTALLED_LUAU}")
+# Log information about Luau configuration
+message(STATUS "Luau configuration:")
 message(STATUS "  Include Directory: ${LUA_INCLUDE_DIR}")
-message(STATUS "  Main Library: ${LUA_LIBRARY}")
-if(DEFINED LUAU_COMPILER_LIBRARY)
+message(STATUS "  VM Library: ${LUA_LIBRARY}")
+if(EXISTS "${LUAU_COMPILER_LIBRARY}")
   message(STATUS "  Compiler Library: ${LUAU_COMPILER_LIBRARY}")
+else()
+  message(STATUS "  Compiler Library: Not found (optional)")
 endif()
-message(STATUS "  Using Luau (Roblox Lua): ${USE_LUAU}")
 
-# Additional compile definitions when using Luau
-if(USE_LUAU)
-  add_definitions(-DUSE_LUAU=1)
-  add_definitions(-DLUAU_FASTINT_SUPPORT=1)
-  
-  # Add additional compiler definitions for Luau
-  if(USE_PREINSTALLED_LUAU)
-    add_definitions(-DUSE_PREINSTALLED_LUAU=1)
-  endif()
-endif()
+# Add Luau compiler definitions
+add_definitions(-DUSE_LUAU=1)
+add_definitions(-DLUAU_FASTINT_SUPPORT=1)
 
 # Add subdirectories
 add_subdirectory(source/cpp)
 add_subdirectory(source)
 
-# Make sure the Lua library exists and has the right content
-# Create the ensure_lua_lib.cmake file in the build directory
-file(WRITE "${CMAKE_BINARY_DIR}/ensure_lua_lib.cmake" "
-# Script to ensure Lua library exists
-message(STATUS \"Ensuring Lua library exists at ${LUA_LIBRARY}\")
-# Create directory if needed
-file(MAKE_DIRECTORY \"${LUA_EXTERNAL_DIR}/lib\")
-
-# Check if library already exists and has content
-if(EXISTS \"${LUA_LIBRARY}\")
-    file(SIZE \"${LUA_LIBRARY}\" SIZE)
-    message(STATUS \"Library exists with size: \${SIZE} bytes\")
-    if(SIZE GREATER 1000)
-        message(STATUS \"Library seems valid, no action needed\")
-        return()
-    else
-        message(STATUS \"Library too small, will recreate\")
-    endif()
+# Verify that required Luau files exist
+if(NOT EXISTS "${LUAU_INCLUDE_DIR}/lua.h")
+    message(FATAL_ERROR "Luau headers not found at ${LUAU_INCLUDE_DIR}. Please install Luau in the expected location or specify -DLUAU_INCLUDE_DIR=/path/to/headers")
 endif()
 
-# Create a dummy C file with needed symbols
-file(WRITE \"${LUA_EXTERNAL_DIR}/lib/lua_api.c\" \"
-#include <stdlib.h>
-/* Essential Lua API stubs */
-int luaopen_base(void* L) { return 0; }
-int luaL_openlibs(void* L) { return 0; }
-int lua_close(void* L) { return 0; }
-int luaL_newstate(void) { return 0; }
-int lua_pcall(void* L, int a, int b, int c) { return 0; }
-\")
+if(NOT EXISTS "${LUAU_VM_LIBRARY}")
+    message(FATAL_ERROR "Luau VM library not found at ${LUAU_VM_LIBRARY}. Please install Luau in the expected location or specify -DLUAU_VM_LIBRARY=/path/to/library")
+endif()
 
-# Compile and create archive
-execute_process(
-    COMMAND cc -c \"${LUA_EXTERNAL_DIR}/lib/lua_api.c\" -o \"${LUA_EXTERNAL_DIR}/lib/lua_api.o\"
-    COMMAND ar rcs \"${LUA_LIBRARY}\" \"${LUA_EXTERNAL_DIR}/lib/lua_api.o\"
-)
+# Log file sizes to verify they are valid
+file(SIZE "${LUAU_VM_LIBRARY}" LUAU_VM_SIZE)
+message(STATUS "Confirmed Luau VM library exists (${LUAU_VM_SIZE} bytes)")
 
-message(STATUS \"Created lua library at ${LUA_LIBRARY}\")
-")
-
-# Create a custom target that runs our script
-add_custom_target(ensure_lua_library
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/ensure_lua_lib.cmake
-    COMMENT "Ensuring Lua library exists before building mylibrary"
-    VERBATIM
-)
-
-# Create a special variable to force Lua target order
-set(LUA_LIB_DEPS lua_bundled ensure_lua_library)
+if(EXISTS "${LUAU_COMPILER_LIBRARY}")
+    file(SIZE "${LUAU_COMPILER_LIBRARY}" LUAU_COMPILER_SIZE)
+    message(STATUS "Found Luau Compiler library (${LUAU_COMPILER_SIZE} bytes)")
+endif()
 
 # Create the final dynamic library
 add_library(mylibrary SHARED 
@@ -197,29 +182,14 @@ set_target_properties(mylibrary PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
 )
 
-# Add explicit dependency to ensure proper build order
-add_dependencies(mylibrary ${LUA_LIB_DEPS})
-
 # Link with our static library and dependencies
 target_link_libraries(mylibrary
     PRIVATE
     roblox_execution
 )
 
-# Set up Lua/Luau linking appropriately
-if(USE_LUAU AND USE_PREINSTALLED_LUAU)
-    # Link directly with Luau libraries when pre-installed
-    target_link_libraries(mylibrary PRIVATE Luau::lua)
-    
-    # For more explicit control, you can link with individual components:
-    # target_link_libraries(mylibrary PRIVATE Luau::VM)
-    # if(TARGET Luau::Compiler)
-    #     target_link_libraries(mylibrary PRIVATE Luau::Compiler)
-    # endif()
-else
-    # Use the bundled lua target
-    target_link_libraries(mylibrary PRIVATE lua_bundled)
-endif()
+# Link directly with Luau libraries
+target_link_libraries(mylibrary PRIVATE Lua::lua)
 
 # Additional include paths and flags
 target_include_directories(mylibrary PRIVATE 
@@ -230,16 +200,10 @@ target_include_directories(mylibrary PRIVATE
 # Extra compiler defines for diagnostics
 target_compile_definitions(mylibrary PRIVATE
     USE_LUA=1
+    USE_LUAU=1
+    LUAU_VM_LIBRARY_PATH="${LUAU_VM_LIBRARY}"
     LUA_LIBRARY_PATH="${LUA_LIBRARY}"
 )
-
-# Add Luau-specific configuration when using pre-installed Luau
-if(USE_LUAU AND USE_PREINSTALLED_LUAU)
-    target_compile_definitions(mylibrary PRIVATE
-        USE_PREINSTALLED_LUAU=1
-        LUAU_VM_LIBRARY_PATH="${LUAU_VM_LIBRARY}"
-    )
-endif()
 
 # Link with iOS frameworks if on Apple platform
 if(APPLE)

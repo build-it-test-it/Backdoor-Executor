@@ -24,10 +24,20 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Options
 option(USE_DOBBY "Use Dobby for hooking" ON)
 option(USE_LUAU "Use Luau (Roblox's Lua) instead of standard Lua" ON)
+option(USE_PREINSTALLED_LUAU "Use pre-installed Luau instead of building it" OFF)
 option(ENABLE_AI_FEATURES "Enable AI features" ON)
 option(ENABLE_ADVANCED_BYPASS "Enable advanced bypass features" ON)
 option(BUILD_TESTING "Build tests" OFF)
 option(BUILD_DOCS "Build documentation" OFF)
+
+# Luau specific options
+if(USE_LUAU AND USE_PREINSTALLED_LUAU)
+    # Allow customizing paths to pre-installed Luau
+    set(LUAU_ROOT "${CMAKE_SOURCE_DIR}/external/luau" CACHE PATH "Root directory of pre-installed Luau")
+    set(LUAU_INCLUDE_DIR "${LUAU_ROOT}/VM/include" CACHE PATH "Directory containing Luau headers")
+    set(LUAU_VM_LIBRARY "${LUAU_ROOT}/build/libLuau.VM.a" CACHE FILEPATH "Path to Luau VM library")
+    set(LUAU_COMPILER_LIBRARY "${LUAU_ROOT}/build/libLuau.Compiler.a" CACHE FILEPATH "Path to Luau Compiler library")
+endif()
 
 # Platform-specific settings
 if(APPLE)
@@ -74,8 +84,20 @@ if(USE_DOBBY)
     add_definitions(-DUSE_DOBBY=1)
 endif()
 
-# Find and setup Lua with our custom module
-find_package(Lua REQUIRED)
+# Find and setup Lua/Luau
+if(USE_LUAU AND USE_PREINSTALLED_LUAU)
+  # Use pre-installed Luau libraries
+  message(STATUS "Using pre-installed Luau libraries")
+  find_package(PreinstalledLuau REQUIRED)
+  
+  # Set LUA_LIBRARY for compatibility with rest of the build
+  if(NOT DEFINED LUA_LIBRARY AND DEFINED LUAU_VM_LIBRARY)
+    set(LUA_LIBRARY ${LUAU_VM_LIBRARY})
+  endif()
+else
+  # Use the original Lua/Luau build method
+  find_package(Lua REQUIRED)
+endif()
 
 # Create Lua interface library that links to the real Lua/Luau library
 add_library(lua_bundled INTERFACE)
@@ -88,15 +110,25 @@ if(EXISTS ${LUA_INCLUDE_DIR})
   include_directories(${LUA_INCLUDE_DIR})
 endif()
 
-# Log information about Lua/Luau to help debug build issues
-message(STATUS "Lua/Luau Library: ${LUA_LIBRARY}")
-message(STATUS "Lua/Luau Include Directory: ${LUA_INCLUDE_DIR}")
-message(STATUS "Using Luau (Roblox Lua): ${USE_LUAU}")
+# Log information about Lua/Luau
+message(STATUS "Lua/Luau configuration:")
+message(STATUS "  Using pre-installed: ${USE_PREINSTALLED_LUAU}")
+message(STATUS "  Include Directory: ${LUA_INCLUDE_DIR}")
+message(STATUS "  Main Library: ${LUA_LIBRARY}")
+if(DEFINED LUAU_COMPILER_LIBRARY)
+  message(STATUS "  Compiler Library: ${LUAU_COMPILER_LIBRARY}")
+endif()
+message(STATUS "  Using Luau (Roblox Lua): ${USE_LUAU}")
 
 # Additional compile definitions when using Luau
 if(USE_LUAU)
   add_definitions(-DUSE_LUAU=1)
   add_definitions(-DLUAU_FASTINT_SUPPORT=1)
+  
+  # Add additional compiler definitions for Luau
+  if(USE_PREINSTALLED_LUAU)
+    add_definitions(-DUSE_PREINSTALLED_LUAU=1)
+  endif()
 endif()
 
 # Add subdirectories
@@ -172,8 +204,22 @@ add_dependencies(mylibrary ${LUA_LIB_DEPS})
 target_link_libraries(mylibrary
     PRIVATE
     roblox_execution
-    lua_bundled
 )
+
+# Set up Lua/Luau linking appropriately
+if(USE_LUAU AND USE_PREINSTALLED_LUAU)
+    # Link directly with Luau libraries when pre-installed
+    target_link_libraries(mylibrary PRIVATE Luau::lua)
+    
+    # For more explicit control, you can link with individual components:
+    # target_link_libraries(mylibrary PRIVATE Luau::VM)
+    # if(TARGET Luau::Compiler)
+    #     target_link_libraries(mylibrary PRIVATE Luau::Compiler)
+    # endif()
+else
+    # Use the bundled lua target
+    target_link_libraries(mylibrary PRIVATE lua_bundled)
+endif()
 
 # Additional include paths and flags
 target_include_directories(mylibrary PRIVATE 
@@ -186,6 +232,14 @@ target_compile_definitions(mylibrary PRIVATE
     USE_LUA=1
     LUA_LIBRARY_PATH="${LUA_LIBRARY}"
 )
+
+# Add Luau-specific configuration when using pre-installed Luau
+if(USE_LUAU AND USE_PREINSTALLED_LUAU)
+    target_compile_definitions(mylibrary PRIVATE
+        USE_PREINSTALLED_LUAU=1
+        LUAU_VM_LIBRARY_PATH="${LUAU_VM_LIBRARY}"
+    )
+endif()
 
 # Link with iOS frameworks if on Apple platform
 if(APPLE)

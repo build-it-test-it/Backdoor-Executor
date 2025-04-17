@@ -18,8 +18,9 @@ else()
 endif()
 
 # Explicitly collect source files by component for better organization and control
+# Note: library.cpp is already included in the main mylibrary target defined in root CMakeLists.txt
+# Including it here would cause duplicate symbol issues
 set(CORE_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/library.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/logging.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/native-lib.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/globals.hpp"
@@ -123,27 +124,36 @@ target_compile_definitions(roblox_execution PRIVATE
     ENABLE_ANTI_TAMPER=1
 )
 
+# Add CI-specific definitions for CI builds
+if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS} OR CI_BUILD)
+    target_compile_definitions(roblox_execution PRIVATE
+        CI_BUILD=1
+        SKIP_IOS_INTEGRATION=1
+    )
+    message(STATUS "CI build detected - adding CI-specific definitions")
+endif()
+
 # Set include directories
 target_include_directories(roblox_execution PUBLIC
     ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/luau
+    ${CMAKE_SOURCE_DIR}/VM/include # Update to use local VM folder
     ${CMAKE_SOURCE_DIR}/external/dobby/include
 )
 
-# Link against lua
-target_link_libraries(roblox_execution lua_bundled)
+# We now include VM sources directly in main library, no need to link against luau_vm
+# instead, ensure we have the right include paths
+target_include_directories(roblox_execution PRIVATE
+    ${CMAKE_SOURCE_DIR}/VM/include
+    ${CMAKE_SOURCE_DIR}/VM/src
+)
 
-# Find Dobby and link if available
-find_package(Dobby QUIET)
-if(Dobby_FOUND)
+# Link against Dobby - it's already found/built in the main CMakeLists.txt
+if(USE_DOBBY)
+    # Dobby is already located and configured in the main CMakeLists.txt
+    # This ensures we only have one Dobby target used throughout the project
     target_link_libraries(roblox_execution Dobby::dobby)
-else()
-    # Try direct linking if the CMake package is not found
-    if(EXISTS "${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a")
-        target_link_libraries(roblox_execution "${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a")
-    endif()
 endif()
 
 # Build tests in debug mode

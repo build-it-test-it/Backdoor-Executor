@@ -4,6 +4,11 @@
 #include <iostream>
 #include "ui/UIDesignSystem.h"
 
+// Import CoreFoundation for bridging functions
+#if __has_feature(objc_arc)
+#import <CoreFoundation/CoreFoundation.h>
+#endif
+
 // Forward declarations of helper functions
 static CALayer* createLEDGlowLayer(CGRect frame, UIColor* color, CGFloat intensity);
 static CABasicAnimation* createPulseAnimation(CGFloat duration, CGFloat intensity);
@@ -455,9 +460,16 @@ namespace iOS {
             UITapGestureRecognizer* tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:button action:@selector(handleTap:)];
             [button addGestureRecognizer:tapGesture];
             
-            // Store the button and apply initial position (manual memory management)
+            // Store the button and apply initial position
+            #if __has_feature(objc_arc)
+            // In ARC mode, use CFBridgingRetain to transfer ownership to C++
+            // Cast needed to convert const void* to void* (safe in this case since we own the object)
+            m_buttonView = (void*)CFBridgingRetain(button);
+            #else
+            // In non-ARC mode, use manual retain
             m_buttonView = (void*)button;
             [button retain]; // Explicitly retain the button since we're not using ARC
+            #endif
             UpdateButtonPosition();
             
             // Initially hidden
@@ -471,9 +483,17 @@ namespace iOS {
     // Destructor
     FloatingButtonController::~FloatingButtonController() {
         if (m_buttonView) {
+            #if __has_feature(objc_arc)
+            // In ARC mode, use CFBridgingRelease to transfer ownership back to ARC
+            FloatingButton* button = (__bridge_transfer FloatingButton*)m_buttonView;
+            [button removeFromSuperview];
+            // No need for explicit release in ARC
+            #else
+            // In non-ARC mode, use manual release
             FloatingButton* button = (FloatingButton*)m_buttonView;
             [button removeFromSuperview];
             [button release]; // Explicitly release since we're manually retaining
+            #endif
             m_buttonView = nullptr;
         }
     }

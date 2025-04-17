@@ -11,7 +11,7 @@
 
 // Include our main compatibility headers
 #include "../ios_compat.h"
-#include "../objc_isolation.h"
+#include "objc_isolation.h"
 #include "../logging.hpp"
 
 // Common macros for Objective-C++ implementations

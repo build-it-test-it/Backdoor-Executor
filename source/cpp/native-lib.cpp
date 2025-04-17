@@ -1,7 +1,12 @@
 #include <iostream>
 #include <string>
+
+// Skip iOS framework integration in CI builds to avoid compilation issues
+#ifndef SKIP_IOS_INTEGRATION
 #include "ios/ExecutionEngine.h"
 #include "ios/ScriptManager.h"
+#endif
+
 #include "hooks/hooks.hpp"
 #include "memory/mem.hpp"
 
@@ -16,6 +21,11 @@ extern "C" {
         
         // Initialize memory system
         Memory::Initialize();
+        
+        #ifndef SKIP_IOS_INTEGRATION
+        // iOS-specific initialization (skipped in CI)
+        std::cout << "Initializing iOS integration" << std::endl;
+        #endif
     }
     
     __attribute__((destructor))

@@ -103,16 +103,32 @@ inline std::string ObjCBridge::NSStringToCPPString(NSString* str) {
 
 inline void ObjCBridge::ObjCWrapper::release() {
     if (m_object) {
+        #if __has_feature(objc_arc)
+        // In ARC mode, we use CFBridgingRelease for proper memory management
+        // The cast is safe because we're releasing our ownership
+        CFRelease(m_object);
+        #else
+        // In non-ARC mode, we can call release directly
         [(NSObject*)m_object release];
+        #endif
         m_object = nullptr;
     }
 }
 
 // Macro to safely bridge between C++ and Objective-C
+#if __has_feature(objc_arc)
+// ARC-specific bridging macros
+#define OBJC_BRIDGE(objctype, cppvar) ((__bridge objctype*)(cppvar.get()))
+#define OBJC_BRIDGE_CONST(objctype, cppvar) ((__bridge objctype*)(cppvar.get()))
+#define CPP_BRIDGE(cppvar, objcvar) ((cppvar).set((__bridge void*)(objcvar)))
+#define CPP_BRIDGE_TRANSFER(cppvar, objcvar) ((cppvar).set(CFBridgingRetain(objcvar)))
+#else
+// Non-ARC bridging macros
 #define OBJC_BRIDGE(objctype, cppvar) ((__bridge objctype*)(cppvar.get()))
 #define OBJC_BRIDGE_CONST(objctype, cppvar) ((__bridge objctype*)(cppvar.get()))
 #define CPP_BRIDGE(cppvar, objcvar) ((cppvar).set((__bridge_retained void*)(objcvar)))
 #define CPP_BRIDGE_TRANSFER(cppvar, objcvar) ((cppvar).set((__bridge_transfer void*)(objcvar)))
+#endif
 
 #endif // __cplusplus
 #endif // __APPLE__

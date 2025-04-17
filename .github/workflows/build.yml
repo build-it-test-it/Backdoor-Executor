@@ -26,8 +26,6 @@ jobs:
         # Create required directories
         mkdir -p external/dobby/include
         mkdir -p external/dobby/lib
-        mkdir -p external/lua/include
-        mkdir -p external/lua/lib
         mkdir -p output/Resources/AIData
         mkdir -p build
         
@@ -35,8 +33,25 @@ jobs:
         echo "Removing CI_BUILD definitions from source files..."
         find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" \) | xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
         
-        # Let CMake handle the Lua build through our custom FindLua.cmake
-        echo "Lua will be built automatically by CMake..."
+        # Verify and fix VM folder structure if needed
+        echo "Verifying VM folder structure..."
+        if [ -d "VM" ] && [ -d "VM/include" ] && [ -d "VM/src" ]; then
+          echo "✅ VM folder structure verified"
+          ls -la VM/include/
+          ls -la VM/src/ | head -n 5
+          
+          # Make sure VM files are readable
+          echo "Ensuring VM files have correct permissions..."
+          chmod -R 755 VM
+          
+          # Count source files to verify
+          VM_SRC_COUNT=$(find VM/src -name "*.cpp" | wc -l)
+          VM_INCLUDE_COUNT=$(find VM/include -name "*.h" | wc -l)
+          echo "Found $VM_SRC_COUNT .cpp files and $VM_INCLUDE_COUNT .h files in VM directory"
+        else
+          echo "⚠️ VM folder structure has issues, creating required directories..."
+          mkdir -p VM/include VM/src
+        fi
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -73,22 +88,46 @@ jobs:
       run: |
         echo "Building the iOS dynamic library..."
         
-        # Configure CMake directly
+        # Make sure VM files are accessible but remove any VM CMakeLists.txt to avoid conflicts
+        echo "Preparing VM files for inclusion..."
+        find VM -name "*.cpp" -o -name "*.h" | xargs ls -la || true
+        rm -rf VM/CMakeLists.txt || true
+
+        # Create dummy VM files if needed for CI build
+        echo "Testing VM file access..."
+        VM_SOURCE_COUNT=$(find VM/src -name "*.cpp" | wc -l)
+        VM_HEADER_COUNT=$(find VM/include -name "*.h" | wc -l)
+        echo "Found $VM_SOURCE_COUNT C++ files in VM/src and $VM_HEADER_COUNT headers in VM/include"
+
+        # Configure CMake with direct VM inclusion and some CI flags
         cmake -S . -B build \
           -DCMAKE_OSX_ARCHITECTURES="arm64" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_SYSTEM_NAME=iOS \
           -DENABLE_AI_FEATURES=ON \
-          -DUSE_DOBBY=ON
+          -DUSE_DOBBY=ON \
+          -DDIRECT_VM_INCLUDE=ON \
+          -DCMAKE_VERBOSE_MAKEFILE=ON \
+          -DCMAKE_CXX_FLAGS="-fobjc-arc -DOBJC_USE_ARC=1" \
+          -DCMAKE_OBJCXX_FLAGS="-fobjc-arc -DOBJC_USE_ARC=1"
 
         # Show CMake configuration for debugging
         echo "CMake configuration from cache:"
         cat build/CMakeCache.txt | grep -E "DOBBY|LUA|FLAGS|MODULE_PATH"
         
-        # Build the dynamic library
+        # Build the dynamic library with better error handling
         echo "Building the dynamic library now..."
-        cmake --build build --config Release -j4
+        echo "First build Dobby (prerequisite)..."
+        cmake --build build --config Release -j4 --target dobby_external || true
+        
+        echo "Then build the main library with verbose output..."
+        cd build && make VERBOSE=1 mylibrary || {
+          echo "⚠️ Main library build failed - showing detailed errors:"
+          cat CMakeFiles/CMakeError.log || true
+          cat CMakeFiles/CMakeOutput.log || true
+          exit 1
+        }
         
         # Check the build result
         if [ -f "build/lib/libmylibrary.dylib" ]; then

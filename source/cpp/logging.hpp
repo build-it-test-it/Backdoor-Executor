@@ -291,9 +291,7 @@ public:
     }
 };
 
-// Initialize static members
-std::unique_ptr<Logger> Logger::s_instance = nullptr;
-std::mutex Logger::s_instanceMutex;
+// Static members defined in logging.cpp
 
 // Convenience global functions
 inline void LogDebug(const std::string& category, const std::string& message) {

@@ -1,90 +1,158 @@
 #pragma once
 
-// Only include JNI for Android builds, not iOS
-#if !defined(IOS_TARGET) && !defined(__APPLE__)
-#include <jni.h>
-#endif
-
-#include <unistd.h>
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <cstdlib>
+#include <iostream>
 
-// Utils.h from LGL Mod Menu
+// Platform-specific includes
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <dlfcn.h>
+#include <mach/mach.h>
+#endif
 
+// Type definitions
 typedef unsigned long DWORD;
-static uintptr_t libBase;
 
-static DWORD getLibBase(const char *library) {
-    char filename[0xFF] = {0},
-            buffer[1024] = {0};
-    FILE *fp = NULL;
-    DWORD address = 0;
-
-    snprintf(filename, sizeof(filename), "/proc/self/maps");
-
-    fp = fopen(filename,"rt");
-    if (fp == NULL) {
-        perror("fopen");
-        goto done;
-    }
-
-    while (fgets(buffer, sizeof(buffer), fp)) {
-        if (strstr(buffer, library)) {
-            address = (DWORD) strtoul(buffer, NULL, 16);
-            goto done;
+namespace Memory {
+    // Platform-specific utility functions
+    
+    // Get base address of a library
+    static uintptr_t GetLibraryBase(const char* libraryName) {
+#ifdef __APPLE__
+        // iOS implementation using dyld APIs
+        uint32_t imageCount = _dyld_image_count();
+        for (uint32_t i = 0; i < imageCount; i++) {
+            const char* imageName = _dyld_get_image_name(i);
+            if (strstr(imageName, libraryName)) {
+                return (uintptr_t)_dyld_get_image_header(i);
+            }
         }
+        return 0;
+#else
+        // Android/Linux implementation using /proc/self/maps
+        char filename[255] = {0};
+        char buffer[1024] = {0};
+        FILE* fp = NULL;
+        uintptr_t address = 0;
+
+        snprintf(filename, sizeof(filename), "/proc/self/maps");
+
+        fp = fopen(filename, "rt");
+        if (fp == NULL) {
+            perror("fopen");
+            return 0;
+        }
+
+        while (fgets(buffer, sizeof(buffer), fp)) {
+            if (strstr(buffer, libraryName)) {
+                address = (uintptr_t)strtoul(buffer, NULL, 16);
+                break;
+            }
+        }
+
+        if (fp) {
+            fclose(fp);
+        }
+
+        return address;
+#endif
     }
 
-    done:
-
-    if (fp) {
-        fclose(fp);
+    // Get address of a function within a library
+    static uintptr_t GetAddress(const char* libraryName, uintptr_t relativeAddr) {
+        uintptr_t libBase = GetLibraryBase(libraryName);
+        if (libBase == 0) {
+            return 0;
+        }
+        return libBase + relativeAddr;
     }
 
-    return address;
-}
+    // Get address with default library
+    static uintptr_t GetAddress(uintptr_t relativeAddr) {
+#ifdef __APPLE__
+        return GetAddress("libroblox.dylib", relativeAddr);
+#else
+        return GetAddress("libroblox.so", relativeAddr);
+#endif
+    }
 
-static DWORD getAddress(DWORD relativeAddr) {
-    libBase = getLibBase(("libroblox.so"));
-    if (libBase == 0)
-        return 0;
-    return (reinterpret_cast<DWORD>(libBase + relativeAddr));
-}
-
-static DWORD getLibAddress(const char* lib, DWORD relativeAddr)
-{
-    libBase = getLibBase(lib);
-    if (libBase == 0)
-        return 0;
-    return (reinterpret_cast<DWORD>(libBase + relativeAddr));
-}
-
-static bool isLibraryLoaded(const char *libraryName) {
-    char line[512] = {0};
-    FILE *fp = fopen(("/proc/self/maps"), ("rt"));
-    if (fp != NULL) {
-        while (fgets(line, sizeof(line), fp)) {
-            std::string a = line;
-            if (strstr(line, libraryName)) {
+    // Check if a library is loaded
+    static bool IsLibraryLoaded(const char* libraryName) {
+#ifdef __APPLE__
+        // iOS implementation using dyld APIs
+        uint32_t imageCount = _dyld_image_count();
+        for (uint32_t i = 0; i < imageCount; i++) {
+            const char* imageName = _dyld_get_image_name(i);
+            if (strstr(imageName, libraryName)) {
                 return true;
             }
         }
-        fclose(fp);
-    }
-    return false;
-}
-
-
-// Conditionally compile JNI-dependent functions
-#if !defined(IOS_TARGET) && !defined(__APPLE__)
-static jboolean isGameLibLoaded(JNIEnv *env, jobject thiz) {
-    return isLibraryLoaded(("libroblox.so"));
-}
+        return false;
 #else
-// iOS version doesn't need JNI
-static bool isGameLibLoaded() {
-    return isLibraryLoaded(("libroblox.dylib"));
-}
+        // Android/Linux implementation using /proc/self/maps
+        char line[512] = {0};
+        FILE* fp = fopen("/proc/self/maps", "rt");
+        if (fp != NULL) {
+            while (fgets(line, sizeof(line), fp)) {
+                if (strstr(line, libraryName)) {
+                    fclose(fp);
+                    return true;
+                }
+            }
+            fclose(fp);
+        }
+        return false;
 #endif
+    }
+
+    // Check if the game library is loaded
+    static bool IsGameLibLoaded() {
+#ifdef __APPLE__
+        return IsLibraryLoaded("libroblox.dylib");
+#else
+        return IsLibraryLoaded("libroblox.so");
+#endif
+    }
+
+    // Memory read/write functions
+    template<typename T>
+    static T Read(uintptr_t address) {
+        if (address == 0) {
+            return T();
+        }
+        return *reinterpret_cast<T*>(address);
+    }
+
+    template<typename T>
+    static void Write(uintptr_t address, T value) {
+        if (address == 0) {
+            return;
+        }
+        *reinterpret_cast<T*>(address) = value;
+    }
+
+    // Memory protection manipulation
+    static bool ProtectMemory(void* address, size_t size, int protection) {
+#ifdef __APPLE__
+        // iOS memory protection
+        vm_prot_t prot = 0;
+        if (protection & 1) prot |= VM_PROT_READ;
+        if (protection & 2) prot |= VM_PROT_WRITE;
+        if (protection & 4) prot |= VM_PROT_EXECUTE;
+        
+        kern_return_t result = vm_protect(mach_task_self(), (vm_address_t)address, size, FALSE, prot);
+        return result == KERN_SUCCESS;
+#else
+        // Implement for other platforms as needed
+        return false;
+#endif
+    }
+
+    // Initialize memory system
+    static void Initialize() {
+        std::cout << "Initializing memory system" << std::endl;
+    }
+}

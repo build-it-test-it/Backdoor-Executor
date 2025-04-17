@@ -1,52 +1,20 @@
+// library.cpp - Implementation of public library interface
 #include "library.hpp"
 #include <cstring>
 #include <iostream>
 
 #ifdef __APPLE__
-#include "cpp/ios/ExecutionEngine.h"
-#include "cpp/ios/ScriptManager.h"
-#include "cpp/ios/JailbreakBypass.h"
-#include "cpp/ios/UIController.h"
-#include "cpp/init.hpp"
+#include "ios/ExecutionEngine.h"
+#include "ios/ScriptManager.h"
+#include "ios/JailbreakBypass.h"
+#include "ios/UIController.h"
+#include "init.hpp"
 #endif
 
 // Global references to keep objects alive
 static std::shared_ptr<iOS::ExecutionEngine> g_executionEngine;
 static std::shared_ptr<iOS::ScriptManager> g_scriptManager;
 static std::unique_ptr<iOS::UIController> g_uiController;
-
-// Initialize the library - called from dylib_initializer
-static bool InitializeLibrary() {
-    std::cout << "Initializing Roblox Executor library..." << std::endl;
-    
-    try {
-        // Set up initialization options
-        RobloxExecutor::InitOptions options;
-        options.enableLogging = true;
-        options.enableErrorReporting = true;
-        options.enablePerformanceMonitoring = true;
-        options.enableSecurity = true;
-        options.enableJailbreakBypass = true;
-        options.enableUI = true;
-        
-        // Initialize the executor system
-        if (!RobloxExecutor::Initialize(options)) {
-            std::cerr << "Failed to initialize RobloxExecutor" << std::endl;
-            return false;
-        }
-        
-        // Keep references to key components
-        g_executionEngine = RobloxExecutor::SystemState::GetExecutionEngine();
-        g_scriptManager = RobloxExecutor::SystemState::GetScriptManager();
-        g_uiController = std::unique_ptr<iOS::UIController>(RobloxExecutor::SystemState::GetUIController());
-        
-        std::cout << "Roblox Executor library initialized successfully" << std::endl;
-        return true;
-    } catch (const std::exception& ex) {
-        std::cerr << "Exception during library initialization: " << ex.what() << std::endl;
-        return false;
-    }
-}
 
 // The function called when the library is loaded (constructor attribute)
 extern "C" {
@@ -55,7 +23,15 @@ extern "C" {
         std::cout << "Roblox Executor dylib loaded" << std::endl;
         
         // Initialize the library
-        if (!InitializeLibrary()) {
+        RobloxExecutor::InitOptions options;
+        options.enableLogging = true;
+        options.enableErrorReporting = true;
+        options.enablePerformanceMonitoring = true;
+        options.enableSecurity = true;
+        options.enableJailbreakBypass = true;
+        options.enableUI = true;
+        
+        if (!RobloxExecutor::Initialize(options)) {
             std::cerr << "Failed to initialize library" << std::endl;
         }
     }
@@ -66,11 +42,6 @@ extern "C" {
         
         // Clean up resources
         RobloxExecutor::Shutdown();
-        
-        // Clear global references
-        g_executionEngine.reset();
-        g_scriptManager.reset();
-        g_uiController.reset();
     }
     
     // Lua module entry point
@@ -84,11 +55,17 @@ extern "C" {
     // Script execution API
     bool ExecuteScript(const char* script) {
         if (!script) return false;
-        if (!g_executionEngine) return false;
         
         try {
+            // Get the execution engine
+            auto engine = RobloxExecutor::SystemState::GetExecutionEngine();
+            if (!engine) {
+                std::cerr << "ExecuteScript: Execution engine not initialized" << std::endl;
+                return false;
+            }
+            
             // Execute script
-            auto result = g_executionEngine->Execute(script);
+            auto result = engine->Execute(script);
             return result.m_success;
         } catch (const std::exception& ex) {
             std::cerr << "Exception during script execution: " << ex.what() << std::endl;
@@ -135,8 +112,8 @@ extern "C" {
         
 #ifdef USE_DOBBY
         // Use Dobby for hooking
-        #include "cpp/dobby_wrapper.cpp"
-        return DobbyWrapper::Hook(original, replacement);
+        extern void* DobbyHook(void* original, void* replacement);
+        return DobbyHook(original, replacement);
 #else
         return NULL;
 #endif
@@ -144,10 +121,15 @@ extern "C" {
     
     // UI integration
     bool InjectRobloxUI() {
-        if (!g_uiController) return false;
-        
         try {
-            return g_uiController->Show();
+            // Get UI controller
+            auto uiController = RobloxExecutor::SystemState::GetUIController();
+            if (!uiController) {
+                std::cerr << "InjectRobloxUI: UI controller not initialized" << std::endl;
+                return false;
+            }
+            
+            return uiController->Show();
         } catch (const std::exception& ex) {
             std::cerr << "Exception during UI injection: " << ex.what() << std::endl;
             return false;
@@ -157,23 +139,16 @@ extern "C" {
     // AI features
     void AIFeatures_Enable(bool enable) {
         // Implementation depends on AIIntegration class
-        if (g_executionEngine) {
-            // Set AI features in execution context
-            auto context = g_executionEngine->GetDefaultContext();
-            // Enable or disable AI in context
-            g_executionEngine->SetDefaultContext(context);
-        }
+        // This would normally configure AI features but is simplified for now
+        std::cout << "AI features " << (enable ? "enabled" : "disabled") << std::endl;
     }
     
     void AIIntegration_Initialize() {
         // Initialize AI integration
 #ifdef ENABLE_AI_FEATURES
         #ifdef __APPLE__
-        // Initialize iOS-specific AI features
-        if (g_executionEngine) {
-            std::cout << "Initializing AI Integration..." << std::endl;
-            // Make appropriate calls to initialize AI subsystem
-        }
+        std::cout << "Initializing AI Integration..." << std::endl;
+        // Actual initialization would be here
         #endif
 #endif
     }
@@ -184,17 +159,10 @@ extern "C" {
         static std::string suggestions;
         
 #ifdef ENABLE_AI_FEATURES
-        // Implement AI-based script suggestions
-        try {
-            // This would normally use AI to generate suggestions
-            // For now, add some basic placeholder suggestions
-            suggestions = "-- AI Script Suggestions:\n";
-            suggestions += "-- 1. Remember to use pcall() for safer script execution\n";
-            suggestions += "-- 2. Consider using task.wait() instead of wait()\n";
-        } catch (const std::exception& ex) {
-            suggestions = "-- Error generating suggestions: ";
-            suggestions += ex.what();
-        }
+        // Implement AI-based script suggestions - simplified for now
+        suggestions = "-- AI Script Suggestions:\n";
+        suggestions += "-- 1. Remember to use pcall() for safer script execution\n";
+        suggestions += "-- 2. Consider using task.wait() instead of wait()\n";
 #else
         suggestions = "-- AI features are not enabled";
 #endif

@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <cstdint>
 
 namespace iOS {
 namespace AIFeatures {
@@ -16,6 +17,9 @@ namespace AIFeatures {
  * This class holds configuration options for the AI system, including
  * paths, model settings, learning modes, and other parameters. It provides
  * a consistent interface for accessing and modifying configuration values.
+ * 
+ * This implementation focuses on local-only AI models that are created and trained
+ * on the device, without relying on external API services.
  */
 class AIConfig {
 public:
@@ -46,8 +50,42 @@ public:
         Thorough,   // Thorough detection level
         Exhaustive  // Exhaustive detection level
     };
+
+    /**
+     * @brief Operation mode enumeration
+     */
+    enum class OperationMode {
+        Standard,         // Standard operation
+        HighPerformance,  // High performance mode
+        HighQuality,      // High quality mode
+        LowMemory         // Low memory usage mode
+    };
+
+    /**
+     * @brief Online mode enumeration
+     * Note: In this implementation, only OfflineOnly is used
+     */
+    enum class OnlineMode {
+        Auto,            // Automatically choose based on connectivity
+        PreferOffline,   // Prefer offline mode, but use online if needed
+        PreferOnline,    // Prefer online mode, but use offline if needed
+        OfflineOnly,     // Only use offline mode
+        OnlineOnly       // Only use online mode
+    };
+
+    /**
+     * @brief Model quality enumeration
+     */
+    enum class ModelQuality {
+        Low,       // Low quality model (faster, less accurate)
+        Medium,    // Medium quality model (balance of speed and accuracy)
+        High       // High quality model (slower, more accurate)
+    };
     
 private:
+    // Singleton instance
+    static AIConfig* s_instance;
+    
     // Configuration options
     std::map<std::string, std::string> m_options;
     
@@ -118,15 +156,31 @@ public:
     /**
      * @brief Constructor
      */
-    AIConfig() {
-        // Set default options
-        SetOption("data_path", "/var/mobile/Documents/AIData");
-        SetOption("model_improvement", "local");
-        SetOption("learning_mode", "on_demand");
-        SetOption("vulnerability_detection_level", "standard");
-        SetOption("self_improvement_enabled", "1");
-        SetOption("offline_model_generation", "1");
-    }
+    AIConfig();
+    
+    /**
+     * @brief Get shared instance (singleton)
+     * @return Shared instance
+     */
+    static AIConfig& GetSharedInstance();
+    
+    /**
+     * @brief Initialize with defaults
+     * @return True if initialization succeeded
+     */
+    bool Initialize();
+    
+    /**
+     * @brief Check if initialized
+     * @return True if initialized
+     */
+    bool IsInitialized() const;
+    
+    /**
+     * @brief Save the configuration
+     * @return True if save succeeded
+     */
+    bool Save() const;
     
     /**
      * @brief Set data path
@@ -255,80 +309,23 @@ public:
     bool GetOfflineModelGenerationEnabled() const {
         return GetOption("offline_model_generation", "1") == "1";
     }
-};
-
-} // namespace AIFeatures
-} // namespace iOS
-
+    
     /**
-     * @brief Online mode enumeration
-     */
-    enum class OnlineMode {
-        Auto,            // Automatically choose based on connectivity
-        PreferOffline,   // Prefer offline mode, but use online if needed
-        PreferOnline,    // Prefer online mode, but use offline if needed
-        OfflineOnly,     // Only use offline mode
-        OnlineOnly       // Only use online mode
-    };
-
-    /**
-     * @brief Model quality enumeration
-     */
-    enum class ModelQuality {
-        Low,       // Low quality model (faster, less accurate)
-        Medium,    // Medium quality model (balance of speed and accuracy)
-        High       // High quality model (slower, more accurate)
-    };
-
-    /**
-     * @brief Set online mode
-     * @param mode Online mode
+     * @brief Set online mode (always sets to OfflineOnly in this implementation)
+     * @param mode Online mode (ignored)
      */
     void SetOnlineMode(OnlineMode mode) {
-        std::string modeStr;
-        
-        switch (mode) {
-            case OnlineMode::Auto:
-                modeStr = "auto";
-                break;
-            case OnlineMode::PreferOffline:
-                modeStr = "prefer_offline";
-                break;
-            case OnlineMode::PreferOnline:
-                modeStr = "prefer_online";
-                break;
-            case OnlineMode::OfflineOnly:
-                modeStr = "offline_only";
-                break;
-            case OnlineMode::OnlineOnly:
-                modeStr = "online_only";
-                break;
-            default:
-                modeStr = "auto";
-                break;
-        }
-        
-        SetOption("online_mode", modeStr);
+        // Always use offline only mode in this implementation
+        SetOption("online_mode", "offline_only");
     }
     
     /**
-     * @brief Get online mode
+     * @brief Get online mode (always returns OfflineOnly in this implementation)
      * @return Online mode
      */
     OnlineMode GetOnlineMode() const {
-        std::string modeStr = GetOption("online_mode", "auto");
-        
-        if (modeStr == "prefer_offline") {
-            return OnlineMode::PreferOffline;
-        } else if (modeStr == "prefer_online") {
-            return OnlineMode::PreferOnline;
-        } else if (modeStr == "offline_only") {
-            return OnlineMode::OfflineOnly;
-        } else if (modeStr == "online_only") {
-            return OnlineMode::OnlineOnly;
-        } else {
-            return OnlineMode::Auto;
-        }
+        // Always return offline only mode in this implementation
+        return OnlineMode::OfflineOnly;
     }
     
     /**
@@ -371,6 +368,126 @@ public:
             return ModelQuality::Medium;
         }
     }
+    
+    /**
+     * @brief Get API endpoint
+     * @return API endpoint URL (empty in this implementation)
+     */
+    std::string GetAPIEndpoint() const;
+    
+    /**
+     * @brief Set API endpoint
+     * @param endpoint API endpoint URL (ignored in this implementation)
+     */
+    void SetAPIEndpoint(const std::string& endpoint);
+    
+    /**
+     * @brief Get API key
+     * @return API key (empty in this implementation)
+     */
+    std::string GetAPIKey() const;
+    
+    /**
+     * @brief Set API key
+     * @param key API key (ignored in this implementation)
+     */
+    void SetAPIKey(const std::string& key);
+    
+    /**
+     * @brief Get model path
+     * @return Path to AI models
+     */
+    std::string GetModelPath() const;
+    
+    /**
+     * @brief Set model path
+     * @param path Path to AI models
+     */
+    void SetModelPath(const std::string& path);
+    
+    /**
+     * @brief Get whether to encrypt communication
+     * @return True if communication should be encrypted (always false in this implementation)
+     */
+    bool GetEncryptCommunication() const;
+    
+    /**
+     * @brief Set whether to encrypt communication
+     * @param encrypt True to encrypt communication (ignored in this implementation)
+     */
+    void SetEncryptCommunication(bool encrypt);
+    
+    /**
+     * @brief Get maximum memory usage
+     * @return Maximum memory usage in bytes
+     */
+    uint64_t GetMaxMemoryUsage() const;
+    
+    /**
+     * @brief Set maximum memory usage
+     * @param maxMemory Maximum memory usage in bytes
+     */
+    void SetMaxMemoryUsage(uint64_t maxMemory);
+    
+    /**
+     * @brief Check if models should be created on startup
+     * @return True if models should be created on startup
+     */
+    bool ShouldCreateModelsOnStartup() const;
+    
+    /**
+     * @brief Check if models should be rebuilt if needed
+     * @return True if models should be rebuilt if needed
+     */
+    bool ShouldRebuildModelsIfNeeded() const;
+    
+    /**
+     * @brief Get the training data path
+     * @return Path to training data
+     */
+    std::string GetTrainingDataPath() const;
+    
+    /**
+     * @brief Check if training data should be saved
+     * @return True if training data should be saved
+     */
+    bool ShouldSaveTrainingData() const;
+    
+    /**
+     * @brief Get training interval in minutes
+     * @return Training interval in minutes
+     */
+    int GetTrainingIntervalMinutes() const;
+    
+    /**
+     * @brief Get initial model size
+     * @return Initial model size (small, medium, large)
+     */
+    std::string GetInitialModelSize() const;
+    
+    /**
+     * @brief Get max training iterations
+     * @return Maximum number of training iterations
+     */
+    int GetMaxTrainingIterations() const;
+    
+    /**
+     * @brief Get script generation examples count
+     * @return Number of script generation examples to keep
+     */
+    int GetScriptGenerationExamplesCount() const;
+    
+    /**
+     * @brief Get training batch size
+     * @return Training batch size
+     */
+    int GetTrainingBatchSize() const;
+    
+private:
+    /**
+     * @brief Ensure all necessary directories exist
+     */
+    void EnsureDirectoriesExist();
 };
 
 } // namespace AIFeatures

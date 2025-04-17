@@ -1,0 +1,126 @@
+# Root CMakeLists.txt for iOS Roblox Executor
+cmake_minimum_required(VERSION 3.16)
+project(roblox_executor VERSION 1.0.0 LANGUAGES C CXX)
+
+# Configure CMake
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Default to Release build
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Set output directories
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Add cmake modules directory
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Options
+option(USE_DOBBY "Use Dobby for hooking" ON)
+option(ENABLE_AI_FEATURES "Enable AI features" ON)
+option(ENABLE_ADVANCED_BYPASS "Enable advanced bypass features" ON)
+option(BUILD_TESTING "Build tests" OFF)
+option(BUILD_DOCS "Build documentation" OFF)
+
+# Platform-specific settings
+if(APPLE)
+    # iOS-specific settings
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum iOS version")
+    set(IOS_TARGET TRUE)
+    add_definitions(-DIOS_TARGET=1)
+    add_definitions(-D__APPLE__=1)
+    
+    if(NOT CMAKE_SYSTEM_NAME OR CMAKE_SYSTEM_NAME MATCHES "iOS")
+        set(CMAKE_SYSTEM_NAME "iOS")
+        set(CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH NO)
+        
+        # Set architectures to build
+        if(NOT CMAKE_OSX_ARCHITECTURES)
+            set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for iOS")
+        endif()
+        
+        # Skip code signing
+        set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED NO)
+        set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "")
+    endif()
+    
+    # Add platform-specific flags
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc")
+    
+    # Required frameworks for iOS
+    find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
+    find_library(UIKIT_FRAMEWORK UIKit REQUIRED)
+    find_library(SECURITY_FRAMEWORK Security REQUIRED)
+    find_library(COREDATA_FRAMEWORK CoreData REQUIRED)
+    
+    set(IOS_FRAMEWORKS
+        ${FOUNDATION_FRAMEWORK}
+        ${UIKIT_FRAMEWORK}
+        ${SECURITY_FRAMEWORK}
+        ${COREDATA_FRAMEWORK}
+    )
+endif()
+
+# Find and setup Dobby
+if(USE_DOBBY)
+    find_package(Dobby REQUIRED)
+    add_definitions(-DUSE_DOBBY=1)
+endif()
+
+# Find and setup Lua
+find_package(Lua REQUIRED)
+
+# Add Lua bundled library (can be compiled from sources if needed)
+add_library(lua_bundled INTERFACE)
+target_include_directories(lua_bundled INTERFACE ${LUA_INCLUDE_DIR})
+target_link_libraries(lua_bundled INTERFACE ${LUA_LIBRARIES})
+
+# Add subdirectories
+add_subdirectory(source/cpp)
+add_subdirectory(source)
+
+# Create the final dynamic library
+add_library(mylibrary SHARED 
+    source/library.cpp
+    source/lfs.c
+)
+
+# Set target properties
+set_target_properties(mylibrary PROPERTIES
+    OUTPUT_NAME "mylibrary"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+)
+
+# Link with our static library and dependencies
+target_link_libraries(mylibrary
+    PRIVATE
+    roblox_execution
+    lua_bundled
+)
+
+# Link with iOS frameworks if on Apple platform
+if(APPLE)
+    target_link_libraries(mylibrary PRIVATE ${IOS_FRAMEWORKS})
+endif()
+
+if(USE_DOBBY)
+    target_link_libraries(mylibrary PRIVATE Dobby::dobby)
+endif()
+
+# Install targets
+install(TARGETS mylibrary
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+message(STATUS "roblox_executor CMake configuration complete")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Use Dobby: ${USE_DOBBY}")
+message(STATUS "Enable AI Features: ${ENABLE_AI_FEATURES}")
+message(STATUS "Enable Advanced Bypass: ${ENABLE_ADVANCED_BYPASS}")

@@ -1,43 +1,195 @@
-# Minimal CMakeLists.txt for source/cpp in CI builds
+# Production-grade CMakeLists.txt for source/cpp
 
-# Check if this is a CI build
-#if 0
-  add_definitions(-DCI_BUILD)
-  message(STATUS "CI Build detected - using stub implementation")
-  
-  # For CI builds, just create a simple stub implementation
-  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/stub.cpp
-       "#include <iostream>\nextern \"C\" void roblox_execution_stub() { std::cout << \"Stub function called\" << std::endl; }\n")
-  
-  add_library(roblox_execution STATIC ${CMAKE_CURRENT_BINARY_DIR}/stub.cpp)
-  target_link_libraries(roblox_execution lua_bundled)
+# Define our base component library
+project(roblox_execution VERSION 1.0.0 LANGUAGES C CXX)
+
+# Set compiler flags for production builds
+set(PRODUCTION_FLAGS "-O3 -fvisibility=hidden -ffunction-sections -fdata-sections")
+
+# Set flags based on platform
+if(APPLE)
+  # iOS-specific flags
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PRODUCTION_FLAGS} -fobjc-arc")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${PRODUCTION_FLAGS}")
 else()
-  # For non-CI builds, include the real implementation
-  file(GLOB_RECURSE CPP_SOURCES
-      "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-      "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
-  )
-  
-  # Exclude iOS and Objective-C files if needed
-  if(NOT APPLE)
-    list(FILTER CPP_SOURCES EXCLUDE REGEX ".*\\.mm$")
-  endif()
-  
-  add_library(roblox_execution STATIC ${CPP_SOURCES})
-  target_link_libraries(roblox_execution lua_bundled)
+  # Non-iOS platforms
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PRODUCTION_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${PRODUCTION_FLAGS}")
 endif()
+
+# Explicitly collect source files by component for better organization and control
+set(CORE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/library.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/logging.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/native-lib.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/globals.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lua_compatibility.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dobby_wrapper.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dobby_defs.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/filesystem_utils.h"
+)
+
+set(MEMORY_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/memory/mem.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/memory/signature.hpp"
+)
+
+set(HOOKS_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/hooks/hooks.hpp"
+)
+
+set(EXEC_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/exec/funcs.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/exec/impls.hpp"
+)
+
+set(ANTI_DETECTION_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/anti_detection/obfuscator.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/anti_detection/vm_detect.hpp"
+)
+
+# iOS-specific source files
+set(IOS_SOURCES "")
+if(APPLE)
+    set(IOS_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/ExecutionEngine.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/ExecutionEngine.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/ScriptManager.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/ScriptManager.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/JailbreakBypass.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/JailbreakBypass.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/PatternScanner.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/PatternScanner.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/MemoryAccess.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/MemoryAccess.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/UIController.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/UIController.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/FloatingButtonController.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/FloatingButtonController.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/GameDetector.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/GameDetector.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/mach_compat.h"
+    )
+endif()
+
+# AI Features source files
+set(AI_SOURCES "")
+if(ENABLE_AI_FEATURES)
+    file(GLOB_RECURSE AI_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/ai_features/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/ai_features/*.mm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/ai_features/*.cpp"
+    )
+endif()
+
+# Advanced bypass sources
+set(BYPASS_SOURCES "")
+if(ENABLE_ADVANCED_BYPASS)
+    file(GLOB_RECURSE BYPASS_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/advanced_bypass/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ios/advanced_bypass/*.mm"
+    )
+endif()
+
+# Test sources
+set(TEST_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration_test.cpp"
+)
+
+# Combine all source files
+set(ALL_SOURCES
+    ${CORE_SOURCES}
+    ${MEMORY_SOURCES}
+    ${HOOKS_SOURCES}
+    ${EXEC_SOURCES}
+    ${ANTI_DETECTION_SOURCES}
+    ${IOS_SOURCES}
+    ${AI_SOURCES}
+    ${BYPASS_SOURCES}
+)
+
+# Create the library
+add_library(roblox_execution STATIC ${ALL_SOURCES})
+
+# Add debug definition in debug mode
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(roblox_execution PRIVATE DEBUG_BUILD=1)
+endif()
+
+# Add production options
+target_compile_definitions(roblox_execution PRIVATE 
+    PRODUCTION_BUILD=1
+    ENABLE_ERROR_REPORTING=1
+    ENABLE_ANTI_TAMPER=1
+)
 
 # Set include directories
 target_include_directories(roblox_execution PUBLIC
     ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/source
-    ${CMAKE_SOURCE_DIR}/source/cpp
-    ${CMAKE_SOURCE_DIR}/source/cpp/luau
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/luau
+    ${CMAKE_SOURCE_DIR}/external/dobby/include
 )
+
+# Link against lua
+target_link_libraries(roblox_execution lua_bundled)
 
 # Find Dobby and link if available
 find_package(Dobby QUIET)
 if(Dobby_FOUND)
     target_link_libraries(roblox_execution Dobby::dobby)
+else()
+    # Try direct linking if the CMake package is not found
+    if(EXISTS "${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a")
+        target_link_libraries(roblox_execution "${CMAKE_SOURCE_DIR}/external/dobby/lib/libdobby.a")
+    endif()
+endif()
+
+# Build tests in debug mode
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR BUILD_TESTING)
+    # Add test executable
+    add_executable(integration_tests ${TEST_SOURCES})
+    target_link_libraries(integration_tests roblox_execution)
+    
+    # Add tests to CTest if available
+    include(CTest)
+    if(BUILD_TESTING)
+        add_test(NAME IntegrationTest COMMAND integration_tests)
+    endif()
+endif()
+
+# Install targets
+install(TARGETS roblox_execution
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# Install headers
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+    DESTINATION include/roblox_execution
+    FILES_MATCHING 
+    PATTERN "*.h"
+    PATTERN "*.hpp"
+    PATTERN "tests" EXCLUDE
+)
+
+# Documentation generation with Doxygen
+find_package(Doxygen QUIET)
+if(DOXYGEN_FOUND AND BUILD_DOCS)
+    # Generate Doxyfile
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+        ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        @ONLY
+    )
+    
+    # Add documentation target
+    add_custom_target(docs
+        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM
+    )
 endif()

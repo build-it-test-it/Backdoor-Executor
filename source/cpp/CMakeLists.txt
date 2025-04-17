@@ -237,6 +237,6 @@ if(APPLE)
     # Ensure C++ files dont try to compile Objective-C
     set_source_files_properties(
         ${CMAKE_CURRENT_SOURCE_DIR}/native-lib.cpp
-        PROPERTIES COMPILE_FLAGS "-DSKIP_IOS_INTEGRATION=1"
+        PROPERTIES COMPILE_FLAGS "-DSKIP_IOS_INTEGRATION=1 -DPLATFORM_IOS=0"
     )
 endif()

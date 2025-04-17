@@ -128,12 +128,12 @@ target_include_directories(roblox_execution PUBLIC
     ${CMAKE_SOURCE_DIR}/source
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/luau
+    ${CMAKE_SOURCE_DIR}/VM/include # Update to use local VM folder
     ${CMAKE_SOURCE_DIR}/external/dobby/include
 )
 
 # Link against lua
-target_link_libraries(roblox_execution lua_bundled)
+target_link_libraries(roblox_execution luau_vm)
 
 # Find Dobby and link if available
 find_package(Dobby QUIET)

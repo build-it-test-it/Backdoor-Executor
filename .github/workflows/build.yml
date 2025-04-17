@@ -26,8 +26,6 @@ jobs:
         # Create required directories
         mkdir -p external/dobby/include
         mkdir -p external/dobby/lib
-        mkdir -p external/lua/include
-        mkdir -p external/lua/lib
         mkdir -p output/Resources/AIData
         mkdir -p build
         
@@ -35,8 +33,15 @@ jobs:
         echo "Removing CI_BUILD definitions from source files..."
         find source -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" -o -name "*.mm" \) | xargs sed -i '' 's/#define CI_BUILD//g' 2>/dev/null || true
         
-        # Let CMake handle the Lua build through our custom FindLua.cmake
-        echo "Lua will be built automatically by CMake..."
+        # Verify VM folder structure
+        echo "Verifying VM folder structure..."
+        if [ -d "VM" ] && [ -d "VM/include" ] && [ -d "VM/src" ]; then
+          echo "✅ VM folder structure verified"
+          ls -la VM/include/
+          ls -la VM/src/ | head -n 5
+        else
+          echo "⚠️ VM folder structure has issues, please check the repository"
+        fi
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1

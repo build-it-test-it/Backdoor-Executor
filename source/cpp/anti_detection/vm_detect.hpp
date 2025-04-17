@@ -6,18 +6,27 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
+#include <iostream>
+
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#include <mach/mach.h>
+#include <mach/mach_host.h>
 #include <sys/utsname.h>
+#else
+#include <sys/utsname.h>
+#endif
 
 namespace AntiDetection {
     
     class VMDetection {
     private:
-        // Check if a file exists
+        // Check if a file exists - platform independent
         static bool FileExists(const char* filename) {
             return access(filename, F_OK) != -1;
         }
         
-        // Read a file into a string
+        // Read a file into a string - platform independent
         static std::string ReadFile(const char* filename) {
             FILE* file = fopen(filename, "r");
             if (!file) return "";
@@ -37,10 +46,56 @@ namespace AntiDetection {
     public:
         // Main VM detection function that combines multiple techniques
         static bool DetectVM() {
+#ifdef __APPLE__
+            return CheckIOSVM();
+#else
             return CheckVMFiles() || CheckCPUInfo() || CheckDMI() || CheckHypervisorPresence();
+#endif
         }
-        
-        // Check for VM-specific files
+
+#ifdef __APPLE__
+        // iOS-specific VM detection
+        static bool CheckIOSVM() {
+            // Check for simulator
+            bool isSimulator = false;
+            
+            // Check for simulator-specific files
+            if (FileExists("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform") ||
+                FileExists("/Library/Developer/CoreSimulator")) {
+                return true;
+            }
+            
+            // Check system version
+            struct utsname systemInfo;
+            if (uname(&systemInfo) == 0) {
+                if (strstr(systemInfo.machine, "x86_64") || 
+                    strstr(systemInfo.machine, "i386")) {
+                    // iOS devices don't use x86 architecture
+                    return true;
+                }
+            }
+            
+            // Check sysctl values
+            int mib[2] = { CTL_HW, HW_MODEL };
+            char model[256];
+            size_t len = sizeof(model);
+            if (sysctl(mib, 2, model, &len, NULL, 0) == 0) {
+                if (strstr(model, "Simulator")) {
+                    return true;
+                }
+            }
+            
+            // Check environment variables specific to simulators
+            if (getenv("SIMULATOR_DEVICE_NAME") || 
+                getenv("SIMULATOR_UDID") ||
+                getenv("SIMULATOR_ROOT")) {
+                return true;
+            }
+            
+            return isSimulator;
+        }
+#else
+        // Linux/Android specific VM file checks
         static bool CheckVMFiles() {
             const char* vmFiles[] = {
                 "/sys/class/dmi/id/product_name",  // Often contains "Virtual" or "VMware" for VMs
@@ -64,7 +119,7 @@ namespace AntiDetection {
             return false;
         }
         
-        // Check CPU info for VM indicators
+        // Linux/Android CPU info check
         static bool CheckCPUInfo() {
             std::string cpuInfo = ReadFile("/proc/cpuinfo");
             
@@ -85,7 +140,7 @@ namespace AntiDetection {
             return false;
         }
         
-        // Check DMI (Desktop Management Interface) for VM indicators
+        // Linux/Android DMI check
         static bool CheckDMI() {
             const char* dmiFiles[] = {
                 "/sys/class/dmi/id/sys_vendor",
@@ -108,7 +163,7 @@ namespace AntiDetection {
             return false;
         }
         
-        // Check for hypervisor presence
+        // Linux/Android hypervisor check via uname
         static bool CheckHypervisorPresence() {
             struct utsname systemInfo;
             if (uname(&systemInfo) != 0) {
@@ -124,6 +179,7 @@ namespace AntiDetection {
             
             return false;
         }
+#endif
         
         // Takes appropriate actions based on VM detection
         static void HandleVMDetection() {
@@ -138,7 +194,7 @@ namespace AntiDetection {
                 // make your countermeasures obvious to analysts, subtly alter behavior
                 
                 // For demonstration, we'll just log the detection
-                fprintf(stderr, "VM environment detected, enabling countermeasures\n");
+                std::cerr << "VM environment detected, enabling countermeasures" << std::endl;
             }
         }
     };

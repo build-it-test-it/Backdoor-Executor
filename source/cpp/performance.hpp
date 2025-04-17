@@ -299,15 +299,7 @@ public:
     }
 };
 
-// Initialize static members
-std::mutex Profiler::s_metricsMutex;
-std::map<std::string, Metric> Profiler::s_metrics;
-std::atomic<bool> Profiler::s_enabled(false);
-std::atomic<bool> Profiler::s_autoLogEnabled(false);
-std::atomic<uint64_t> Profiler::s_autoLogThreshold(100);
-std::thread Profiler::s_backgroundThread;
-std::atomic<bool> Profiler::s_shouldRun(false);
-std::string Profiler::s_reportPath;
+// Static members defined in performance.cpp
 
 // ScopedTimer class for automatic timing of code sections
 class ScopedTimer {

@@ -228,13 +228,25 @@ void AIIntegrationManager::ReportStatus(const StatusUpdate& status) {
 }
 
 // Get optimal online mode
-AIConfig::OnlineMode AIIntegrationManager::GetOptimalOnlineMode() const {
+HybridAISystem::OnlineMode AIIntegrationManager::GetOptimalOnlineMode() const {
     // Get user preference
     AIConfig::OnlineMode configMode = m_config.GetOnlineMode();
     
     // If user explicitly set mode, respect it
     if (configMode != AIConfig::OnlineMode::Auto) {
-        return configMode;
+        // Convert AIConfig::OnlineMode to HybridAISystem::OnlineMode
+        switch (configMode) {
+            case AIConfig::OnlineMode::PreferOffline:
+                return HybridAISystem::OnlineMode::PreferOffline;
+            case AIConfig::OnlineMode::PreferOnline:
+                return HybridAISystem::OnlineMode::PreferOnline;
+            case AIConfig::OnlineMode::OfflineOnly:
+                return HybridAISystem::OnlineMode::OfflineOnly;
+            case AIConfig::OnlineMode::OnlineOnly:
+                return HybridAISystem::OnlineMode::OnlineOnly;
+            default:
+                break;
+        }
     }
     
     // Auto mode - determine based on network status
@@ -243,17 +255,17 @@ AIConfig::OnlineMode AIIntegrationManager::GetOptimalOnlineMode() const {
         if (m_onlineService) {
             auto networkStatus = m_onlineService->GetNetworkStatus();
             if (networkStatus == OnlineService::NetworkStatus::ReachableViaWiFi) {
-                return AIConfig::OnlineMode::PreferOnline; // WiFi, prefer online
+                return HybridAISystem::OnlineMode::PreferOnline; // WiFi, prefer online
             } else if (networkStatus == OnlineService::NetworkStatus::ReachableViaCellular) {
-                return AIConfig::OnlineMode::PreferOffline; // Cellular, prefer offline
+                return HybridAISystem::OnlineMode::PreferOffline; // Cellular, prefer offline
             }
         }
         
         // Default online behavior if can't determine network type
-        return AIConfig::OnlineMode::PreferOnline;
+        return HybridAISystem::OnlineMode::PreferOnline;
     } else {
         // Offline, use offline only
-        return AIConfig::OnlineMode::OfflineOnly;
+        return HybridAISystem::OnlineMode::OfflineOnly;
     }
 }
 

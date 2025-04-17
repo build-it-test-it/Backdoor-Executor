@@ -1,6 +1,4 @@
 #include "../objc_isolation.h"
-
-
 #pragma once
 
 #include <string>
@@ -9,6 +7,8 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
+#include <chrono>
 #include "SelfModifyingCodeSystem.h"
 
 namespace iOS {
@@ -29,11 +29,14 @@ public:
         std::string m_query;         // User query or request
         std::string m_context;       // Additional context information
         std::string m_gameInfo;      // Game-specific information
+        std::string m_requestType;   // Type of request (script_generation, debug, general)
         std::vector<std::string> m_history; // Conversation history
+        bool m_forceOffline;         // Whether to force offline processing
         
         AIRequest(const std::string& query = "", const std::string& context = "", 
-                 const std::string& gameInfo = "")
-            : m_query(query), m_context(context), m_gameInfo(gameInfo) {}
+                 const std::string& requestType = "general", bool forceOffline = false)
+            : m_query(query), m_context(context), m_requestType(requestType),
+              m_forceOffline(forceOffline) {}
     };
     
     // Response structure for AI processing
@@ -44,7 +47,13 @@ public:
         std::vector<std::string> m_suggestions; // Suggested actions
         uint64_t m_processingTime;   // Processing time in milliseconds
         std::string m_errorMessage;  // Error message if failed
+        bool m_usedOnlineMode;       // Whether online mode was used
         
+        AIResponse() 
+            : m_success(false), 
+              m_processingTime(0),
+              m_usedOnlineMode(false) {}
+              
         AIResponse(bool success, const std::string& content = "", 
                   const std::string& scriptCode = "", uint64_t processingTime = 0,
                   const std::string& errorMessage = "") 
@@ -52,7 +61,8 @@ public:
               m_content(content), 
               m_scriptCode(scriptCode),
               m_processingTime(processingTime), 
-              m_errorMessage(errorMessage) {}
+              m_errorMessage(errorMessage),
+              m_usedOnlineMode(false) {}
     };
     
     // Define ResponseCallback type
@@ -66,6 +76,19 @@ public:
         OfflineOnly,   // Always use offline mode
         OnlineOnly     // Always use online mode (will fail if no connectivity)
     };
+    // Core status flags
+    bool m_initialized;                       // Whether system is initialized
+    bool m_localModelsLoaded;                 // Whether local models are loaded
+    bool m_isInLowMemoryMode;                 // Whether in low memory mode
+    bool m_networkConnected;                  // Whether network is connected
+    
+    // Configuration values
+    std::string m_modelPath;                  // Path to model files
+    std::string m_apiEndpoint;                // API endpoint for online services
+    std::string m_apiKey;                     // API key for authentication
+    OnlineMode m_onlineMode;                  // Current online mode
+    
+    // Model pointers
     void* m_scriptAssistantModel;             // Opaque pointer to script assistant model
     void* m_scriptGeneratorModel;             // Opaque pointer to script generator model
     void* m_debugAnalyzerModel;               // Opaque pointer to debug analyzer model
@@ -74,6 +97,7 @@ public:
     // Enhanced AI capabilities
     std::shared_ptr<SelfModifyingCodeSystem> m_selfModifyingSystem; // Self-improving code system
     
+    // Caches and storage
     std::unordered_map<std::string, void*> m_modelCache; // Model cache
     std::vector<std::string> m_loadedModelNames; // Names of loaded models
     std::vector<AIRequest> m_requestHistory;  // Request history for learning
@@ -82,6 +106,8 @@ public:
     uint64_t m_totalMemoryUsage;              // Total memory usage in bytes
     uint64_t m_maxMemoryAllowed;              // Maximum allowed memory in bytes
     std::unordered_map<std::string, std::string> m_dataStore; // Persistent data store
+    
+    // Callbacks and synchronization
     ResponseCallback m_responseCallback;      // Response callback
     std::mutex m_mutex;                       // Mutex for thread safety
     std::mutex m_networkMutex;                // Mutex for network operations

@@ -1,51 +1,15 @@
 // Force C99 mode to ensure compatibility
 #define _XOPEN_SOURCE 600
 
-// Use direct includes to fix build issues
-#ifdef __cplusplus
-extern "C" {
-#endif
+// Include the Lua compatibility header which defines all necessary functions
+#include "cpp/lua_compatibility.h"
 
-// Minimal Lua-compatible definitions
-typedef struct lua_State lua_State;
-
-// Define API macros
-#define LUA_API extern
-#define LUALIB_API extern
-
-// Define core structs used by LFS
-struct lfs_RegStruct {
-    const char *name;
-    int (*func)(lua_State *L);
-};
-typedef struct lfs_RegStruct luaL_Reg;
-
-// Core Lua API functions needed by LFS
-int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);
-const char *lua_tostring(lua_State *L, int idx);
-int lua_isnumber(lua_State *L, int idx);
-void lua_pushnumber(lua_State *L, double n);
-int lua_isnil(lua_State *L, int idx);
-void lua_pushnil(lua_State *L);
-void lua_pushstring(lua_State *L, const char *s);
-int lua_type(lua_State *L, int idx);
-void lua_settop(lua_State *L, int idx);
-void lua_pop(lua_State *L, int n);
-void lua_pushboolean(lua_State *L, int b);
-void lua_pushinteger(lua_State *L, int n);
-void lua_createtable(lua_State *L, int narr, int nrec);
-void lua_setfield(lua_State *L, int idx, const char *k);
-int lua_gettop(lua_State *L);
-void luaL_register(lua_State *L, const char *libname, const luaL_Reg *l);
-const char *luaL_typename(lua_State *L, int idx);
-
-#ifdef __cplusplus
-}
-#endif
-
-// Define types for older Lua that might be missing them
-typedef long lua_Integer;
-typedef unsigned long lua_Unsigned;
+// Additional includes for LFS
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+#include <errno.h>
 
 // Define fallbacks for any missing functions
 #ifndef chdir_error

@@ -24,6 +24,17 @@ namespace VulnerabilityDetection {
 }
 }
 
+// Forward declare LocalModels::GeneralAssistantModel
+namespace iOS {
+namespace AIFeatures {
+namespace LocalModels {
+    class GeneralAssistantModel;
+    class VulnerabilityDetectionModel;
+    class ScriptGenerationModel;
+}
+}
+}
+
 namespace iOS {
 namespace AIFeatures {
 

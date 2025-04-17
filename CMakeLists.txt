@@ -84,20 +84,19 @@ add_subdirectory(VM)
 # Set LUA variables for compatibility with rest of the build
 set(LUA_INCLUDE_DIR "${LUAU_INCLUDE_DIR}")
 
-# Since we're compiling directly, there's no physical .a file path to set
-# Instead, we'll use the target name
-set(LUA_LIBRARY "luau_vm")
-set(LUA_LIBRARIES "luau_vm")
-set(LUAU_VM_LIBRARY "luau_vm")
+# Remove all references to luau_vm target to prevent conflicts
+# We're compiling the VM sources directly into mylibrary
+set(LUA_LIBRARY "")
+set(LUA_LIBRARIES "")
+set(LUAU_VM_LIBRARY "")
 
 message(STATUS "Using local VM folder for Luau implementation")
 message(STATUS "  Include directory: ${LUA_INCLUDE_DIR}")
-message(STATUS "  Library target: ${LUA_LIBRARY}")
+message(STATUS "  Using direct compilation: VM sources included in main library")
 
 # Create Lua interface library for backward compatibility
 add_library(lua_bundled INTERFACE)
 target_include_directories(lua_bundled INTERFACE ${LUA_INCLUDE_DIR})
-target_link_libraries(lua_bundled INTERFACE luau_vm)
 
 # Add include directories for easier access
 include_directories(${LUA_INCLUDE_DIR})

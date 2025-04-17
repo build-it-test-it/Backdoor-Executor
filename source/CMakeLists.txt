@@ -6,6 +6,7 @@ if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "LFS compilation setup:")
     message(STATUS "  LUA_INCLUDE_DIR: ${LUA_INCLUDE_DIR}")
     message(STATUS "  Current source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
+    message(STATUS "  Using direct VM source inclusion in main library")
     set(CMAKE_VERBOSE_MAKEFILE ON)
 endif()
 

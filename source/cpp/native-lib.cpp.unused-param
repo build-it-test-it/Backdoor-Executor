@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 
-#include "ios_compat.h"
 // Skip iOS framework integration in CI builds to avoid compilation issues
 #ifndef SKIP_IOS_INTEGRATION
 #include "ios/ExecutionEngine.h"
@@ -38,8 +37,7 @@ extern "C" {
     }
     
     // Lua module entry point
-    int luaopen_mylibrary(void* L) {
-        UNUSED_PARAM(L);
+    int luaopen_mylibrary(void*) {
         std::cout << "Lua module loaded: mylibrary" << std::endl;
         
         // This will be called when the Lua state loads our library

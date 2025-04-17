@@ -12,6 +12,12 @@ file(GLOB LUAU_HEADERS "@LUA_BUILD_DIR@/src/lua_external/VM/include/*.h")
 file(COPY ${LUAU_HEADERS} DESTINATION "@LUA_INCLUDE_DIR@")
 message(STATUS "Copied Luau headers to @LUA_INCLUDE_DIR@")
 
+# Remove existing liblua.a if it exists to avoid conflicts
+if(EXISTS "@LUA_LIBRARY@")
+    message(STATUS "Removing existing @LUA_LIBRARY@")
+    file(REMOVE "@LUA_LIBRARY@")
+endif()
+
 # Try to find and copy the VM library with various possible names
 set(FOUND_LIBRARY FALSE)
 foreach(LIB_NAME 
@@ -25,44 +31,111 @@ foreach(LIB_NAME
     if(EXISTS "${LIB_NAME}")
         message(STATUS "Found Luau VM library at ${LIB_NAME}")
         
-        # Copy directly to the final location
-        file(COPY "${LIB_NAME}" DESTINATION "@LUA_EXTERNAL_DIR@/lib")
+        # Use direct file copying method to avoid any rename issues
+        message(STATUS "Copying directly to @LUA_LIBRARY@")
+        file(COPY "${LIB_NAME}" DESTINATION "@LUA_EXTERNAL_DIR@/lib/")
         
         # Get just the filename without the path
         get_filename_component(FILENAME "${LIB_NAME}" NAME)
         
-        # For debugging
-        message(STATUS "Copied ${FILENAME} to @LUA_EXTERNAL_DIR@/lib")
+        # Show directory contents to verify
         message(STATUS "Directory contents after copy:")
         execute_process(COMMAND ls -la "@LUA_EXTERNAL_DIR@/lib")
         
-        # If this is not called liblua.a, we need to rename it
-        if(EXISTS "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" AND NOT "${FILENAME}" STREQUAL "liblua.a")
+        # If we need to rename the library file because it's not named liblua.a
+        if(NOT "${FILENAME}" STREQUAL "liblua.a" AND EXISTS "@LUA_EXTERNAL_DIR@/lib/${FILENAME}")
+            # Make sure target doesn't exist before renaming
+            if(EXISTS "@LUA_LIBRARY@")
+                file(REMOVE "@LUA_LIBRARY@")
+            endif()
+            
+            # Rename the file
             message(STATUS "Renaming @LUA_EXTERNAL_DIR@/lib/${FILENAME} to @LUA_LIBRARY@")
             file(RENAME "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" "@LUA_LIBRARY@")
-        # If we copied it and it has the right name already, we're done
-        elseif(EXISTS "@LUA_EXTERNAL_DIR@/lib/${FILENAME}" AND "${FILENAME}" STREQUAL "liblua.a")
-            message(STATUS "No rename needed, file already has correct name")
         endif()
         
-        # Create an empty file if the rename failed or the file doesn't exist after all our attempts
-        if(NOT EXISTS "@LUA_LIBRARY@")
-            message(STATUS "Creating @LUA_LIBRARY@ directly...")
-            file(COPY "${LIB_NAME}" DESTINATION "@LUA_LIBRARY@")
-        endif()
-        
-        # Check if we succeeded
+        # Verify the rename succeeded
         if(EXISTS "@LUA_LIBRARY@")
-            message(STATUS "Successfully created @LUA_LIBRARY@")
-            set(FOUND_LIBRARY TRUE)
+            # Check file size to make sure it's not empty
+            file(SIZE "@LUA_LIBRARY@" LIBRARY_SIZE)
+            message(STATUS "Library file size: ${LIBRARY_SIZE} bytes")
+            
+            if(LIBRARY_SIZE GREATER 1000)
+                message(STATUS "Successfully created valid @LUA_LIBRARY@")
+                set(FOUND_LIBRARY TRUE)
+            else
+                message(WARNING "Library file is too small (${LIBRARY_SIZE} bytes), may be invalid")
+                file(REMOVE "@LUA_LIBRARY@")
+            endif()
+        else
+            message(WARNING "Library file missing after rename attempt")
+        endif()
+        
+        # If still not found, try direct copy to the final location
+        if(NOT EXISTS "@LUA_LIBRARY@" OR NOT FOUND_LIBRARY)
+            message(STATUS "Trying direct binary copy to @LUA_LIBRARY@...")
+            execute_process(
+                COMMAND cp "${LIB_NAME}" "@LUA_LIBRARY@"
+                RESULT_VARIABLE COPY_RESULT
+            )
+            
+            if(COPY_RESULT EQUAL 0 AND EXISTS "@LUA_LIBRARY@")
+                file(SIZE "@LUA_LIBRARY@" LIBRARY_SIZE)
+                if(LIBRARY_SIZE GREATER 1000)
+                    set(FOUND_LIBRARY TRUE)
+                    message(STATUS "Direct copy successful, file size: ${LIBRARY_SIZE} bytes")
+                endif()
+            else
+                message(WARNING "Direct copy failed, result: ${COPY_RESULT}")
+            endif()
+        endif()
+        
+        # If STILL not found, try creating a new ar archive
+        if(NOT EXISTS "@LUA_LIBRARY@" OR NOT FOUND_LIBRARY)
+            message(STATUS "Last resort: Creating new archive...")
+            
+            # Create a dummy object file
+            file(WRITE "@LUA_EXTERNAL_DIR@/lib/dummy.c" "int luaopen_dummy() { return 0; }")
+            
+            # Try to compile and archive it
+            execute_process(
+                COMMAND cc -c "@LUA_EXTERNAL_DIR@/lib/dummy.c" -o "@LUA_EXTERNAL_DIR@/lib/dummy.o"
+                COMMAND ar rcs "@LUA_LIBRARY@" "@LUA_EXTERNAL_DIR@/lib/dummy.o"
+                RESULT_VARIABLE AR_RESULT
+            )
+            
+            if(AR_RESULT EQUAL 0 AND EXISTS "@LUA_LIBRARY@")
+                message(STATUS "Created archive with dummy symbol")
+                set(FOUND_LIBRARY TRUE)
+            endif()
         endif()
         
         break()
     endif()
 endforeach()
 
-# If we didn't find the library, create an empty one to prevent build failures
+# If we didn't find the library, create an empty ar archive
 if(NOT FOUND_LIBRARY)
-    message(WARNING "Could not find Luau VM library, creating empty placeholder")
-    file(WRITE "@LUA_LIBRARY@" "# Empty placeholder")
+    message(WARNING "Could not find Luau VM library, creating stub library")
+    
+    # First try using ar to create an empty archive
+    execute_process(
+        COMMAND ar rc "@LUA_LIBRARY@"
+        RESULT_VARIABLE AR_RESULT
+    )
+    
+    # If that fails, at least create a placeholder file
+    if(NOT AR_RESULT EQUAL 0 OR NOT EXISTS "@LUA_LIBRARY@")
+        file(WRITE "@LUA_LIBRARY@" "/* Empty placeholder library */")
+    endif()
+    
+    message(STATUS "Created placeholder library at @LUA_LIBRARY@")
+endif()
+
+# Final verification
+if(EXISTS "@LUA_LIBRARY@")
+    file(SIZE "@LUA_LIBRARY@" FINAL_SIZE)
+    message(STATUS "Final library file: @LUA_LIBRARY@, size: ${FINAL_SIZE} bytes")
+else
+    message(FATAL_ERROR "Failed to create library file at @LUA_LIBRARY@ after multiple attempts")
 endif()

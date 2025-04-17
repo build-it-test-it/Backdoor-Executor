@@ -103,6 +103,17 @@ endif()
 add_subdirectory(source/cpp)
 add_subdirectory(source)
 
+# Make sure the Lua library exists and has the right content
+add_custom_target(ensure_lua_library
+    COMMAND ${CMAKE_COMMAND} -E echo "Verifying Lua library exists at ${LUA_LIBRARY}..."
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${LUA_EXTERNAL_DIR}/lib
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/ensure_lua_lib.cmake
+    COMMENT "Ensuring Lua library exists before building mylibrary"
+)
+
+# Create a special variable to force Lua target order
+set(LUA_LIB_DEPS lua_bundled ensure_lua_library)
+
 # Create the final dynamic library
 add_library(mylibrary SHARED 
     source/library.cpp
@@ -115,11 +126,26 @@ set_target_properties(mylibrary PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
 )
 
+# Add explicit dependency to ensure proper build order
+add_dependencies(mylibrary ${LUA_LIB_DEPS})
+
 # Link with our static library and dependencies
 target_link_libraries(mylibrary
     PRIVATE
     roblox_execution
     lua_bundled
+)
+
+# Additional include paths and flags
+target_include_directories(mylibrary PRIVATE 
+    ${LUA_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/source
+)
+
+# Extra compiler defines for diagnostics
+target_compile_definitions(mylibrary PRIVATE
+    USE_LUA=1
+    LUA_LIBRARY_PATH="${LUA_LIBRARY}"
 )
 
 # Link with iOS frameworks if on Apple platform

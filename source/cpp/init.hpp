@@ -104,7 +104,8 @@ struct SystemStatus {
 
 // Global system state
 class SystemState {
-private:
+// Making these members protected rather than private to allow access in init.cpp
+protected:
     static bool s_initialized;            // Whether the system is initialized
     static InitOptions s_options;         // Initialization options
     static SystemStatus s_status;         // Current system status

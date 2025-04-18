@@ -315,7 +315,7 @@ public:
         }
         
         // For fatal errors, generate crash report and terminate
-        if (error.category == ErrorCategory::FATAL) {
+        if (error.severity == ErrorSeverity::FATAL) {
             if (m_crashReportingEnabled) {
                 GenerateCrashReport(ex);
             }
@@ -499,8 +499,14 @@ inline void InitializeErrorHandling() {
     // Set up default error handlers
     errorManager.AddHandler([](const ExecutorException& ex) {
         // Example handler that logs to console
-        if (ex.GetErrorCode().category == ErrorCategory::CRITICAL ||
-            ex.GetErrorCode().category == ErrorCategory::FATAL) {
+        // Using severity for critical/fatal errors which is the appropriate enum for this
+        ErrorSeverity severity = ErrorSeverity::ERROR;  // Default to ERROR
+        
+        if (ex.GetErrorCode().category == ErrorCategory::MEMORY) {
+            severity = ErrorSeverity::CRITICAL;  // Memory errors are critical
+        }
+        
+        if (severity == ErrorSeverity::CRITICAL || severity == ErrorSeverity::FATAL) {
             std::cerr << "CRITICAL ERROR: " << ex.GetFormattedMessage() << std::endl;
         }
     });

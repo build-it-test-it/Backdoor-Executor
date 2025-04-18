@@ -1,7 +1,40 @@
 // anti_tamper.cpp - Implementation for security anti-tampering system
+// Include system headers first before any of our headers with extern "C" blocks
+#ifdef __APPLE__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <unistd.h>
+#include <signal.h>
+#include <errno.h>
+#include <mach/mach_init.h>
+#include <mach/mach_error.h>
+#include <mach/mach_traps.h>
+#include <mach/task.h>
+#include <mach/mach_port.h>
+#include <dlfcn.h>
+#include <mach-o/dyld.h>
+#include <mach-o/loader.h>
+#include <mach-o/nlist.h>
+#endif
+
+// Now include our own header which uses forward declarations
 #include "../security/anti_tamper.hpp"
 
 namespace Security {
+
+// Implementation of helper method that requires system headers
+bool AntiTamper::CheckDebuggerUsingProcInfo() {
+#ifdef __APPLE__
+    struct kinfo_proc info;
+    size_t info_size = sizeof(info);
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+    
+    if (sysctl(mib, 4, &info, &info_size, NULL, 0) == 0) {
+        return (info.kp_proc.p_flag & P_TRACED) != 0;
+    }
+#endif
+    return false;
+}
 
 // Initialize static members
 std::mutex AntiTamper::s_mutex;

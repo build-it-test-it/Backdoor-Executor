@@ -58,12 +58,9 @@ struct load_command;
 struct segment_command;
 struct segment_command_64;
 
-// Forward declaration for process info structures
-struct kinfo_proc {
-    struct extern_proc {
-        int p_flag;
-    } kp_proc;
-};
+// Don't forward-declare kinfo_proc as it's defined in system headers
+// We'll use an opaque pointer approach to avoid conflicts
+typedef void* kinfo_proc_ptr;
 
 #endif // __APPLE__
 
@@ -345,19 +342,17 @@ public:
     
     // Individual security checks
     
+    // Helper function to check debugger using proc info - implementation in .cpp
+    static bool CheckDebuggerUsingProcInfo();
+    
     // Check for attached debugger
     static bool CheckForDebugger() {
         bool debuggerDetected = false;
         
 #ifdef __APPLE__
-        // Method 1: Check using sysctl
-        struct kinfo_proc info;
-        size_t info_size = sizeof(info);
-        int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-        
-        if (sysctl(mib, 4, &info, &info_size, NULL, 0) == 0) {
-            debuggerDetected = (info.kp_proc.p_flag & P_TRACED) != 0;
-        }
+        // Method 1: Check using sysctl - implementation moved to .cpp file
+        // to avoid system header conflicts
+        debuggerDetected = CheckDebuggerUsingProcInfo();
         
         // Method 2: Try ptrace
         if (!debuggerDetected) {

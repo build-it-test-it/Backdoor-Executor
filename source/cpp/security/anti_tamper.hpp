@@ -401,154 +401,36 @@ public:
         return !debuggerDetected;
     }
     
-    // Check code segment integrity
+    // Check code segment integrity - implementation moved to .cpp file
+    // to avoid incomplete type issues with Mach-O structures
     static bool CheckCodeIntegrity() {
         bool integrityIntact = true;
         
 #ifdef __APPLE__
-        // Get information about all loaded modules
-        uint32_t count = _dyld_image_count();
-        
-        for (uint32_t i = 0; i < count; i++) {
-            const char* imageName = _dyld_get_image_name(i);
-            const struct mach_header* header = _dyld_get_image_header(i);
-            
-            // Check if this is our dylib
-            if (strstr(imageName, "libmylibrary.dylib") != nullptr ||
-                strstr(imageName, "roblox_execution") != nullptr) {
-                
-                // Parse the Mach-O header to find the TEXT segment
-                uintptr_t textStart = 0;
-                size_t textSize = 0;
-                
-                if (header->magic == MH_MAGIC_64) {
-                    const struct mach_header_64* header64 = reinterpret_cast<const struct mach_header_64*>(header);
-                    const struct load_command* cmd = reinterpret_cast<const struct load_command*>(header64 + 1);
-                    
-                    for (uint32_t j = 0; j < header64->ncmds; j++) {
-                        if (cmd->cmd == LC_SEGMENT_64) {
-                            const struct segment_command_64* seg = reinterpret_cast<const struct segment_command_64*>(cmd);
-                            
-                            if (strcmp(seg->segname, "__TEXT") == 0) {
-                                textStart = reinterpret_cast<uintptr_t>(header) + seg->vmaddr;
-                                textSize = seg->vmsize;
-                                break;
-                            }
-                        }
-                        
-                        cmd = reinterpret_cast<const struct load_command*>(
-                            reinterpret_cast<const char*>(cmd) + cmd->cmdsize);
-                    }
-                } else if (header->magic == MH_MAGIC) {
-                    const struct load_command* cmd = reinterpret_cast<const struct load_command*>(header + 1);
-                    
-                    for (uint32_t j = 0; j < header->ncmds; j++) {
-                        if (cmd->cmd == LC_SEGMENT) {
-                            const struct segment_command* seg = reinterpret_cast<const struct segment_command*>(cmd);
-                            
-                            if (strcmp(seg->segname, "__TEXT") == 0) {
-                                textStart = reinterpret_cast<uintptr_t>(header) + seg->vmaddr;
-                                textSize = seg->vmsize;
-                                break;
-                            }
-                        }
-                        
-                        cmd = reinterpret_cast<const struct load_command*>(
-                            reinterpret_cast<const char*>(cmd) + cmd->cmdsize);
-                    }
-                }
-                
-                // If we found the TEXT segment, verify its integrity
-                if (textStart != 0 && textSize != 0) {
-                    uint32_t newChecksum = CalculateChecksum(reinterpret_cast<const void*>(textStart), textSize);
-                    
-                    // If this is the first time, store the checksum
-                    if (s_codeHashes.empty()) {
-                        std::lock_guard<std::mutex> lock(s_mutex);
-                        s_codeHashes.resize(sizeof(newChecksum));
-                        memcpy(s_codeHashes.data(), &newChecksum, sizeof(newChecksum));
-                    } else {
-                        // Compare with previously stored checksum
-                        uint32_t storedChecksum;
-                        memcpy(&storedChecksum, s_codeHashes.data(), sizeof(storedChecksum));
-                        
-                        if (newChecksum != storedChecksum) {
-                            integrityIntact = false;
-                            HandleTampering(SecurityCheckType::CODE_INTEGRITY, 
-                                "Code integrity violation in " + std::string(imageName));
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-#else
-        // Implement platform-specific code integrity checks for other platforms
+        // Call implementation function with all the Mach-O parsing logic
+        integrityIntact = CheckCodeIntegrityImpl();
 #endif
         
         return integrityIntact;
     }
     
-    // Check for hooks in the dylib
+    // Implementation function in cpp file
+    static bool CheckCodeIntegrityImpl();
+                
+    // Check for hooks in the dylib - implementation moved to .cpp file
     static bool CheckForDylibHooks() {
         bool noHooksDetected = true;
         
 #ifdef __APPLE__
-        // This is a simplified check that looks for common hook patterns in memory
-        // A real implementation would be more sophisticated, checking for specific hook types
-        
-        // Get information about all loaded modules
-        uint32_t count = _dyld_image_count();
-        
-        for (uint32_t i = 0; i < count; i++) {
-            const char* imageName = _dyld_get_image_name(i);
-            
-            // Check if this is our dylib
-            if (strstr(imageName, "libmylibrary.dylib") != nullptr ||
-                strstr(imageName, "roblox_execution") != nullptr) {
-                
-                const struct mach_header* header = _dyld_get_image_header(i);
-                
-                // Look for common hook patterns (e.g., JMP instructions) in code sections
-                // This is a simplified example - real implementation would be more thorough
-                if (header->magic == MH_MAGIC_64) {
-                    const struct mach_header_64* header64 = reinterpret_cast<const struct mach_header_64*>(header);
-                    const struct load_command* cmd = reinterpret_cast<const struct load_command*>(header64 + 1);
-                    
-                    for (uint32_t j = 0; j < header64->ncmds; j++) {
-                        if (cmd->cmd == LC_SEGMENT_64) {
-                            const struct segment_command_64* seg = reinterpret_cast<const struct segment_command_64*>(cmd);
-                            
-                            if (strcmp(seg->segname, "__TEXT") == 0) {
-                                // Scan the text segment for hook patterns
-                                const uint8_t* textStart = reinterpret_cast<const uint8_t*>(header) + seg->vmaddr;
-                                
-                                // Common x86_64 JMP pattern is 0xFF 0x25 followed by a 32-bit displacement
-                                for (size_t k = 0; k < seg->vmsize - 6; k++) {
-                                    if (textStart[k] == 0xFF && textStart[k + 1] == 0x25) {
-                                        // Potential hook found, further verification would be needed
-                                        // This is just a simplified example
-                                        noHooksDetected = false;
-                                        HandleTampering(SecurityCheckType::DYLIB_HOOKS, 
-                                            "Potential hook detected in " + std::string(imageName));
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        cmd = reinterpret_cast<const struct load_command*>(
-                            reinterpret_cast<const char*>(cmd) + cmd->cmdsize);
-                    }
-                }
-            }
-        }
-#else
-        // Implement platform-specific dylib hook detection for other platforms
+        // Call implementation function with all the Mach-O parsing logic
+        noHooksDetected = CheckForDylibHooksImpl();
 #endif
         
         return noHooksDetected;
     }
+    
+    // Implementation function in cpp file
+    static bool CheckForDylibHooksImpl();
     
     // Check for hooks in specific functions
     static bool CheckForFunctionHooks() {
@@ -583,55 +465,20 @@ public:
         return noHooksDetected;
     }
     
-    // Check memory protection settings
+    // Check memory protection settings - implementation moved to .cpp file
     static bool CheckMemoryProtection() {
         bool protectionValid = true;
         
 #ifdef __APPLE__
-        // Get information about all loaded modules
-        uint32_t count = _dyld_image_count();
-        
-        for (uint32_t i = 0; i < count; i++) {
-            const char* imageName = _dyld_get_image_name(i);
-            
-            // Check if this is our dylib
-            if (strstr(imageName, "libmylibrary.dylib") != nullptr ||
-                strstr(imageName, "roblox_execution") != nullptr) {
-                
-                const struct mach_header* header = _dyld_get_image_header(i);
-                
-                // Check protection of code segments
-                if (header->magic == MH_MAGIC_64) {
-                    const struct mach_header_64* header64 = reinterpret_cast<const struct mach_header_64*>(header);
-                    const struct load_command* cmd = reinterpret_cast<const struct load_command*>(header64 + 1);
-                    
-                    for (uint32_t j = 0; j < header64->ncmds; j++) {
-                        if (cmd->cmd == LC_SEGMENT_64) {
-                            const struct segment_command_64* seg = reinterpret_cast<const struct segment_command_64*>(cmd);
-                            
-                            if (strcmp(seg->segname, "__TEXT") == 0) {
-                                // TEXT segment should be read-execute, not writable
-                                if (seg->initprot & VM_PROT_WRITE) {
-                                    protectionValid = false;
-                                    HandleTampering(SecurityCheckType::MEMORY_PROTECTION, 
-                                        "__TEXT segment is writable in " + std::string(imageName));
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        cmd = reinterpret_cast<const struct load_command*>(
-                            reinterpret_cast<const char*>(cmd) + cmd->cmdsize);
-                    }
-                }
-            }
-        }
-#else
-        // Implement platform-specific memory protection checks for other platforms
+        // Call implementation function with all the Mach-O parsing logic
+        protectionValid = CheckMemoryProtectionImpl();
 #endif
         
         return protectionValid;
     }
+    
+    // Implementation function in cpp file
+    static bool CheckMemoryProtectionImpl();
     
     // Check process environment for suspicious settings
     static bool CheckProcessEnvironment() {

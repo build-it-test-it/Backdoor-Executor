@@ -314,7 +314,7 @@ public:
      * @brief Set online mode (always sets to OfflineOnly in this implementation)
      * @param mode Online mode (ignored)
      */
-    void SetOnlineMode(OnlineMode mode) {
+    void SetOnlineMode([[maybe_unused]] OnlineMode mode) {
         // Always use offline only mode in this implementation
         SetOption("online_mode", "offline_only");
     }

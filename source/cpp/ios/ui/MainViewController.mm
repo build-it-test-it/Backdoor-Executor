@@ -1,4 +1,4 @@
-// Stub implementation for MainViewController using only fields from header
+// Fixed implementation for MainViewController matching the header interface
 #include "../../ios_compat.h"
 #include "MainViewController.h"
 #include <iostream>
@@ -9,6 +9,7 @@ namespace UI {
     // Constructor
     MainViewController::MainViewController() {
         std::cout << "MainViewController constructor called" << std::endl;
+        m_viewController = nullptr;
     }
 
     // Destructor
@@ -22,58 +23,48 @@ namespace UI {
         }
     }
 
-    // Show view controller
-    void MainViewController::Show() {
-        std::cout << "MainViewController Show called" << std::endl;
-    }
-
-    // Hide view controller
-    void MainViewController::Hide() {
-        std::cout << "MainViewController Hide called" << std::endl;
-    }
-
-    // Toggle visibility
-    bool MainViewController::Toggle() {
-        std::cout << "MainViewController Toggle called" << std::endl;
+    // Execute a script
+    bool MainViewController::ExecuteScript(const std::string& script) {
+        std::cout << "MainViewController ExecuteScript called: " << script << std::endl;
         return true; // Stub implementation
     }
 
-    // Check if visible
-    bool MainViewController::IsVisible() const {
-        return false; // Stub implementation
+    // Display AI response
+    void MainViewController::DisplayAIResponse(const std::string& response) {
+        std::cout << "MainViewController DisplayAIResponse called: " << response << std::endl;
     }
 
-    // Set the tab changed callback
-    void MainViewController::SetTabChangedCallback(TabChangedCallback callback) {
-        m_tabChangedCallback = callback;
+    // Set script execution callback
+    void MainViewController::SetExecutionCallback(ExecutionCallback callback) {
+        m_executionCallback = callback;
     }
 
-    // Set the visibility changed callback
-    void MainViewController::SetVisibilityChangedCallback(VisibilityChangedCallback callback) {
-        m_visibilityChangedCallback = callback;
+    // Set save script callback
+    void MainViewController::SetSaveScriptCallback(SaveScriptCallback callback) {
+        m_saveScriptCallback = callback;
     }
 
-    // Set the execute script callback
-    void MainViewController::SetExecuteCallback(ExecuteCallback callback) {
-        m_executeCallback = callback;
+    // Set load scripts callback
+    void MainViewController::SetLoadScriptsCallback(LoadScriptsCallback callback) {
+        m_loadScriptsCallback = callback;
     }
 
-    // Set the AI query callback
+    // Set AI query callback
     void MainViewController::SetAIQueryCallback(AIQueryCallback callback) {
         m_aiQueryCallback = callback;
     }
 
-    // Set the AI response callback
+    // Set AI response callback
     void MainViewController::SetAIResponseCallback(AIResponseCallback callback) {
         m_aiResponseCallback = callback;
     }
 
-    // Get the native view controller
+    // Get native view controller
     void* MainViewController::GetNativeViewController() const {
         return m_viewController;
     }
 
-    // Set the native view controller
+    // Set native view controller
     void MainViewController::SetNativeViewController(void* viewController) {
         // Release any existing view controller
         if (m_viewController) {
@@ -82,7 +73,8 @@ namespace UI {
         
         // Retain the new view controller if it's not null
         if (viewController) {
-            m_viewController = CFRetain(viewController);
+            // Use const_cast to safely assign const void* to void*
+            m_viewController = const_cast<void*>(CFRetain(viewController));
         } else {
             m_viewController = nullptr;
         }

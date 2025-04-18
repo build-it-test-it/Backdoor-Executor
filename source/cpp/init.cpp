@@ -90,8 +90,12 @@ bool SystemState::Initialize(const InitOptions& options) {
                         SystemState::s_signatureAdaptation = *static_cast<std::shared_ptr<iOS::AIFeatures::SignatureAdaptation>*>(signatureAdaptationPtr);
                     }
                     
-                    // Initialize AI Manager
-                    SystemState::s_aiManager = std::make_shared<iOS::AIFeatures::AIIntegrationManager>();
+                    // Get the AI Manager singleton instance instead of creating a new one
+                    SystemState::s_aiManager = std::shared_ptr<iOS::AIFeatures::AIIntegrationManager>(
+                        &iOS::AIFeatures::AIIntegrationManager::GetSharedInstance(), 
+                        [](iOS::AIFeatures::AIIntegrationManager*){} // no-op deleter for singleton
+                    );
+                    
                     if (!SystemState::s_aiManager->Initialize()) {
                         Logging::LogWarning("System", "Failed to initialize AI manager");
                         // Continue anyway - manager is optional
@@ -238,12 +242,12 @@ void Shutdown() {
         SystemState::s_executionEngine.reset();
         
         // Stop security monitoring
-        if (s_options.enableSecurity) {
+        if (SystemState::s_options.enableSecurity) {
             Security::AntiTamper::StopMonitoring();
         }
         
         // Stop performance monitoring
-        if (s_options.enablePerformanceMonitoring) {
+        if (SystemState::s_options.enablePerformanceMonitoring) {
             Performance::Profiler::StopMonitoring();
             Performance::Profiler::SaveReport();
         }

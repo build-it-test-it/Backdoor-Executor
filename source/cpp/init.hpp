@@ -1,105 +1,71 @@
-// init.hpp - Central initialization and configuration system
-// Copyright (c) 2025, All rights reserved.
+// init.hpp - Main initialization and shutdown functions for the library
+
 #pragma once
 
-#include <string>
 #include <memory>
-#include <chrono>
-#include <iostream>
-#include <stdexcept>
+#include <string>
 #include <functional>
+#include <vector>
 
-// Include all major subsystems
-#include "logging.hpp"
-#include "error_handling.hpp"
-#include "performance.hpp"
 #include "security/anti_tamper.hpp"
-#include "filesystem_utils.h"
+#include "performance.hpp"
+#include "logging.hpp"
 #include "ios/ExecutionEngine.h"
-#include "ios/JailbreakBypass.h"
 #include "ios/UIController.h"
+#include "ios/ScriptManager.h"
 #include "ios/PatternScanner.h"
-#include "anti_detection/obfuscator.hpp"
-#include "ios/ai_features/AIIntegration.h"
 #include "ios/ai_features/AIIntegrationManager.h"
 #include "ios/ai_features/ScriptAssistant.h"
 #include "ios/ai_features/SignatureAdaptation.h"
 
+// Public API for the executor library
 namespace RobloxExecutor {
 
-// System initialization options
+// Pre-initialization options
 struct InitOptions {
-    // General options
-    bool enableLogging = true;
-    bool enableErrorReporting = true;
-    bool enablePerformanceMonitoring = true;
-    bool enableSecurity = true;
-    bool enableJailbreakBypass = true;
-    bool enableUI = true;
-    bool enableAIFeatures = true;
+    // Features to enable
+    bool enableLogging = true;                // Enable logging
+    bool enableErrorReporting = true;         // Enable error reporting
+    bool enableSecurity = true;               // Enable security features
+    bool enableJailbreakBypass = false;       // Enable jailbreak bypass
+    bool enablePerformanceMonitoring = false; // Enable performance monitoring
+    bool enableUI = true;                     // Enable UI features
+    bool enableScriptCaching = true;          // Enable script caching
+    bool enableAI = false;                    // Enable AI features
     
-    // Logging options
-    std::string logDir = "";  // Empty means default location
-    Logging::LogLevel minLogLevel = Logging::LogLevel::INFO;
+    // Feature configurations
+    bool showFloatingButton = true;            // Show floating button
+    bool startSecurityMonitoring = true;       // Start security monitoring
+    bool enableCrashReporting = true;          // Enable crash reporting
+    bool enableAutoPerformanceLogging = false; // Enable automatic performance logging
     
-    // Error handling options
-    bool enableCrashReporting = true;
-    std::string crashReportDir = "";  // Empty means default location
+    // Paths
+    std::string crashReportDir;               // Crash report directory
     
-    // Performance options
-    bool enableAutoPerformanceLogging = true;
-    uint64_t performanceThresholdMs = 100;
+    // Thresholds
+    uint32_t performanceThresholdMs = 16;     // Performance threshold in milliseconds (1/60 second)
     
-    // Security options
-    bool startSecurityMonitoring = true;
-    bool bypassJailbreakDetection = true;
+    // Callbacks
+    using Callback = std::function<void()>;
+    using ValidationCallback = std::function<bool()>;
     
-    // UI options
-    bool showFloatingButton = true;
-    
-    // Execution options
-    bool enableScriptCaching = true;
-    int defaultObfuscationLevel = 3;
-    
-    // AI options
-    bool enableAIScriptGeneration = true;
-    bool enableAIVulnerabilityDetection = true;
-    bool enableAISignatureAdaptation = true;
-    std::string aiModelsPath = "";  // Empty means default location
-    
-    // Custom initialization callbacks
-    std::function<void()> preInitCallback = nullptr;
-    std::function<void()> postInitCallback = nullptr;
-    
-    // Custom validation function for app-specific checks
-    std::function<bool()> customValidationCallback = nullptr;
+    Callback preInitCallback;                 // Called before initialization
+    Callback postInitCallback;                // Called after initialization
+    ValidationCallback customValidationCallback; // Custom validation callback
 };
 
-// System status structure
+// System status
 struct SystemStatus {
-    bool loggingInitialized = false;
-    bool errorHandlingInitialized = false;
-    bool performanceInitialized = false;
-    bool securityInitialized = false;
-    bool jailbreakBypassInitialized = false;
-    bool uiInitialized = false;
-    bool executionEngineInitialized = false;
-    bool aiFeaturesInitialized = false;
-    bool allSystemsInitialized = false;
-    
-    std::string GetStatusString() const {
-        std::stringstream ss;
-        ss << "System Status:\n";
-        ss << "  Logging: " << (loggingInitialized ? "OK" : "FAILED") << "\n";
-        ss << "  Error Handling: " << (errorHandlingInitialized ? "OK" : "FAILED") << "\n";
-        ss << "  Performance Monitoring: " << (performanceInitialized ? "OK" : "FAILED") << "\n";
-        ss << "  Security: " << (securityInitialized ? "OK" : "FAILED") << "\n";
-        ss << "  Jailbreak Bypass: " << (jailbreakBypassInitialized ? "OK" : "FAILED") << "\n";
-        ss << "  UI: " << (uiInitialized ? "OK" : "FAILED") << "\n";
-        ss << "  Execution Engine: " << (executionEngineInitialized ? "OK" : "FAILED") << "\n";
-        ss << "  Overall: " << (allSystemsInitialized ? "OK" : "FAILED") << "\n";
-        return ss.str();
-    }
+    bool loggingInitialized = false;          // Logging initialized
+    bool errorHandlingInitialized = false;    // Error handling initialized
+    bool securityInitialized = false;         // Security initialized
+    bool jailbreakBypassInitialized = false;  // Jailbreak bypass initialized
+    bool performanceInitialized = false;      // Performance monitoring initialized
+    bool scriptManagerInitialized = false;    // Script manager initialized
+    bool executionEngineInitialized = false;  // Execution engine initialized
+    bool uiInitialized = false;               // UI initialized
+    bool aiInitialized = false;               // AI initialized
+    bool allSystemsInitialized = false;       // All systems initialized
 };
 
 // Global system state
@@ -124,6 +90,11 @@ public:
     // Get system status
     static const SystemStatus& GetStatus() {
         return s_status;
+    }
+    
+    // Check if initialized
+    static bool IsInitialized() {
+        return s_initialized;
     }
     
     // Get execution engine
@@ -163,123 +134,94 @@ public:
     
     // Initialize the system with options
     // Initialize system - implementation in init.cpp
+    static bool Initialize(const InitOptions& options = InitOptions());
+    
     // Clean up and shutdown all systems
     static void Shutdown();
-        // Shutdown in reverse order of initialization
-        
-        // 1. Shutdown UI
-        if (s_uiController) {
-            s_uiController.reset();
-        }
-        
-        // 2. Shutdown execution engine and script manager
-        s_executionEngine.reset();
-        s_scriptManager.reset();
-        
-        // 3. Stop performance monitoring
-        if (s_status.performanceInitialized) {
-            Performance::Profiler::StopMonitoring();
-            Performance::Profiler::SaveReport();
-        }
-        
-        // 4. Stop security monitoring
-        if (s_status.securityInitialized) {
-            Security::AntiTamper::StopMonitoring();
-        }
-        
-        // Log shutdown if logging is still available
-        if (s_status.loggingInitialized) {
-            Logging::LogInfo("System", "System shutdown complete");
-        }
-        
-        // Reset status
-        s_status = SystemStatus();
-    }
-    
+
 private:
-    // Initialize logging system
+    // Helper functions - implementations remain in this file
     static bool InitializeLogging() {
         try {
-            // Initialize the logger
-            if (!s_options.logDir.empty()) {
-                FileUtils::EnsureDirectoryExists(s_options.logDir);
-                Logging::Logger::InitializeWithFileLogging(s_options.logDir);
-            } else {
-                Logging::Logger::InitializeWithFileLogging();
-            }
+            // Initialize logging
+            Logging::InitializeLogging(true, true, true);
             
-            // Set minimum log level
-            Logging::Logger::GetInstance().SetMinLevel(s_options.minLogLevel);
-            
-            // Log initialization success
-            Logging::LogInfo("System", "Logging system initialized");
-            
+            // Mark logging as initialized
             s_status.loggingInitialized = true;
             return true;
         } catch (const std::exception& ex) {
-            std::cerr << "Failed to initialize logging: " << ex.what() << std::endl;
+            std::cerr << "Exception during logging initialization: " << ex.what() << std::endl;
             return false;
         }
     }
     
-    // Initialize error handling system
     static bool InitializeErrorHandling() {
         try {
             // Initialize error handling
-            ErrorHandling::InitializeErrorHandling();
+            ErrorHandling::ErrorManager::GetInstance().Initialize();
             
-            // Configure crash reporting
-            ErrorHandling::ErrorManager::GetInstance().EnableCrashReporting(s_options.enableCrashReporting);
+            // Configure error handling
+            ErrorHandling::ErrorManager::GetInstance().EnableCrashReporting(SystemState::s_options.enableCrashReporting);
             
-            if (!s_options.crashReportDir.empty()) {
-                ErrorHandling::ErrorManager::GetInstance().SetCrashReportPath(s_options.crashReportDir);
+            if (!SystemState::s_options.crashReportDir.empty()) {
+                ErrorHandling::ErrorManager::GetInstance().SetCrashReportPath(SystemState::s_options.crashReportDir);
             }
             
-            // Log initialization success
-            Logging::LogInfo("System", "Error handling system initialized");
-            
-            s_status.errorHandlingInitialized = true;
+            // Mark error handling as initialized
+            SystemState::s_status.errorHandlingInitialized = true;
             return true;
         } catch (const std::exception& ex) {
-            Logging::LogCritical("System", "Failed to initialize error handling: " + std::string(ex.what()));
+            Logging::LogCritical("System", "Exception during error handling initialization: " + std::string(ex.what()));
             return false;
         }
     }
     
-    // Initialize security system
     static bool InitializeSecurity() {
         try {
             // Initialize security
-            bool result = Security::InitializeSecurity(s_options.startSecurityMonitoring);
+            bool result = Security::InitializeSecurity(SystemState::s_options.startSecurityMonitoring);
             
             if (result) {
-                Logging::LogInfo("System", "Security system initialized");
-                s_status.securityInitialized = true;
-            } else {
-                Logging::LogWarning("System", "Security system initialization failed");
+                // Mark security as initialized
+                SystemState::s_status.securityInitialized = true;
             }
             
             return result;
         } catch (const std::exception& ex) {
-            Logging::LogError("System", "Exception initializing security: " + std::string(ex.what()));
-        try {
-            // Initialize performance monitoring
-            Performance::InitializePerformanceMonitoring(
-                true,
-                s_options.enableAutoPerformanceLogging,
-                s_options.performanceThresholdMs
-            );
-            
-            Logging::LogInfo("System", "Performance monitoring initialized");
-            s_status.performanceInitialized = true;
-            return true;
-        } catch (const std::exception& ex) {
-            Logging::LogError("System", "Exception initializing performance monitoring: " + std::string(ex.what()));
+            Logging::LogCritical("System", "Exception during security initialization: " + std::string(ex.what()));
             return false;
         }
     }
     
-    // Initialize execution engine and script manager
+    static bool InitializeJailbreakBypass() {
+        try {
+            // Initialize jailbreak bypass
+            // Not implemented yet
+            return true;
+        } catch (const std::exception& ex) {
+            Logging::LogCritical("System", "Exception during jailbreak bypass initialization: " + std::string(ex.what()));
+            return false;
+        }
+    }
+    
+    static bool InitializePerformanceMonitoring() {
+        try {
+            // Initialize performance monitoring
+            Performance::InitializePerformanceMonitoring(
+                true,
+                SystemState::s_options.enableAutoPerformanceLogging,
+                SystemState::s_options.performanceThresholdMs
+            );
+            
+            // Mark performance monitoring as initialized
+            SystemState::s_status.performanceInitialized = true;
+            return true;
+        } catch (const std::exception& ex) {
+            Logging::LogCritical("System", "Exception during performance monitoring initialization: " + std::string(ex.what()));
+            return false;
+        }
+    }
+    
     static bool InitializeExecutionEngine() {
         try {
             // Create script manager
@@ -295,8 +237,11 @@ private:
                 return false;
             }
             
+            // Mark script manager as initialized
+            s_status.scriptManagerInitialized = true;
+            
             // Create execution engine
-            s_executionEngine = std::make_shared<iOS::ExecutionEngine>(s_scriptManager);
+            s_executionEngine = std::make_shared<iOS::ExecutionEngine>();
             
             // Initialize execution engine
             if (!s_executionEngine->Initialize()) {
@@ -304,25 +249,15 @@ private:
                 return false;
             }
             
-            // Configure default execution context
-            iOS::ExecutionEngine::ExecutionContext context;
-            context.m_isJailbroken = s_status.jailbreakBypassInitialized;
-            context.m_enableObfuscation = true;
-            context.m_enableAntiDetection = true;
-            context.m_obfuscationLevel = s_options.defaultObfuscationLevel;
-            
-            s_executionEngine->SetDefaultContext(context);
-            
-            Logging::LogInfo("System", "Execution engine initialized");
+            // Mark execution engine as initialized
             s_status.executionEngineInitialized = true;
             return true;
         } catch (const std::exception& ex) {
-            Logging::LogCritical("System", "Exception initializing execution engine: " + std::string(ex.what()));
+            Logging::LogCritical("System", "Exception during execution engine initialization: " + std::string(ex.what()));
             return false;
         }
     }
     
-    // Initialize UI system
     static bool InitializeUI() {
         try {
             // Create UI controller
@@ -334,10 +269,15 @@ private:
                 return false;
             }
             
-            // Setup callbacks
-            s_uiController->SetExecuteCallback([](const std::string& script) -> bool {
-                // Get execution engine from system state
-                auto engine = GetExecutionEngine();
+            // Configure UI
+            s_uiController->SetButtonVisible(s_options.showFloatingButton);
+            
+            // Connect UI events
+            
+            // Script execution
+            s_uiController->SetExecutionCallback([](const std::string& script) -> bool {
+                // Get execution engine
+                auto engine = SystemState::GetExecutionEngine();
                 if (!engine) {
                     Logging::LogError("UI", "Execute failed: Execution engine not initialized");
                     return false;
@@ -348,30 +288,32 @@ private:
                 return result.m_success;
             });
             
-            s_uiController->SetSaveScriptCallback([](const iOS::UIController::ScriptInfo& info) -> bool {
-                // Get script manager from system state
-                auto manager = GetScriptManager();
+            // Script saving
+            s_uiController->SetSaveScriptCallback([](const std::string& script) -> bool {
+                // Get script manager
+                auto manager = SystemState::GetScriptManager();
                 if (!manager) {
                     Logging::LogError("UI", "Save failed: Script manager not initialized");
                     return false;
                 }
                 
-                // Save script
-                return manager->SaveScript(info.m_name, info.m_content);
+                // Save script with auto-generated name
+                return manager->SaveScript(script);
             });
             
+            // Script loading
             s_uiController->SetLoadScriptsCallback([]() -> std::vector<iOS::UIController::ScriptInfo> {
-                // Get script manager from system state
-                auto manager = GetScriptManager();
+                // Get script manager
+                auto manager = SystemState::GetScriptManager();
                 if (!manager) {
                     Logging::LogError("UI", "Load failed: Script manager not initialized");
                     return {};
                 }
                 
-                // Get saved scripts
-                auto scripts = manager->GetSavedScripts();
+                // Get scripts
+                auto scripts = manager->GetAllScripts();
                 
-                // Convert to UI controller script info
+                // Convert to UI format
                 std::vector<iOS::UIController::ScriptInfo> result;
                 for (const auto& script : scripts) {
                     iOS::UIController::ScriptInfo info;
@@ -388,16 +330,18 @@ private:
             s_uiController->SetButtonVisible(s_options.showFloatingButton);
             
             Logging::LogInfo("System", "UI system initialized");
+            
+            // Mark UI as initialized
             s_status.uiInitialized = true;
             return true;
         } catch (const std::exception& ex) {
-            Logging::LogWarning("System", "Exception initializing UI: " + std::string(ex.what()));
+            Logging::LogCritical("System", "Exception during UI initialization: " + std::string(ex.what()));
             return false;
         }
     }
 };
 
-// Initialize static members
+// Static member variable definitions
 bool SystemState::s_initialized = false;
 InitOptions SystemState::s_options;
 SystemStatus SystemState::s_status;
@@ -405,77 +349,20 @@ std::shared_ptr<iOS::ExecutionEngine> SystemState::s_executionEngine;
 std::shared_ptr<iOS::ScriptManager> SystemState::s_scriptManager;
 std::unique_ptr<iOS::UIController> SystemState::s_uiController;
 
-// Initialize AI static members
+// AI Components
 void* SystemState::s_aiIntegration = nullptr;
 std::shared_ptr<iOS::AIFeatures::AIIntegrationManager> SystemState::s_aiManager = nullptr;
 std::shared_ptr<iOS::AIFeatures::ScriptAssistant> SystemState::s_scriptAssistant = nullptr;
 std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> SystemState::s_signatureAdaptation = nullptr;
 
-// Add AI features include for AI-specific declarations
-#ifdef __APPLE__
-#include "ios/ai_features/AIIntegration.h"
-#include "ios/ai_features/AIIntegrationManager.h"
-#include "ios/ai_features/ScriptAssistant.h"
-#include "ios/ai_features/SignatureAdaptation.h"
-#endif
-
 // Convenience function for global initialization
-inline bool Initialize(const InitOptionsInitialize(const InitOptions& options = InitOptions()) { options = InitOptions());
+inline bool Initialize(const InitOptions& options = InitOptions()) {
     return SystemState::Initialize(options);
 }
 
 // Convenience function for global shutdown
-inline void Shutdown();
+inline void Shutdown() {
     SystemState::Shutdown();
-}
-
-// Execute a script with custom context
-inline iOS::ExecutionEngine::ExecutionResult ExecuteScript(
-    const std::string& script,
-    const iOS::ExecutionEngine::ExecutionContext& context = {}) {
-    auto engine = SystemState::GetExecutionEngine();
-    if (!engine) {
-        Logging::LogError("Executor", "Execute failed: Execution engine not initialized");
-        return { false, "Execution engine not initialized", 0, "" };
-    }
-    
-    return engine->Execute(script, context);
-}
-
-// Execute a script with default context
-inline iOS::ExecutionEngine::ExecutionResult ExecuteScript(const std::string& script) {
-    auto engine = SystemState::GetExecutionEngine();
-    if (!engine) {
-        Logging::LogError("Executor", "Execute failed: Execution engine not initialized");
-        return { false, "Execution engine not initialized", 0, "" };
-    }
-    
-    return engine->Execute(script);
-}
-
-// Show UI
-inline void ShowUI() {
-    auto ui = SystemState::GetUIController();
-    if (ui) {
-        ui->Show();
-    }
-}
-
-// Hide UI
-inline void HideUI() {
-    auto ui = SystemState::GetUIController();
-    if (ui) {
-        ui->Hide();
-    }
-}
-
-// Toggle UI
-inline bool ToggleUI() {
-    auto ui = SystemState::GetUIController();
-    if (ui) {
-        return ui->Toggle();
-    }
-    return false;
 }
 
 } // namespace RobloxExecutor

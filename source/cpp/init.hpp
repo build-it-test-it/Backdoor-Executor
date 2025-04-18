@@ -105,8 +105,9 @@ struct SystemStatus {
 // Global system state
 class SystemState {
 private:
-    static InitOptions s_options;
-    static SystemStatus s_status;
+    static bool s_initialized;            // Whether the system is initialized
+    static InitOptions s_options;         // Initialization options
+    static SystemStatus s_status;         // Current system status
     static std::shared_ptr<iOS::ExecutionEngine> s_executionEngine;
     static std::shared_ptr<iOS::ScriptManager> s_scriptManager;
     static std::unique_ptr<iOS::UIController> s_uiController;
@@ -521,6 +522,7 @@ private:
 };
 
 // Initialize static members
+bool SystemState::s_initialized = false;
 InitOptions SystemState::s_options;
 SystemStatus SystemState::s_status;
 std::shared_ptr<iOS::ExecutionEngine> SystemState::s_executionEngine;

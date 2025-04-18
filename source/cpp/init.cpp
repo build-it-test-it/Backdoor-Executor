@@ -6,18 +6,7 @@
 
 namespace RobloxExecutor {
 
-// Initialize static members
-bool SystemState::s_initialized = false;
-std::shared_ptr<iOS::ExecutionEngine> SystemState::s_executionEngine = nullptr;
-std::shared_ptr<iOS::ScriptManager> SystemState::s_scriptManager = nullptr;
-iOS::UIController* SystemState::s_uiController = nullptr;
-InitOptions SystemState::s_initOptions;
-
-// Initialize AI static members
-void* SystemState::s_aiIntegration = nullptr;
-std::shared_ptr<iOS::AIFeatures::AIIntegrationManager> SystemState::s_aiManager = nullptr;
-std::shared_ptr<iOS::AIFeatures::ScriptAssistant> SystemState::s_scriptAssistant = nullptr;
-std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> SystemState::s_signatureAdaptation = nullptr;
+// Use existing static members from init.hpp, don't redefine
 
 // Initialize the executor system
 bool Initialize(const InitOptions& options) {

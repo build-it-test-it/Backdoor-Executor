@@ -188,9 +188,8 @@ public:
      */
     static std::string CategoryToString(ScriptCategory category);
     
-    /**
-    /**
-     * @brief Check if the model is initialized
+    /*
+     * Check if the model is initialized
      * @return True if initialized
      */
     bool IsInitialized() const;

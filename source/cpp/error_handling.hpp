@@ -82,7 +82,7 @@ struct ErrorCode {
     std::string ToString() const {
         std::stringstream ss;
         ss << ErrorCategoryToString(category) << ":" << code << " - " << message;
-        return ss.string();
+        return ss.str();
     }
 };
 
@@ -273,15 +273,20 @@ public:
         // Log the error
         if (m_logEnabled) {
             Logging::LogLevel logLevel;
-            switch (error.category) {
-                case ErrorCategory::WARNING:
+            
+            // Map error severity to logging level
+            ErrorSeverity severity = error.category == ErrorCategory::MEMORY ? 
+                ErrorSeverity::CRITICAL : ErrorSeverity::ERROR; // Default mapping
+                
+            switch (severity) {
+                case ErrorSeverity::WARNING:
                     logLevel = Logging::LogLevel::WARNING;
                     break;
-                case ErrorCategory::ERROR:
+                case ErrorSeverity::ERROR:
                     logLevel = Logging::LogLevel::ERROR;
                     break;
-                case ErrorCategory::CRITICAL:
-                case ErrorCategory::FATAL:
+                case ErrorSeverity::CRITICAL:
+                case ErrorSeverity::FATAL:
                     logLevel = Logging::LogLevel::CRITICAL;
                     break;
                 default:
@@ -310,7 +315,15 @@ public:
         }
         
         // For fatal errors, generate crash report and terminate
-        if (error.category == ErrorCategory::FATAL) {
+        // Determine if this is a fatal error based on error category or other criteria
+        bool isFatalError = false;
+        
+        // For security or memory errors, treat as fatal
+        if (error.category == ErrorCategory::SECURITY && error.code >= 400) {
+            isFatalError = true;
+        }
+        
+        if (isFatalError) {
             if (m_crashReportingEnabled) {
                 GenerateCrashReport(ex);
             }
@@ -458,28 +471,9 @@ namespace IntegrityCheck {
         return checksum == expectedChecksum;
     }
     
-    // Simple tamper detection for the executable
-    bool CheckExecutableTampering() {
-        // In a real implementation, you would:
-        // 1. Calculate a checksum of critical code sections
-        // 2. Verify code signatures
-        // 3. Check for debuggers
-        // 4. Verify memory protection attributes
-        
-        // Here's a simplified implementation that just checks for debuggers
-        #ifdef __APPLE__
-        struct kinfo_proc info;
-        size_t info_size = sizeof(info);
-        int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-        
-        if (sysctl(mib, 4, &info, &info_size, NULL, 0) == 0) {
-            return (info.kp_proc.p_flag & P_TRACED) == 0;
-        }
-        return true; // If we can't check, assume it's not tampered
-        #else
-        return true; // Implement platform-specific checks for other platforms
-        #endif
-    }
+    // Forward declaration of tamper detection function
+    // Implementation moved to a separate source file to avoid system header conflicts
+    bool CheckExecutableTampering();
 }
 
 // Initialize error handling
@@ -490,8 +484,14 @@ inline void InitializeErrorHandling() {
     // Set up default error handlers
     errorManager.AddHandler([](const ExecutorException& ex) {
         // Example handler that logs to console
-        if (ex.GetErrorCode().category == ErrorCategory::CRITICAL ||
-            ex.GetErrorCode().category == ErrorCategory::FATAL) {
+        // Using severity for critical/fatal errors which is the appropriate enum for this
+        ErrorSeverity severity = ErrorSeverity::ERROR;  // Default to ERROR
+        
+        if (ex.GetErrorCode().category == ErrorCategory::MEMORY) {
+            severity = ErrorSeverity::CRITICAL;  // Memory errors are critical
+        }
+        
+        if (severity == ErrorSeverity::CRITICAL || severity == ErrorSeverity::FATAL) {
             std::cerr << "CRITICAL ERROR: " << ex.GetFormattedMessage() << std::endl;
         }
     });

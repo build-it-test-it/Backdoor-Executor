@@ -5,11 +5,9 @@
 #include <string>
 #include <functional>
 
-// Forward declaration for ObjC types
+// Forward declarations for ObjC types already defined in objc_isolation.h
 #ifdef __OBJC__
 @class UIColor;
-#else
-typedef void UIColor;
 #endif
 
 namespace iOS {

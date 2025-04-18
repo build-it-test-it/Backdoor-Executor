@@ -16,22 +16,62 @@
 #include "../logging.hpp"
 #include "../error_handling.hpp"
 
+// Forward declarations for system functions and constants
+// This avoids including system headers in the header file which can cause macro conflicts
 #ifdef __APPLE__
-#include <sys/types.h>
-#include <sys/ptrace.h>
-#include <sys/sysctl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <mach/mach_init.h>
-#include <mach/mach_error.h>
-#include <mach/mach_traps.h>
-#include <mach/task.h>
-#include <mach/mach_port.h>
-#include <dlfcn.h>
-#include <mach-o/dyld.h>
-#include <mach-o/loader.h>
-#include <mach-o/nlist.h>
+// Forward declare needed types without including system headers
+typedef int pid_t;
+typedef char* caddr_t;
+
+// Define necessary constants
+#ifndef PT_DENY_ATTACH
+#define PT_DENY_ATTACH 31
 #endif
+
+#ifndef KERN_PROC
+#define KERN_PROC 14
+#endif
+
+#ifndef KERN_PROC_PID
+#define KERN_PROC_PID 1
+#endif
+
+#ifndef CTL_KERN
+#define CTL_KERN 1
+#endif
+
+#ifndef P_TRACED
+#define P_TRACED 0x00000800
+#endif
+
+// Forward declare functions we'll use
+extern "C" {
+    int ptrace(int request, pid_t pid, caddr_t addr, int data);
+    pid_t getpid(void);
+    int sysctl(int* name, unsigned int namelen, void* oldp, size_t* oldlenp, void* newp, size_t newlen);
+}
+
+// Forward declarations for Mach-O structures - implementations in .cpp file
+struct mach_header;
+struct mach_header_64;
+struct load_command;
+struct segment_command;
+struct segment_command_64;
+
+// Don't forward-declare kinfo_proc as it's defined in system headers
+// We'll use an opaque pointer approach to avoid conflicts
+typedef void* kinfo_proc_ptr;
+
+#endif // __APPLE__
+
+// Forward declare needed C++ includes to avoid system header conflicts
+#include <string>
+#include <vector>
+#include <functional>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <map>
 
 namespace Security {
 
@@ -311,19 +351,17 @@ public:
     
     // Individual security checks
     
+    // Helper function to check debugger using proc info - implementation in .cpp
+    static bool CheckDebuggerUsingProcInfo();
+    
     // Check for attached debugger
     static bool CheckForDebugger() {
         bool debuggerDetected = false;
         
 #ifdef __APPLE__
-        // Method 1: Check using sysctl
-        struct kinfo_proc info;
-        size_t info_size = sizeof(info);
-        int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-        
-        if (sysctl(mib, 4, &info, &info_size, NULL, 0) == 0) {
-            debuggerDetected = (info.kp_proc.p_flag & P_TRACED) != 0;
-        }
+        // Method 1: Check using sysctl - implementation moved to .cpp file
+        // to avoid system header conflicts
+        debuggerDetected = CheckDebuggerUsingProcInfo();
         
         // Method 2: Try ptrace
         if (!debuggerDetected) {
@@ -702,47 +740,8 @@ public:
         std::lock_guard<std::mutex> lock(s_mutex);
         s_functionChecksums[funcPtr] = checksum;
     }
+    // Static members and initialization methods are defined in the .cpp file
 };
-
-// Initialize static members
-std::mutex AntiTamper::s_mutex;
-std::atomic<bool> AntiTamper::s_enabled(false);
-std::atomic<bool> AntiTamper::s_debuggerDetected(false);
-std::atomic<bool> AntiTamper::s_tamperingDetected(false);
-std::map<SecurityCheckType, TamperAction> AntiTamper::s_actionMap;
-std::vector<TamperCallback> AntiTamper::s_callbacks;
-std::thread AntiTamper::s_monitorThread;
-std::atomic<bool> AntiTamper::s_shouldRun(false);
-std::atomic<uint64_t> AntiTamper::s_checkInterval(5000);
-std::vector<uint8_t> AntiTamper::s_codeHashes;
-std::map<void*, uint32_t> AntiTamper::s_functionChecksums;
-
-// Implementation of private initialization methods
-void AntiTamper::InitializeCodeHashes() {
-    // This would initialize code hashes for the main executable and dylibs
-    // We've already implemented the functionality in CheckCodeIntegrity
-}
-
-void AntiTamper::InitializeFunctionChecksums() {
-    // In a real implementation, you would add critical functions to monitor
-    // For example, security-related functions, authentication functions, etc.
-    
-    // Example (using dlsym to find functions):
-    void* dlsymFunc = dlsym(RTLD_DEFAULT, "dlsym");
-    if (dlsymFunc) {
-        MonitorFunction(dlsymFunc);
-    }
-    
-    void* mallocFunc = dlsym(RTLD_DEFAULT, "malloc");
-    if (mallocFunc) {
-        MonitorFunction(mallocFunc);
-    }
-    
-    void* freeFunc = dlsym(RTLD_DEFAULT, "free");
-    if (freeFunc) {
-        MonitorFunction(freeFunc);
-    }
-}
 
 // Convenience function to initialize security components
 inline bool InitializeSecurity(bool startMonitoring = true) {

@@ -119,8 +119,8 @@ public:
      */
     std::string AnalyzeScript(const std::string& script);
     
-    /**
-     * @brief Generate a response to a general query
+    /*
+     * Generate a response to a general query
      * @param query User's query
      * @param context Optional context information
      * @return Generated response
@@ -188,9 +188,8 @@ public:
      */
     static std::string CategoryToString(ScriptCategory category);
     
-    /**
-    /**
-     * @brief Check if the model is initialized
+    /*
+     * Check if the model is initialized
      * @return True if initialized
      */
     bool IsInitialized() const;
@@ -213,13 +212,3 @@ public:
 } // namespace LocalModels
 } // namespace AIFeatures
 } // namespace iOS
-    /**
-     * @brief Check if the model is initialized
-     * @return True if initialized
-     */
-    
-    /**
-     * @brief Set model path
-     * @param path Path to model files
-     * @return True if path was valid and set
-     */

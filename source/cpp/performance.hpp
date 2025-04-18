@@ -188,8 +188,12 @@ public:
             // Generate report
             std::stringstream report;
             report << "========================================\n";
-            report << "Performance Report - " << std::put_time(std::localtime(&std::chrono::system_clock::to_time_t(
-                           std::chrono::system_clock::now())), "%Y-%m-%d %H:%M:%S") << "\n";
+            
+            // Store time in a variable before taking its address
+            auto now = std::chrono::system_clock::now();
+            time_t time_now = std::chrono::system_clock::to_time_t(now);
+            report << "Performance Report - " << std::put_time(std::localtime(&time_now), "%Y-%m-%d %H:%M:%S") << "\n";
+            
             report << "========================================\n\n";
             
             std::string currentCategory = "";

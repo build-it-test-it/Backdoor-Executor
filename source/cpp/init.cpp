@@ -1,5 +1,4 @@
 // init.cpp - Implementation for library initialization functionality
-#include "init_decl.hpp"  // Include forward declarations before anything else
 #include "init.hpp"
 #include "logging.hpp"
 #include "performance.hpp"

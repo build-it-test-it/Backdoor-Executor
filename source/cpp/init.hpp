@@ -102,19 +102,11 @@ struct SystemStatus {
     }
 };
 
-// Forward declare for friend class - functions in this namespace to match enclosing namespace
-namespace RobloxExecutor {
-    bool Initialize(const InitOptions& options);
-    void Shutdown();
-}
-
 // Global system state
 class SystemState {
-friend bool RobloxExecutor::Initialize(const InitOptions& options);
-friend void RobloxExecutor::Shutdown();
 
-// Making these members protected rather than private to allow access in init.cpp
-protected:
+// Make members public so they can be accessed from anywhere
+public:
     static bool s_initialized;            // Whether the system is initialized
     static InitOptions s_options;         // Initialization options
     static SystemStatus s_status;         // Current system status
@@ -128,7 +120,7 @@ protected:
     static std::shared_ptr<iOS::AIFeatures::ScriptAssistant> s_scriptAssistant;
     static std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> s_signatureAdaptation;
     
-public:
+    // Public API
     // Get system status
     static const SystemStatus& GetStatus() {
         return s_status;

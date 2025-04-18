@@ -102,8 +102,17 @@ struct SystemStatus {
     }
 };
 
+// Forward declare for friend class - functions in this namespace to match enclosing namespace
+namespace RobloxExecutor {
+    bool Initialize(const InitOptions& options);
+    void Shutdown();
+}
+
 // Global system state
 class SystemState {
+friend bool RobloxExecutor::Initialize(const InitOptions& options);
+friend void RobloxExecutor::Shutdown();
+
 // Making these members protected rather than private to allow access in init.cpp
 protected:
     static bool s_initialized;            // Whether the system is initialized

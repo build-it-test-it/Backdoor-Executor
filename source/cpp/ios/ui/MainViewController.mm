@@ -374,7 +374,7 @@ namespace UI {
         
         if (newTab == m_impl->m_currentTab) return;
         
-        MainViewController::Tab oldTab = m_impl->m_currentTab;
+        // Update current tab (no need to store old tab)
         m_impl->m_currentTab = newTab;
         
         // Switch to the new tab

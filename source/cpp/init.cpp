@@ -140,13 +140,13 @@ bool SystemState::Initialize(const InitOptions& options) {
                 // Initialize AI components
                 if (s_aiManager) {
                     // Setup progress tracking callback
-                    auto progressCallback = [](float progress, const char* status) {
+                    auto progressCallback = [](const iOS::AIFeatures::AIIntegrationManager::StatusUpdate& update) {
                         Logging::LogInfo("AI", "Initialization: " + 
-                            std::to_string(static_cast<int>(progress * 100.0f)) + "% - " + status);
+                            std::to_string(static_cast<int>(update.m_progress * 100.0f)) + "% - " + update.m_status);
                     };
                     
-                    // Initialize the manager
-                    s_aiManager->Initialize(progressCallback);
+                    // Initialize the manager - pass empty string as API key and callback as second param
+                    s_aiManager->Initialize("", progressCallback);
                     
                     // Get script assistant component
                     s_scriptAssistant = s_aiManager->GetScriptAssistant();

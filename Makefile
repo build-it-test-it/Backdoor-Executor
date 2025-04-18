@@ -19,7 +19,7 @@ ifeq ($(BUILD_TYPE),Debug)
     OPT_FLAGS := -g -O0
     DEFS := -DDEBUG_BUILD=1
 else
-    OPT_FLAGS := -O3 -ffunction-sections -fdata-sections
+    OPT_FLAGS := -O3 
     DEFS := -DPRODUCTION_BUILD=1
 endif
 

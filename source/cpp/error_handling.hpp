@@ -273,15 +273,20 @@ public:
         // Log the error
         if (m_logEnabled) {
             Logging::LogLevel logLevel;
-            switch (error.category) {
-                case ErrorCategory::WARNING:
+            
+            // Map error severity to logging level
+            ErrorSeverity severity = error.category == ErrorCategory::MEMORY ? 
+                ErrorSeverity::CRITICAL : ErrorSeverity::ERROR; // Default mapping
+                
+            switch (severity) {
+                case ErrorSeverity::WARNING:
                     logLevel = Logging::LogLevel::WARNING;
                     break;
-                case ErrorCategory::ERROR:
+                case ErrorSeverity::ERROR:
                     logLevel = Logging::LogLevel::ERROR;
                     break;
-                case ErrorCategory::CRITICAL:
-                case ErrorCategory::FATAL:
+                case ErrorSeverity::CRITICAL:
+                case ErrorSeverity::FATAL:
                     logLevel = Logging::LogLevel::CRITICAL;
                     break;
                 default:
@@ -468,9 +473,13 @@ namespace IntegrityCheck {
         
         // Here's a simplified implementation that just checks for debuggers
         #ifdef __APPLE__
+        #include <sys/types.h>
+        #include <sys/sysctl.h>
+        #include <unistd.h>
+        
+        int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
         struct kinfo_proc info;
         size_t info_size = sizeof(info);
-        int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
         
         if (sysctl(mib, 4, &info, &info_size, NULL, 0) == 0) {
             return (info.kp_proc.p_flag & P_TRACED) == 0;

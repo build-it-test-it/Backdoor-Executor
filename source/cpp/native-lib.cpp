@@ -11,6 +11,7 @@
     #include "memory/mem.hpp"
     #include "ios/ExecutionEngine.h"
     #include "ios/ScriptManager.h"
+    #include "ios/UIController.h"
     #include "ios/ai_features/AIIntegration.h"
     #include "ios/ai_features/AIIntegrationManager.h"
 #endif

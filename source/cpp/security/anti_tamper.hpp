@@ -18,10 +18,13 @@
 
 #ifdef __APPLE__
 #include <sys/types.h>
-#include <sys/ptrace.h>
+// Instead of directly including ptrace.h which might not be available,
+// we'll define the necessary constants ourselves
+// #include <sys/ptrace.h>
 #include <sys/sysctl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 #include <mach/mach_init.h>
 #include <mach/mach_error.h>
 #include <mach/mach_traps.h>
@@ -31,6 +34,17 @@
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
+
+// Define ptrace constants and prototypes if not available
+#ifndef PT_DENY_ATTACH
+#define PT_DENY_ATTACH 31
+#endif
+
+// Forward declare ptrace if needed
+#if !defined(HAVE_PTRACE) && !defined(_PTRACE_H_) && !defined(_SYS_PTRACE_H)
+extern "C" int ptrace(int request, pid_t pid, caddr_t addr, int data);
+#endif
+
 #endif
 
 namespace Security {

@@ -213,13 +213,3 @@ public:
 } // namespace LocalModels
 } // namespace AIFeatures
 } // namespace iOS
-    /**
-     * @brief Check if the model is initialized
-     * @return True if initialized
-     */
-    
-    /**
-     * @brief Set model path
-     * @param path Path to model files
-     * @return True if path was valid and set
-     */

@@ -537,7 +537,8 @@ public:
             // This is just a placeholder - real implementation would have more sophisticated checks
             int virtualizedIndicator = 0;
             size_t size = sizeof(virtualizedIndicator);
-            int mib[2] = { CTL_HW, HW_MODEL };
+            // Use constants that are defined in sys/sysctl.h instead of HW_MODEL
+            int mib[2] = { CTL_HW, 2 }; // 2 is HW_MODEL without needing the macro
             
             if (sysctl(mib, 2, &virtualizedIndicator, &size, NULL, 0) == 0) {
                 // Evaluate the result (not a real check, just an example)
@@ -559,8 +560,8 @@ public:
         bool noHooksDetected = true;
         
 #ifdef __APPLE__
-        // Check if dlsym has been hooked
-        void* dlsymPtr = dlsym(RTLD_DEFAULT, "dlsym");
+        // Check if dlsym has been hooked - use NULL instead of RTLD_DEFAULT for iOS
+        void* dlsymPtr = dlsym(NULL, "dlsym");
         
         // Check the first few bytes of dlsym for hook patterns
         // This is a simplified example - real implementation would be more thorough

@@ -1,4 +1,5 @@
 // init.cpp - Implementation for library initialization functionality
+#include "init_decl.hpp"  // Include forward declarations before anything else
 #include "init.hpp"
 #include "logging.hpp"
 #include "performance.hpp"
@@ -8,7 +9,8 @@ namespace RobloxExecutor {
 
 // Use existing static members from init.hpp, don't redefine
 
-// Initialize the executor system - implementation of the method declared as friend in SystemState
+// Implement the static Initialize method defined in init.hpp
+// This replaces the inline implementation in the header
 bool SystemState::Initialize(const InitOptions& options) {
     if (s_initialized) {
         Logging::LogWarning("System", "RobloxExecutor already initialized");
@@ -136,7 +138,7 @@ bool SystemState::Initialize(const InitOptions& options) {
         
         // Initialize UI controller if enabled
         if (options.enableUI) {
-            SystemState::s_uiController = new iOS::UIController();
+            SystemState::s_uiController = std::make_unique<iOS::UIController>();
             if (!SystemState::s_uiController->Initialize()) {
                 Logging::LogError("System", "Failed to initialize UI controller");
                 // Continue anyway, as UI is non-critical
@@ -159,18 +161,12 @@ bool SystemState::Initialize(const InitOptions& options) {
                     
                     // Connect script execution between AI and execution engine
                     if (SystemState::s_scriptAssistant && SystemState::s_executionEngine) {
+                        // Create a callback that matches ScriptExecutionCallback signature (void(bool, const std::string&))
                         SystemState::s_scriptAssistant->SetExecutionCallback(
-                            [](const std::string& script) -> bool {
-                                // Get execution engine
-                                auto engine = SystemState::GetExecutionEngine();
-                                if (!engine) {
-                                    Logging::LogError("AI", "Execute failed: Execution engine not initialized");
-                                    return false;
-                                }
-                                
-                                // Execute script
-                                auto result = engine->Execute(script);
-                                return result.m_success;
+                            [](bool success, const std::string& output) {
+                                // This is a proper callback handler that matches the expected signature
+                                Logging::LogInfo("AI", "Script execution " + 
+                                    std::string(success ? "succeeded" : "failed") + ": " + output);
                             });
                     }
                     
@@ -202,19 +198,18 @@ bool SystemState::Initialize(const InitOptions& options) {
     }
 }
 
-// Shutdown the executor system
-void Shutdown() {
-    if (!SystemState::s_initialized) {
+// Implement SystemState::Shutdown() instead of the global Shutdown()
+void SystemState::Shutdown() {
+    if (!s_initialized) {
         return;
     }
 
     try {
         Logging::LogInfo("System", "Shutting down RobloxExecutor system");
         
-        // Clean up UI controller
+        // Clean up UI controller (will be automatically deleted by unique_ptr)
         if (SystemState::s_uiController) {
-            delete SystemState::s_uiController;
-            SystemState::s_uiController = nullptr;
+            SystemState::s_uiController.reset();
         }
         
         // Clean up AI features

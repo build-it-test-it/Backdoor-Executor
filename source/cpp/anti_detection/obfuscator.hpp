@@ -38,6 +38,12 @@ namespace AntiDetection {
             return gen;
         }
         
+        // Get a random number in range
+        static int GetRandomInt(int min, int max) {
+            std::uniform_int_distribution<int> dist(min, max);
+            return dist(GetRNG());
+        }
+        
         // Generate a random string of specified length
         static std::string GenerateRandomString(size_t length) {
             static const char charset[] = 
@@ -140,7 +146,7 @@ namespace AntiDetection {
             
             // Encode the string with varying techniques
             for (char c : str) {
-                int choice = GetRNG() % 3;
+                int choice = GetRandomInt(0, 2);
                 switch (choice) {
                     case 0:
                         // Use decimal value

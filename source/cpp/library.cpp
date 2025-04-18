@@ -30,10 +30,7 @@ extern "C" {
         options.enableSecurity = true;
         options.enableJailbreakBypass = true;
         options.enableUI = true;
-        options.enableAIFeatures = true;
-        options.enableAIScriptGeneration = true;
-        options.enableAIVulnerabilityDetection = true;
-        options.enableAISignatureAdaptation = true;
+        options.enableAI = true; // Enable AI features - consolidated flag
         
         if (!RobloxExecutor::Initialize(options)) {
             std::cerr << "Failed to initialize library" << std::endl;

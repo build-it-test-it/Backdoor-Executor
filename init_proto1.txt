@@ -1,1 +1,0 @@
-    static bool Initialize(const InitOptions& options = InitOptions());

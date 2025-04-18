@@ -21,7 +21,7 @@ jobs:
       run: |
         echo "Installing dependencies..."
         # Install essential build tools
-        brew install cmake pkg-config
+        brew install pkg-config
         
         # Create required directories
         mkdir -p external/dobby/include
@@ -84,65 +84,37 @@ jobs:
         echo "Dobby successfully built and installed to external/dobby"
         cd $GITHUB_WORKSPACE
 
-    - name: Build Dynamic Library
+    - name: Build Dynamic Library with Makefile
       run: |
-        echo "Building the iOS dynamic library..."
+        echo "Building the iOS dynamic library using Makefile instead of CMake..."
         
-        # Make sure VM files are accessible but remove any VM CMakeLists.txt to avoid conflicts
+        # Make sure VM files are accessible
         echo "Preparing VM files for inclusion..."
         find VM -name "*.cpp" -o -name "*.h" | xargs ls -la || true
-        rm -rf VM/CMakeLists.txt || true
-
-        # Create dummy VM files if needed for CI build
+        
+        # Test VM file access
         echo "Testing VM file access..."
         VM_SOURCE_COUNT=$(find VM/src -name "*.cpp" | wc -l)
         VM_HEADER_COUNT=$(find VM/include -name "*.h" | wc -l)
         echo "Found $VM_SOURCE_COUNT C++ files in VM/src and $VM_HEADER_COUNT headers in VM/include"
-
-        # Configure CMake with direct VM inclusion and some CI flags
-        cmake -S . -B build \
-          -DCMAKE_OSX_ARCHITECTURES="arm64" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET="15.0" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_SYSTEM_NAME=iOS \
-          -DENABLE_AI_FEATURES=ON \
-          -DUSE_DOBBY=ON \
-          -DDIRECT_VM_INCLUDE=ON \
-          -DCMAKE_VERBOSE_MAKEFILE=ON \
-          -DCMAKE_CXX_FLAGS="-fobjc-arc -DOBJC_USE_ARC=1" \
-          -DCMAKE_OBJCXX_FLAGS="-fobjc-arc -DOBJC_USE_ARC=1"
-
-        # Show CMake configuration for debugging
-        echo "CMake configuration from cache:"
-        cat build/CMakeCache.txt | grep -E "DOBBY|LUA|FLAGS|MODULE_PATH"
         
-        # Build the dynamic library with better error handling
-        echo "Building the dynamic library now..."
-        echo "First build Dobby (prerequisite)..."
-        cmake --build build --config Release -j4 --target dobby_external || true
+        # Set iOS-specific build settings for the Makefile
+        echo "Setting up iOS build environment..."
+        export SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+        export ARCHS="arm64"
+        export MIN_IOS_VERSION="15.0"
         
-        echo "Then build the main library with verbose output..."
-        cd build && make VERBOSE=1 mylibrary || {
-          echo "⚠️ Main library build failed - showing detailed errors:"
-          cat CMakeFiles/CMakeError.log || true
-          cat CMakeFiles/CMakeOutput.log || true
-          exit 1
-        }
+        # Build using Makefile with verbose output
+        echo "Building with Makefile instead of CMake..."
+        make info  # Show build information
+        make clean # Clean any previous build artifacts
+        make -j4   # Build using Makefile with parallel jobs
+        make install # Install to output directory
         
         # Check the build result
-        if [ -f "build/lib/libmylibrary.dylib" ]; then
-          echo "✅ Successfully built libmylibrary.dylib"
-          ls -la build/lib/libmylibrary.dylib
-          
-          # Copy to output directory
-          mkdir -p output
-          cp build/lib/libmylibrary.dylib output/
-          
-          # Copy any resources
-          if [ -d "Resources" ]; then
-            mkdir -p output/Resources
-            cp -r Resources/* output/Resources/ 2>/dev/null || true
-          fi
+        if [ -f "output/libmylibrary.dylib" ]; then
+          echo "✅ Successfully built libmylibrary.dylib with Makefile"
+          ls -la output/libmylibrary.dylib
           
           # Create config if it doesn't exist
           mkdir -p output/Resources/AIData

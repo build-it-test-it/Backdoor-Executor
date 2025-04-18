@@ -511,7 +511,7 @@ private:
                     iOS::UIController::ScriptInfo info;
                     info.m_name = script.m_name;
                     info.m_content = script.m_content;
-                    info.m_timestamp = script.m_timestamp;
+                    info.m_timestamp = script.m_modified; // Use the modified timestamp field
                     result.push_back(info);
                 }
                 

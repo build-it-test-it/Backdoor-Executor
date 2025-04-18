@@ -8,9 +8,9 @@ namespace RobloxExecutor {
 
 // Use existing static members from init.hpp, don't redefine
 
-// Initialize the executor system
-bool Initialize(const InitOptions& options) {
-    if (SystemState::s_initialized) {
+// Initialize the executor system - implementation of the method declared as friend in SystemState
+bool SystemState::Initialize(const InitOptions& options) {
+    if (s_initialized) {
         Logging::LogWarning("System", "RobloxExecutor already initialized");
         return true;
     }
@@ -19,7 +19,7 @@ bool Initialize(const InitOptions& options) {
         Logging::LogInfo("System", "Initializing RobloxExecutor system");
         
         // Store init options
-        SystemState::s_initOptions = options;
+        s_options = options;
         
         // Initialize logging system
         if (options.enableLogging) {
@@ -238,12 +238,12 @@ void Shutdown() {
         SystemState::s_executionEngine.reset();
         
         // Stop security monitoring
-        if (SystemState::s_initOptions.enableSecurity) {
+        if (s_options.enableSecurity) {
             Security::AntiTamper::StopMonitoring();
         }
         
         // Stop performance monitoring
-        if (SystemState::s_initOptions.enablePerformanceMonitoring) {
+        if (s_options.enablePerformanceMonitoring) {
             Performance::Profiler::StopMonitoring();
             Performance::Profiler::SaveReport();
         }

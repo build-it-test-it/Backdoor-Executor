@@ -310,20 +310,36 @@ namespace AntiDetection {
             std::regex stringRegex("([\"'])((?:(?!\1).|\\.)*?)\\1");
             
             // Replace all string literals with obfuscated versions
-            result = std::regex_replace(result, stringRegex, [](const std::smatch& match) {
+            // Use standard callback function for regex_replace (iOS doesn't support lambda version)
+            std::string processed = result;
+            std::smatch match;
+            std::string::const_iterator searchStart(result.cbegin());
+            
+            // Manual regex search and replace since direct lambda replacement not supported
+            while (std::regex_search(searchStart, result.cend(), match, stringRegex)) {
                 // Don't obfuscate empty strings
+                std::string replacement;
                 if (match[2].str().empty()) {
-                    return match[0].str();
+                    replacement = match[0].str();
                 }
-                
                 // Don't obfuscate strings that look like requires or other special patterns
-                if (match[2].str().find("/") != std::string::npos ||
-                    match[2].str().find(".lua") != std::string::npos) {
-                    return match[0].str();
+                else if (match[2].str().find("/") != std::string::npos ||
+                         match[2].str().find(".lua") != std::string::npos) {
+                    replacement = match[0].str();
+                }
+                else {
+                    replacement = ObfuscateString(match[2].str());
                 }
                 
-                return ObfuscateString(match[2].str());
-            });
+                // Replace in the processed string
+                size_t pos = std::distance(result.cbegin(), match[0].first);
+                processed.replace(pos, match[0].length(), replacement);
+                
+                // Move search position
+                searchStart = match.suffix().first;
+            }
+            
+            result = processed;
             
             return result;
         }

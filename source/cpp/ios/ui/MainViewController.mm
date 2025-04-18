@@ -6,22 +6,19 @@
 namespace iOS {
 namespace UI {
 
-    // Define the Tab enum that was used in the original implementation
-    enum class Tab {
-        Editor,     // Script editor tab
-        Scripts,    // Saved scripts tab
-        Console,    // Output console tab
-        Settings    // Settings tab
-    };
+    // Use the enums defined in the MainViewController class
+    using Tab = MainViewController::Tab;
+    using ScriptInfo = MainViewController::ScriptInfo;
+    using ExecutionResult = MainViewController::ExecutionResult;
     
-    // Define the VisualStyle enum that was used in the original implementation
+    // Visual style enum for theming
     enum class VisualStyle {
         Light,      // Light mode
         Dark,       // Dark mode
         Dynamic     // Automatically switch based on system
     };
     
-    // Define the NavigationMode enum that was used in the original implementation
+    // Navigation mode enum for UI layout
     enum class NavigationMode {
         Tabs,       // Tab-based navigation
         Drawer,     // Drawer-based navigation
@@ -54,27 +51,27 @@ namespace UI {
         bool m_reducedMemoryMode = false;
         int m_colorScheme = 1; // Default: blue theme
         
-        // Callback functions (from original implementation)
-        std::function<void(Tab)> m_tabChangedCallback;
+        // Callback functions (fixed to use MainViewController types)
+        std::function<void(MainViewController::Tab)> m_tabChangedCallback;
         std::function<void(bool)> m_visibilityChangedCallback;
-        std::function<void(const ExecutionResult&)> m_executionCallback;
+        std::function<void(const MainViewController::ExecutionResult&)> m_executionCallback;
         std::function<void(const std::string&)> m_saveScriptCallback;
-        std::function<std::vector<ScriptInfo>()> m_loadScriptsCallback;
+        std::function<std::vector<MainViewController::ScriptInfo>()> m_loadScriptsCallback;
         std::function<void(const std::string&)> m_aiQueryCallback;
         std::function<void(const std::string&)> m_aiResponseCallback;
         
         // Helper functions
         void InitializeCallbacks() {
-            m_tabChangedCallback = [](Tab) {};
+            m_tabChangedCallback = [](MainViewController::Tab) {};
             m_visibilityChangedCallback = [](bool) {};
-            m_executionCallback = [](const ExecutionResult&) {};
+            m_executionCallback = [](const MainViewController::ExecutionResult&) {};
             m_saveScriptCallback = [](const std::string&) { return true; };
-            m_loadScriptsCallback = []() { return std::vector<ScriptInfo>(); };
+            m_loadScriptsCallback = []() { return std::vector<MainViewController::ScriptInfo>(); };
             m_aiQueryCallback = [](const std::string&) {};
             m_aiResponseCallback = [](const std::string&) {};
         }
         
-        void SwitchToTab(Tab tab, bool animated) {
+        void SwitchToTab(MainViewController::Tab tab, bool animated) {
             std::cout << "Switching to tab: " << static_cast<int>(tab) 
                      << " with animation: " << (animated ? "yes" : "no") << std::endl;
             
@@ -90,22 +87,22 @@ namespace UI {
                 
                 // Handle the tab switch based on which tab we're switching to
                 switch (tab) {
-                    case Tab::Editor:
+                    case MainViewController::Tab::Editor:
                         // Switch to the Lua script editor tab
                         ShowEditorTab(viewController, animated);
                         break;
                         
-                    case Tab::Scripts:
+                    case MainViewController::Tab::Scripts:
                         // Switch to the saved scripts tab
                         ShowScriptsTab(viewController, animated);
                         break;
                         
-                    case Tab::Console:
+                    case MainViewController::Tab::Console:
                         // Switch to the console output tab
                         ShowConsoleTab(viewController, animated);
                         break;
                         
-                    case Tab::Settings:
+                    case MainViewController::Tab::Settings:
                         // Switch to the settings tab
                         ShowSettingsTab(viewController, animated);
                         break;
@@ -372,30 +369,40 @@ namespace UI {
     void MainViewController::SetTab(Tab tab) {
         if (!m_impl) return;
         
-        if (tab == m_impl->m_currentTab) return;
+        // Convert between Tab types properly
+        MainViewController::Tab newTab = tab;
         
-        Tab oldTab = m_impl->m_currentTab;
-        m_impl->m_currentTab = tab;
+        if (newTab == m_impl->m_currentTab) return;
+        
+        MainViewController::Tab oldTab = m_impl->m_currentTab;
+        m_impl->m_currentTab = newTab;
         
         // Switch to the new tab
-        m_impl->SwitchToTab(tab, m_impl->m_useAnimations);
+        m_impl->SwitchToTab(newTab, m_impl->m_useAnimations);
         
         // Call the tab changed callback
         if (m_impl->m_tabChangedCallback) {
-            m_impl->m_tabChangedCallback(tab);
+            m_impl->m_tabChangedCallback(newTab);
         }
     }
     
     // Get the current tab
     MainViewController::Tab MainViewController::GetCurrentTab() const {
-        if (!m_impl) return Tab::Editor;
+        if (!m_impl) return MainViewController::Tab::Editor;
+        
+        // Safely return the tab
         return m_impl->m_currentTab;
     }
     
     // Set tab changed callback
     void MainViewController::SetTabChangedCallback(TabChangedCallback callback) {
         if (!m_impl) return;
-        m_impl->m_tabChangedCallback = callback;
+        
+        // Create a wrapper that converts between Tab types
+        m_impl->m_tabChangedCallback = [callback](MainViewController::Tab tab) {
+            // Convert to the expected type and call original callback
+            callback(tab);
+        };
     }
     
     // Set visibility changed callback

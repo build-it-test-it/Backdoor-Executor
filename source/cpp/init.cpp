@@ -156,10 +156,11 @@ bool SystemState::Initialize(const InitOptions& options) {
                     
                     // Connect the script assistant to the execution engine
                     if (s_scriptAssistant && s_executionEngine) {
-                        s_scriptAssistant->SetExecutionCallback([](const std::string& script) -> bool {
-                            // Execute through the main engine
-                            auto result = s_executionEngine->Execute(script);
-                            return result.m_success;
+                        // SetExecutionCallback expects: void(bool success, const std::string& output)
+                        s_scriptAssistant->SetExecutionCallback([](bool success, const std::string& output) {
+                            // This is the correct signature - void with success and output parameters
+                            Logging::LogInfo("AI", "Script execution " + 
+                                std::string(success ? "succeeded" : "failed") + ": " + output);
                         });
                     }
                     

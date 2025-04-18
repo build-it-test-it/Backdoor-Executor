@@ -22,6 +22,19 @@
 
 namespace Security {
 
+// Initialize static members
+std::mutex AntiTamper::s_mutex;
+std::atomic<bool> AntiTamper::s_enabled(false);
+std::atomic<bool> AntiTamper::s_debuggerDetected(false);
+std::atomic<bool> AntiTamper::s_tamperingDetected(false);
+std::map<SecurityCheckType, TamperAction> AntiTamper::s_actionMap;
+std::vector<TamperCallback> AntiTamper::s_callbacks;
+std::thread AntiTamper::s_monitorThread;
+std::atomic<bool> AntiTamper::s_shouldRun(false);
+std::atomic<uint64_t> AntiTamper::s_checkInterval(5000); // Default: 5 seconds
+std::vector<uint8_t> AntiTamper::s_codeHashes;
+std::map<void*, uint32_t> AntiTamper::s_functionChecksums;
+
 // Implementation of helper method that requires system headers
 bool AntiTamper::CheckDebuggerUsingProcInfo() {
 #ifdef __APPLE__
@@ -36,19 +49,6 @@ bool AntiTamper::CheckDebuggerUsingProcInfo() {
     return false;
 }
 
-// Initialize static members
-std::mutex AntiTamper::s_mutex;
-std::atomic<bool> AntiTamper::s_enabled(false);
-std::atomic<bool> AntiTamper::s_debuggerDetected(false);
-std::atomic<bool> AntiTamper::s_tamperingDetected(false);
-std::map<SecurityCheckType, TamperAction> AntiTamper::s_actionMap;
-std::vector<TamperCallback> AntiTamper::s_callbacks;
-std::thread AntiTamper::s_monitorThread;
-std::atomic<bool> AntiTamper::s_shouldRun(false);
-std::atomic<uint64_t> AntiTamper::s_checkInterval(5000); // Default: 5 seconds
-std::vector<uint8_t> AntiTamper::s_codeHashes;
-std::map<void*, uint32_t> AntiTamper::s_functionChecksums;
-
 // Private initialization methods implementation
 void AntiTamper::InitializeCodeHashes() {
     // Implementation would generate hashes of code sections for integrity checking
@@ -58,6 +58,27 @@ void AntiTamper::InitializeCodeHashes() {
 void AntiTamper::InitializeFunctionChecksums() {
     // Implementation would calculate checksums of critical functions to detect hooks
     Logging::LogInfo("Security", "Initializing function checksums for hook detection");
+    
+    // In a real implementation, you would add critical functions to monitor
+    // For example, security-related functions, authentication functions, etc.
+    
+#ifdef __APPLE__
+    // Example (using dlsym to find functions):
+    void* dlsymFunc = dlsym(RTLD_DEFAULT, "dlsym");
+    if (dlsymFunc) {
+        MonitorFunction(dlsymFunc);
+    }
+    
+    void* mallocFunc = dlsym(RTLD_DEFAULT, "malloc");
+    if (mallocFunc) {
+        MonitorFunction(mallocFunc);
+    }
+    
+    void* freeFunc = dlsym(RTLD_DEFAULT, "free");
+    if (freeFunc) {
+        MonitorFunction(freeFunc);
+    }
+#endif
 }
 
 } // namespace Security

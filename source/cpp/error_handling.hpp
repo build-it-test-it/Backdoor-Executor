@@ -82,7 +82,7 @@ struct ErrorCode {
     std::string ToString() const {
         std::stringstream ss;
         ss << ErrorCategoryToString(category) << ":" << code << " - " << message;
-        return ss.string();
+        return ss.str();
     }
 };
 
@@ -315,7 +315,15 @@ public:
         }
         
         // For fatal errors, generate crash report and terminate
-        if (error.severity == ErrorSeverity::FATAL) {
+        // Determine if this is a fatal error based on error category or other criteria
+        bool isFatalError = false;
+        
+        // For security or memory errors, treat as fatal
+        if (error.category == ErrorCategory::SECURITY && error.code >= 400) {
+            isFatalError = true;
+        }
+        
+        if (isFatalError) {
             if (m_crashReportingEnabled) {
                 GenerateCrashReport(ex);
             }

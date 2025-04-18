@@ -64,6 +64,15 @@ typedef void* kinfo_proc_ptr;
 
 #endif // __APPLE__
 
+// Forward declare needed C++ includes to avoid system header conflicts
+#include <string>
+#include <vector>
+#include <functional>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <map>
+
 namespace Security {
 
 // Action to take when tampering is detected
@@ -731,47 +740,8 @@ public:
         std::lock_guard<std::mutex> lock(s_mutex);
         s_functionChecksums[funcPtr] = checksum;
     }
+    // Static members and initialization methods are defined in the .cpp file
 };
-
-// Initialize static members
-std::mutex AntiTamper::s_mutex;
-std::atomic<bool> AntiTamper::s_enabled(false);
-std::atomic<bool> AntiTamper::s_debuggerDetected(false);
-std::atomic<bool> AntiTamper::s_tamperingDetected(false);
-std::map<SecurityCheckType, TamperAction> AntiTamper::s_actionMap;
-std::vector<TamperCallback> AntiTamper::s_callbacks;
-std::thread AntiTamper::s_monitorThread;
-std::atomic<bool> AntiTamper::s_shouldRun(false);
-std::atomic<uint64_t> AntiTamper::s_checkInterval(5000);
-std::vector<uint8_t> AntiTamper::s_codeHashes;
-std::map<void*, uint32_t> AntiTamper::s_functionChecksums;
-
-// Implementation of private initialization methods
-void AntiTamper::InitializeCodeHashes() {
-    // This would initialize code hashes for the main executable and dylibs
-    // We've already implemented the functionality in CheckCodeIntegrity
-}
-
-void AntiTamper::InitializeFunctionChecksums() {
-    // In a real implementation, you would add critical functions to monitor
-    // For example, security-related functions, authentication functions, etc.
-    
-    // Example (using dlsym to find functions):
-    void* dlsymFunc = dlsym(RTLD_DEFAULT, "dlsym");
-    if (dlsymFunc) {
-        MonitorFunction(dlsymFunc);
-    }
-    
-    void* mallocFunc = dlsym(RTLD_DEFAULT, "malloc");
-    if (mallocFunc) {
-        MonitorFunction(mallocFunc);
-    }
-    
-    void* freeFunc = dlsym(RTLD_DEFAULT, "free");
-    if (freeFunc) {
-        MonitorFunction(freeFunc);
-    }
-}
 
 // Convenience function to initialize security components
 inline bool InitializeSecurity(bool startMonitoring = true) {

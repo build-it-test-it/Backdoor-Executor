@@ -16,36 +16,56 @@
 #include "../logging.hpp"
 #include "../error_handling.hpp"
 
+// Forward declarations for system functions and constants
+// This avoids including system headers in the header file which can cause macro conflicts
 #ifdef __APPLE__
-#include <sys/types.h>
-// Instead of directly including ptrace.h which might not be available,
-// we'll define the necessary constants ourselves
-// #include <sys/ptrace.h>
-#include <sys/sysctl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <errno.h>
-#include <mach/mach_init.h>
-#include <mach/mach_error.h>
-#include <mach/mach_traps.h>
-#include <mach/task.h>
-#include <mach/mach_port.h>
-#include <dlfcn.h>
-#include <mach-o/dyld.h>
-#include <mach-o/loader.h>
-#include <mach-o/nlist.h>
+// Forward declare needed types without including system headers
+typedef int pid_t;
+typedef char* caddr_t;
 
-// Define ptrace constants and prototypes if not available
+// Define necessary constants
 #ifndef PT_DENY_ATTACH
 #define PT_DENY_ATTACH 31
 #endif
 
-// Forward declare ptrace if needed
-#if !defined(HAVE_PTRACE) && !defined(_PTRACE_H_) && !defined(_SYS_PTRACE_H)
-extern "C" int ptrace(int request, pid_t pid, caddr_t addr, int data);
+#ifndef KERN_PROC
+#define KERN_PROC 14
 #endif
 
+#ifndef KERN_PROC_PID
+#define KERN_PROC_PID 1
 #endif
+
+#ifndef CTL_KERN
+#define CTL_KERN 1
+#endif
+
+#ifndef P_TRACED
+#define P_TRACED 0x00000800
+#endif
+
+// Forward declare functions we'll use
+extern "C" {
+    int ptrace(int request, pid_t pid, caddr_t addr, int data);
+    pid_t getpid(void);
+    int sysctl(int* name, unsigned int namelen, void* oldp, size_t* oldlenp, void* newp, size_t newlen);
+}
+
+// Forward declarations for Mach-O structures - implementations in .cpp file
+struct mach_header;
+struct mach_header_64;
+struct load_command;
+struct segment_command;
+struct segment_command_64;
+
+// Forward declaration for process info structures
+struct kinfo_proc {
+    struct extern_proc {
+        int p_flag;
+    } kp_proc;
+};
+
+#endif // __APPLE__
 
 namespace Security {
 

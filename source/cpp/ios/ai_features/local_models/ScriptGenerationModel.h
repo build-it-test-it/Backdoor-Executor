@@ -119,8 +119,8 @@ public:
      */
     std::string AnalyzeScript(const std::string& script);
     
-    /**
-     * @brief Generate a response to a general query
+    /*
+     * Generate a response to a general query
      * @param query User's query
      * @param context Optional context information
      * @return Generated response

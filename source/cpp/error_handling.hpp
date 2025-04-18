@@ -471,32 +471,9 @@ namespace IntegrityCheck {
         return checksum == expectedChecksum;
     }
     
-    // Simple tamper detection for the executable
-    bool CheckExecutableTampering() {
-        // In a real implementation, you would:
-        // 1. Calculate a checksum of critical code sections
-        // 2. Verify code signatures
-        // 3. Check for debuggers
-        // 4. Verify memory protection attributes
-        
-        // Here's a simplified implementation that just checks for debuggers
-        #ifdef __APPLE__
-        #include <sys/types.h>
-        #include <sys/sysctl.h>
-        #include <unistd.h>
-        
-        int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-        struct kinfo_proc info;
-        size_t info_size = sizeof(info);
-        
-        if (sysctl(mib, 4, &info, &info_size, NULL, 0) == 0) {
-            return (info.kp_proc.p_flag & P_TRACED) == 0;
-        }
-        return true; // If we can't check, assume it's not tampered
-        #else
-        return true; // Implement platform-specific checks for other platforms
-        #endif
-    }
+    // Forward declaration of tamper detection function
+    // Implementation moved to a separate source file to avoid system header conflicts
+    bool CheckExecutableTampering();
 }
 
 // Initialize error handling

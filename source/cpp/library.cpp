@@ -30,9 +30,16 @@ extern "C" {
         options.enableSecurity = true;
         options.enableJailbreakBypass = true;
         options.enableUI = true;
+        options.enableAIFeatures = true;
+        options.enableAIScriptGeneration = true;
+        options.enableAIVulnerabilityDetection = true;
+        options.enableAISignatureAdaptation = true;
         
         if (!RobloxExecutor::Initialize(options)) {
             std::cerr << "Failed to initialize library" << std::endl;
+        } else {
+            // Initialize AI integration with execution engine
+            AIIntegration_Initialize();
         }
     }
     
@@ -138,17 +145,79 @@ extern "C" {
     
     // AI features
     void AIFeatures_Enable(bool enable) {
-        // Implementation depends on AIIntegration class
-        // This would normally configure AI features but is simplified for now
-        std::cout << "AI features " << (enable ? "enabled" : "disabled") << std::endl;
+        // Implementation to configure AI features
+        try {
+            // Get the AI manager
+            auto aiManager = RobloxExecutor::SystemState::GetAIManager();
+            if (!aiManager) {
+                std::cerr << "AIFeatures_Enable: AI manager not initialized" << std::endl;
+                return;
+            }
+            
+            // Configure capabilities
+            uint32_t capabilities = enable ? 
+                iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES : 0;
+            
+            // Set online mode
+            aiManager->SetOnlineMode(enable ? 
+                iOS::AIFeatures::HybridAISystem::OnlineMode::Auto : 
+                iOS::AIFeatures::HybridAISystem::OnlineMode::OfflineOnly);
+            
+            // Set model quality
+            aiManager->SetModelQuality(enable ? 
+                iOS::AIFeatures::AIConfig::ModelQuality::Medium : 
+                iOS::AIFeatures::AIConfig::ModelQuality::Low);
+            
+            // Save configuration
+            aiManager->SaveConfig();
+            
+            std::cout << "AI features " << (enable ? "enabled" : "disabled") << std::endl;
+        } catch (const std::exception& ex) {
+            std::cerr << "Exception in AIFeatures_Enable: " << ex.what() << std::endl;
+        }
     }
     
     void AIIntegration_Initialize() {
         // Initialize AI integration
 #ifdef ENABLE_AI_FEATURES
         #ifdef __APPLE__
-        std::cout << "Initializing AI Integration..." << std::endl;
-        // Actual initialization would be here
+        try {
+            std::cout << "Initializing AI Integration..." << std::endl;
+            
+            // Get AI integration from system state
+            if (!RobloxExecutor::SystemState::GetAIIntegration()) {
+                std::cerr << "AI Integration not initialized in system state" << std::endl;
+                return;
+            }
+            
+            // Set up AI features with execution engine
+            auto engine = RobloxExecutor::SystemState::GetExecutionEngine();
+            auto scriptAssistant = RobloxExecutor::SystemState::GetScriptAssistant();
+            
+            if (engine && scriptAssistant) {
+                // Register a callback to allow AI to execute scripts
+                scriptAssistant->SetExecutionCallback([](const std::string& script) -> bool {
+                    // Use the execution engine to run the script
+                    auto result = RobloxExecutor::ExecuteScript(script);
+                    return result.m_success;
+                });
+                
+                // Register AI-generated script suggestions before execution
+                engine->RegisterBeforeExecuteCallback([scriptAssistant](const std::string& script, 
+                                                                       iOS::ExecutionEngine::ExecutionContext& context) {
+                    if (scriptAssistant) {
+                        // Log script for AI learning
+                        scriptAssistant->ProcessUserInput("Executing script: " + script);
+                    }
+                    // Always allow execution to proceed
+                    return true;
+                });
+                
+                std::cout << "AI Integration successfully connected to execution engine" << std::endl;
+            }
+        } catch (const std::exception& ex) {
+            std::cerr << "Exception during AI Integration initialization: " << ex.what() << std::endl;
+        }
         #endif
 #endif
     }
@@ -159,10 +228,39 @@ extern "C" {
         static std::string suggestions;
         
 #ifdef ENABLE_AI_FEATURES
-        // Implement AI-based script suggestions - simplified for now
-        suggestions = "-- AI Script Suggestions:\n";
-        suggestions += "-- 1. Remember to use pcall() for safer script execution\n";
-        suggestions += "-- 2. Consider using task.wait() instead of wait()\n";
+        try {
+            // Get script assistant
+            auto scriptAssistant = RobloxExecutor::SystemState::GetScriptAssistant();
+            
+            if (scriptAssistant && script) {
+                // Process the script with AI for suggestions
+                std::vector<std::string> suggestionsList = scriptAssistant->GetSuggestions(script);
+                
+                // Build suggestion string
+                suggestions = "-- AI Script Suggestions:\n";
+                
+                if (suggestionsList.empty()) {
+                    // Default suggestions if none returned by AI
+                    suggestions += "-- 1. Remember to use pcall() for safer script execution\n";
+                    suggestions += "-- 2. Consider using task.wait() instead of wait()\n";
+                    suggestions += "-- 3. Check for nil values before accessing properties\n";
+                } else {
+                    // Use AI-generated suggestions
+                    int count = 1;
+                    for (const auto& suggestion : suggestionsList) {
+                        suggestions += "-- " + std::to_string(count) + ". " + suggestion + "\n";
+                        count++;
+                    }
+                }
+            } else {
+                suggestions = "-- AI assistance not available. Basic suggestions:\n";
+                suggestions += "-- 1. Remember to use pcall() for safer script execution\n";
+                suggestions += "-- 2. Consider using task.wait() instead of wait()\n";
+            }
+        } catch (const std::exception& ex) {
+            suggestions = "-- Error generating AI suggestions: ";
+            suggestions += ex.what();
+        }
 #else
         suggestions = "-- AI features are not enabled";
 #endif

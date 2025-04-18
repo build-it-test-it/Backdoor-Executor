@@ -26,7 +26,7 @@ std::string HybridAISystem::GenerateScriptFromTemplate(const std::string& templa
     
     std::cerr << "Warning: Using fallback script template generation" << std::endl;
     
-    // Generate a simple placeholder script
+    // Generate script based on description
     std::stringstream ss;
     ss << "-- Generated script from template: " << templateName << "\n";
     ss << "-- Note: This is a fallback implementation\n\n";

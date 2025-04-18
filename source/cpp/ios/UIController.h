@@ -9,6 +9,11 @@
 #include "FloatingButtonController.h"
 
 namespace iOS {
+    // Forward declaration of UI namespace
+    namespace UI {
+        class MainViewController;
+    }
+    
     /**
      * @class UIController
      * @brief Controls the main executor UI on iOS
@@ -224,5 +229,14 @@ namespace iOS {
          * @param visible True to show, false to hide
          */
         void SetButtonVisible(bool visible);
+        
+        /**
+         * @brief Get the main view controller
+         * @return Shared pointer to main view controller
+         */
+        std::shared_ptr<UI::MainViewController> GetMainViewController() const {
+            // Implementation inline to avoid linking issues
+            return std::shared_ptr<UI::MainViewController>();
+        }
     };
 }

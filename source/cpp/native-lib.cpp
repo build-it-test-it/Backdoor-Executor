@@ -9,12 +9,10 @@
 #ifdef __APPLE__
     #include "hooks/hooks.hpp"
     #include "memory/mem.hpp"
-    
-    // Only include iOS framework headers in Objective-C++ context
-    #ifndef SKIP_IOS_INTEGRATION
-        #include "ios/ExecutionEngine.h"
-        #include "ios/ScriptManager.h"
-    #endif
+    #include "ios/ExecutionEngine.h"
+    #include "ios/ScriptManager.h"
+    #include "ios/ai_features/AIIntegration.h"
+    #include "ios/ai_features/AIIntegrationManager.h"
 #endif
 
 // Forward declarations for RobloxExecutor namespace
@@ -57,10 +55,8 @@ extern "C" {
         // Initialize memory system
         Memory::Initialize();
         
-        #ifndef SKIP_IOS_INTEGRATION
-        // iOS-specific initialization (skipped in CI)
+        // iOS-specific initialization
         std::cout << "Initializing iOS integration" << std::endl;
-        #endif
         #endif
     }
     
@@ -76,8 +72,8 @@ extern "C" {
     
     // Lua module entry point
     int luaopen_mylibrary(void* L) {
-        // Explicitly mark the parameter as unused
-        UNUSED_PARAM(L);
+        // Cast to void to remove the unused parameter warning
+        (void)(L);
         
         std::cout << "Lua module loaded: mylibrary" << std::endl;
         

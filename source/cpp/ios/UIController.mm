@@ -1,5 +1,6 @@
 // UIController.mm - Production-grade implementation for iOS
 #include "UIController.h"
+#include "ui/MainViewController.h"
 #include <iostream>
 #include <sstream>
 #include "../filesystem_utils.h"
@@ -71,6 +72,9 @@
 @property (nonatomic, copy) BOOL (^saveScriptCallback)(NSDictionary *);
 @property (nonatomic, copy) NSArray * (^loadScriptsCallback)(void);
 
+// C++ Main view controller wrapper
+@property (nonatomic, strong) id mainViewController;
+
 // Setup UI elements
 - (void)setupUI;
 - (void)setupMainView;
@@ -126,6 +130,9 @@
         _savedScripts = [NSMutableArray array];
         _consoleText = @"-- Console output will appear here\n";
         _buttonVisible = YES;
+        
+        // Create a main view controller wrapper
+        _mainViewController = [[NSObject alloc] init];
         
         // Initialize UI elements
         [self setupUI];
@@ -1250,3 +1257,6 @@ namespace iOS {
         }
     }
 }
+
+// Implementation of GetMainViewController is in UIController.h as inline method
+// No implementation needed here

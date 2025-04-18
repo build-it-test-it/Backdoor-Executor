@@ -61,12 +61,12 @@ private:
     static AIIntegrationManager* s_instance;
     
     // Member variables
-    std::shared_ptr<ScriptAssistant> m_scriptAssistant;       // Script assistant
-    std::shared_ptr<SignatureAdaptation> m_signatureAdaptation; // Signature adaptation
-    std::shared_ptr<HybridAISystem> m_hybridAI;               // Hybrid AI system
-    std::shared_ptr<OnlineService> m_onlineService;           // Online service
-    std::shared_ptr<AISystemInitializer> m_aiSystemInitializer; // AI system initializer
-    AIConfig& m_config;                                       // AI configuration
+    std::shared_ptr<::iOS::AIFeatures::ScriptAssistant> m_scriptAssistant;       // Script assistant
+    std::shared_ptr<::iOS::AIFeatures::SignatureAdaptation> m_signatureAdaptation; // Signature adaptation
+    std::shared_ptr<::iOS::AIFeatures::HybridAISystem> m_hybridAI;               // Hybrid AI system
+    std::shared_ptr<::iOS::AIFeatures::OnlineService> m_onlineService;           // Online service
+    std::shared_ptr<::iOS::AIFeatures::AISystemInitializer> m_aiSystemInitializer; // AI system initializer
+    ::iOS::AIFeatures::AIConfig& m_config;                                       // AI configuration
     StatusCallback m_statusCallback;                          // Status callback
     uint32_t m_availableCapabilities;                         // Available capabilities
     bool m_initialized;                                       // Initialization flag
@@ -86,7 +86,7 @@ private:
     void ReportStatus(const StatusUpdate& status);
     
     // Get optimal online mode
-    HybridAISystem::OnlineMode GetOptimalOnlineMode() const;
+    ::iOS::AIFeatures::HybridAISystem::OnlineMode GetOptimalOnlineMode() const;
     
 public:
     /**
@@ -177,25 +177,25 @@ public:
      * @brief Get signature adaptation system
      * @return Signature adaptation system
      */
-    std::shared_ptr<SignatureAdaptation> GetSignatureAdaptation() const;
+    std::shared_ptr<::iOS::AIFeatures::SignatureAdaptation> GetSignatureAdaptation() const;
     
     /**
      * @brief Get script assistant
      * @return Script assistant
      */
-    std::shared_ptr<ScriptAssistant> GetScriptAssistant() const;
+    std::shared_ptr<::iOS::AIFeatures::ScriptAssistant> GetScriptAssistant() const;
     
     /**
      * @brief Get hybrid AI system
      * @return Hybrid AI system
      */
-    std::shared_ptr<HybridAISystem> GetHybridAI() const;
+    std::shared_ptr<::iOS::AIFeatures::HybridAISystem> GetHybridAI() const;
     
     /**
      * @brief Get online service
      * @return Online service
      */
-    std::shared_ptr<OnlineService> GetOnlineService() const;
+    std::shared_ptr<::iOS::AIFeatures::OnlineService> GetOnlineService() const;
     
     /**
      * @brief Set API key
@@ -207,25 +207,25 @@ public:
      * @brief Set online mode
      * @param mode Online mode
      */
-    void SetOnlineMode(HybridAISystem::OnlineMode mode);
+    void SetOnlineMode(::iOS::AIFeatures::HybridAISystem::OnlineMode mode);
     
     /**
      * @brief Get online mode
      * @return Current online mode
      */
-    HybridAISystem::OnlineMode GetOnlineMode() const;
+    ::iOS::AIFeatures::HybridAISystem::OnlineMode GetOnlineMode() const;
     
     /**
      * @brief Set model quality
      * @param quality Model quality
      */
-    void SetModelQuality(AIConfig::ModelQuality quality);
+    void SetModelQuality(::iOS::AIFeatures::AIConfig::ModelQuality quality);
     
     /**
      * @brief Get model quality
      * @return Current model quality
      */
-    AIConfig::ModelQuality GetModelQuality() const;
+    ::iOS::AIFeatures::AIConfig::ModelQuality GetModelQuality() const;
     
     /**
      * @brief Handle memory warning

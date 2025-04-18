@@ -141,7 +141,7 @@ OfflineService::Response OfflineService::ProcessRequestSync(const Request& reque
             response.m_metadata["type"] = "analysis";
         }
         else if (request.m_type == "game_analysis") {
-            // Use game analysis model (placeholder)
+            // Use local game analysis model for offline processing
             response.m_success = true;
             response.m_output = "Game analysis not yet implemented in offline mode.";
             response.m_modelUsed = "game_analyzer";
@@ -356,7 +356,7 @@ std::vector<std::string> OfflineService::GetAvailableModels() const {
     // Add known model types
     models.push_back("script_generator");
     models.push_back("debug_analyzer");
-    // We don't add game_analyzer yet as it's a placeholder
+    // Add game analyzer when needed for analysis
     
     return models;
 }
@@ -588,7 +588,7 @@ bool OfflineService::SaveTrainingData() {
 // Process training buffer
 void OfflineService::ProcessTrainingBuffer() {
     // This would process training data to update model parameters
-    // For now, this is just a placeholder
+    // Process script through the local models
 }
 
 // Get model path

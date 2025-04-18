@@ -4,15 +4,21 @@
 
 #include <functional>
 
-// Forward declarations
+// Forward declarations for vulnerability detection
 namespace iOS {
     namespace AIFeatures {
         class ScriptAssistant;
         class SignatureAdaptation;
+        
+        namespace VulnerabilityDetection {
+            class VulnerabilityDetector;
+            struct Vulnerability;
+        }
     }
     
     namespace UI {
         class MainViewController;
+        class VulnerabilityViewController;
     }
 }
 

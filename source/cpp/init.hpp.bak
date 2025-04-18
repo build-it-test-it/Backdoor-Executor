@@ -163,8 +163,96 @@ public:
     
     // Initialize the system with options
     // Initialize system - implementation in init.cpp
+    static bool Initialize(const InitOptions& options = InitOptions());
+            
+            // 1. Initialize logging first (needed by all other components)
+            if (s_options.enableLogging) {
+                if (!InitializeLogging()) {
+                    std::cerr << "Failed to initialize logging" << std::endl;
+                    return false;
+                }
+            }
+            
+            // 2. Initialize error handling
+            if (s_options.enableErrorReporting) {
+                if (!InitializeErrorHandling()) {
+                    Logging::LogCritical("System", "Failed to initialize error handling");
+                    return false;
+                }
+            }
+            
+            // 3. Initialize security (anti-tamper) system
+            if (s_options.enableSecurity) {
+                if (!InitializeSecurity()) {
+                    Logging::LogWarning("System", "Failed to initialize security system");
+                    // Continue despite failure - security is important but not critical
+                }
+            }
+            
+            // 4. Initialize jailbreak bypass
+            if (s_options.enableJailbreakBypass) {
+                if (!InitializeJailbreakBypass()) {
+                    Logging::LogWarning("System", "Failed to initialize jailbreak bypass");
+                    // Continue despite failure - can work without jailbreak bypass
+                }
+            }
+            
+            // 5. Initialize performance monitoring
+            if (s_options.enablePerformanceMonitoring) {
+                if (!InitializePerformanceMonitoring()) {
+                    Logging::LogWarning("System", "Failed to initialize performance monitoring");
+                    // Continue despite failure - performance monitoring is optional
+                }
+            }
+            
+            // 6. Initialize script manager and execution engine
+            if (!InitializeExecutionEngine()) {
+                Logging::LogCritical("System", "Failed to initialize execution engine");
+                return false;
+            }
+            
+            // 7. Initialize UI
+            if (s_options.enableUI) {
+                if (!InitializeUI()) {
+                    Logging::LogWarning("System", "Failed to initialize UI");
+                    // Continue despite failure - can work without UI
+                }
+            }
+            
+            // 8. Run custom validation if provided
+            if (s_options.customValidationCallback) {
+                if (!s_options.customValidationCallback()) {
+                    Logging::LogCritical("System", "Custom validation failed");
+                    return false;
+                }
+            }
+            
+            // All systems initialized
+            s_status.allSystemsInitialized = true;
+            
+            // Log initialization success
+            Logging::LogInfo("System", "All systems initialized successfully");
+            
+            // Call post-init callback if provided
+            if (s_options.postInitCallback) {
+                s_options.postInitCallback();
+            }
+            
+            return true;
+        } catch (const std::exception& ex) {
+            // Log the error if logging is initialized
+            if (s_status.loggingInitialized) {
+                Logging::LogCritical("System", "Exception during initialization: " + std::string(ex.what()));
+            } else {
+                std::cerr << "Exception during initialization: " << ex.what() << std::endl;
+            }
+            
+            return false;
+        }
+    }
+    
     // Clean up and shutdown all systems
-    static void Shutdown();
+    static void Shutdown() {
         // Shutdown in reverse order of initialization
         
         // 1. Shutdown UI
@@ -262,6 +350,35 @@ private:
             return result;
         } catch (const std::exception& ex) {
             Logging::LogError("System", "Exception initializing security: " + std::string(ex.what()));
+            return false;
+        }
+    }
+    
+    // Initialize jailbreak bypass
+    static bool InitializeJailbreakBypass() {
+        try {
+            // Initialize jailbreak bypass
+            bool result = iOS::JailbreakBypass::Initialize();
+            
+            if (result) {
+                // Apply app-specific bypasses (for Roblox)
+                iOS::JailbreakBypass::BypassSpecificApp("com.roblox.robloxmobile");
+                
+                Logging::LogInfo("System", "Jailbreak bypass initialized");
+                s_status.jailbreakBypassInitialized = true;
+            } else {
+                Logging::LogWarning("System", "Jailbreak bypass initialization failed");
+            }
+            
+            return result;
+        } catch (const std::exception& ex) {
+            Logging::LogError("System", "Exception initializing jailbreak bypass: " + std::string(ex.what()));
+            return false;
+        }
+    }
+    
+    // Initialize performance monitoring
+    static bool InitializePerformanceMonitoring() {
         try {
             // Initialize performance monitoring
             Performance::InitializePerformanceMonitoring(
@@ -420,12 +537,12 @@ std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> SystemState::s_signatureAd
 #endif
 
 // Convenience function for global initialization
-inline bool Initialize(const InitOptionsInitialize(const InitOptions& options = InitOptions()) { options = InitOptions());
+inline bool Initialize(const InitOptions& options = InitOptions()) {
     return SystemState::Initialize(options);
 }
 
 // Convenience function for global shutdown
-inline void Shutdown();
+inline void Shutdown() {
     SystemState::Shutdown();
 }
 

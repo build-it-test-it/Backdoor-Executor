@@ -38,6 +38,12 @@ namespace AntiDetection {
             return gen;
         }
         
+        // Get a random number in range
+        static int GetRandomInt(int min, int max) {
+            std::uniform_int_distribution<int> dist(min, max);
+            return dist(GetRNG());
+        }
+        
         // Generate a random string of specified length
         static std::string GenerateRandomString(size_t length) {
             static const char charset[] = 
@@ -140,7 +146,7 @@ namespace AntiDetection {
             
             // Encode the string with varying techniques
             for (char c : str) {
-                int choice = GetRNG() % 3;
+                int choice = GetRandomInt(0, 2);
                 switch (choice) {
                     case 0:
                         // Use decimal value
@@ -310,20 +316,36 @@ namespace AntiDetection {
             std::regex stringRegex("([\"'])((?:(?!\1).|\\.)*?)\\1");
             
             // Replace all string literals with obfuscated versions
-            result = std::regex_replace(result, stringRegex, [](const std::smatch& match) {
+            // Use standard callback function for regex_replace (iOS doesn't support lambda version)
+            std::string processed = result;
+            std::smatch match;
+            std::string::const_iterator searchStart(result.cbegin());
+            
+            // Manual regex search and replace since direct lambda replacement not supported
+            while (std::regex_search(searchStart, result.cend(), match, stringRegex)) {
                 // Don't obfuscate empty strings
+                std::string replacement;
                 if (match[2].str().empty()) {
-                    return match[0].str();
+                    replacement = match[0].str();
                 }
-                
                 // Don't obfuscate strings that look like requires or other special patterns
-                if (match[2].str().find("/") != std::string::npos ||
-                    match[2].str().find(".lua") != std::string::npos) {
-                    return match[0].str();
+                else if (match[2].str().find("/") != std::string::npos ||
+                         match[2].str().find(".lua") != std::string::npos) {
+                    replacement = match[0].str();
+                }
+                else {
+                    replacement = ObfuscateString(match[2].str());
                 }
                 
-                return ObfuscateString(match[2].str());
-            });
+                // Replace in the processed string
+                size_t pos = std::distance(result.cbegin(), match[0].first);
+                processed.replace(pos, match[0].length(), replacement);
+                
+                // Move search position
+                searchStart = match.suffix().first;
+            }
+            
+            result = processed;
             
             return result;
         }
@@ -464,17 +486,30 @@ namespace AntiDetection {
             std::regex numberRegex("\\b(\\d+)\\b");
             
             // Replace all numeric constants with obfuscated expressions
-            result = std::regex_replace(result, numberRegex, [](const std::smatch& match) {
+            // Use standard callback function for regex_replace (iOS doesn't support lambda version)
+            std::string processed = result;
+            std::smatch match;
+            std::string::const_iterator searchStart(result.cbegin());
+            
+            // Manual regex search and replace since direct lambda replacement not supported
+            while (std::regex_search(searchStart, result.cend(), match, numberRegex)) {
                 try {
                     int value = std::stoi(match[1]);
                     if (value > 0 && value < 1000) { // Only obfuscate reasonable sized numbers
-                        return ObfuscateConstant(value);
+                        // Replace in the processed string
+                        std::string replacement = ObfuscateConstant(value);
+                        size_t pos = std::distance(result.cbegin(), match[0].first);
+                        processed.replace(pos, match[0].length(), replacement);
                     }
                 } catch (...) {
-                    // If conversion fails, just return the original
+                    // If conversion fails, just leave as is
                 }
-                return match[0].str();
-            });
+                
+                // Move search position
+                searchStart = match.suffix().first;
+            }
+            
+            result = processed;
             
             return result;
         }

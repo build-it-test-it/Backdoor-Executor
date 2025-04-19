@@ -3,6 +3,7 @@
 
 #include "HybridAISystem.h"
 #include <iostream>
+#include <sstream>
 
 namespace iOS {
 namespace AIFeatures {
@@ -102,7 +103,7 @@ std::vector<std::string> HybridAISystem::ExtractIntents(const std::string& query
 }
 
 // CalculateModelMemoryUsage - fallback implementation
-uint64_t HybridAISystem::CalculateModelMemoryUsage(void* model) const {
+uint64_t HybridAISystem::CalculateModelMemoryUsage([[maybe_unused]] void* model) const {
     // This is implemented in HybridAISystem.mm, but we provide a stub here
     // for platforms where the Objective-C++ implementation isn't available
     

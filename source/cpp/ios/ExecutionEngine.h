@@ -45,6 +45,7 @@ namespace iOS {
             bool m_enableAntiDetection;          // Whether to enable anti-detection
             bool m_autoRetry;                    // Whether to auto-retry on failure
             int m_maxRetries;                    // Maximum number of retries
+            int m_obfuscationLevel;              // Level of obfuscation to apply (0-5)
             uint64_t m_timeout;                  // Execution timeout in milliseconds
             std::string m_gameName;              // Current game name
             std::string m_placeId;               // Current place ID
@@ -53,7 +54,7 @@ namespace iOS {
             ExecutionContext()
                 : m_isJailbroken(false), m_enableObfuscation(true),
                   m_enableAntiDetection(true), m_autoRetry(true),
-                  m_maxRetries(3), m_timeout(5000) {}
+                  m_maxRetries(3), m_obfuscationLevel(3), m_timeout(5000) {}
         };
         
         // Execution event callback types

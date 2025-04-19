@@ -19,9 +19,9 @@ typedef void UIViewController;
 namespace iOS {
 namespace UI {
 
-// Constructor with viewController parameter (match header signature)
-AssistantButtonController::AssistantButtonController(void* viewController) 
-    : m_viewController(viewController),
+// Constructor
+AssistantButtonController::AssistantButtonController() 
+    : m_viewController(nullptr),
       m_button(nullptr),
       m_chatView(nullptr),
       m_inputField(nullptr),
@@ -45,12 +45,6 @@ AssistantButtonController::AssistantButtonController(void* viewController)
     m_appearance.iconName = "assistant_icon";
     m_appearance.backgroundColor = "#007AFF"; // iOS blue
     m_appearance.tintColor = "#FFFFFF";       // white
-    
-    // Setup UI components right in constructor since we have viewController
-    SetupButton();
-    SetupChatView();
-    SetPosition(m_position);
-    SetVisibilityState(m_state);
 }
 
 // Destructor
@@ -58,17 +52,11 @@ AssistantButtonController::~AssistantButtonController() {
     // Clean up Objective-C objects
 #if __OBJC__
     if (m_button) {
-        UIButton* button = (__bridge UIButton*)m_button;
-        [button removeFromSuperview];
         CFRelease(m_button);
         m_button = nullptr;
     }
     
     if (m_chatView) {
-        UIView* chatContentView = (__bridge UIView*)m_chatView;
-        UIScrollView* scrollView = (UIScrollView*)chatContentView.superview;
-        UIView* panelView = scrollView.superview;
-        [panelView removeFromSuperview];
         CFRelease(m_chatView);
         m_chatView = nullptr;
     }
@@ -82,10 +70,6 @@ AssistantButtonController::~AssistantButtonController() {
         CFRelease(m_panGestureRecognizer);
         m_panGestureRecognizer = nullptr;
     }
-    
-    // Clear members
-    m_viewController = nullptr;
-    m_messages.clear();
 #endif
 }
 
@@ -333,8 +317,8 @@ void AssistantButtonController::SetupChatView() {
                 controller_ptr->m_customMessageHandler(message);
             } else if (controller_ptr->m_assistantModel) {
                 // In a real implementation, this would call the AI model
-                // Since we can't find ProcessQuery in the model, generate a default response
-                std::string response = "I'm the AI assistant. How can I help you?";
+                // GeneralAssistantModel doesn't have ProcessQuery(), so simulating response
+                std::string response = "I'm sorry, I don't have enough information to answer that question.";
                 
                 // Add assistant message
                 ChatMessage assistantMsg(response, MessageType::Assistant, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
@@ -668,6 +652,70 @@ void AssistantButtonController::UpdateSafeAreaInsets(float top, float left, floa
     
     // Update button position
     SetPosition(m_position);
+}
+
+// Public methods
+bool AssistantButtonController::SetupView(void* viewController) {
+    m_viewController = viewController;
+    
+#if __OBJC__
+    std::cout << "Setting up AssistantButtonController view" << std::endl;
+    
+    // Set up button
+    SetupButton();
+    
+    // Set up chat view
+    SetupChatView();
+    
+    // Position button
+    SetPosition(m_position);
+    
+    // Set initial visibility
+    SetVisibilityState(m_state);
+    
+    return true;
+#else
+    return false;
+#endif
+}
+
+void AssistantButtonController::CleanupView() {
+#if __OBJC__
+    std::cout << "Cleaning up AssistantButtonController view" << std::endl;
+    
+    // Clean up button
+    if (m_button) {
+        UIButton* button = (__bridge UIButton*)m_button;
+        [button removeFromSuperview];
+        CFRelease(m_button);
+        m_button = nullptr;
+    }
+    
+    // Clean up chat view
+    if (m_chatView) {
+        UIView* chatContentView = (__bridge UIView*)m_chatView;
+        UIScrollView* scrollView = (UIScrollView*)chatContentView.superview;
+        UIView* panelView = scrollView.superview;
+        [panelView removeFromSuperview];
+        CFRelease(m_chatView);
+        m_chatView = nullptr;
+    }
+    
+    // Clean up input field
+    if (m_inputField) {
+        CFRelease(m_inputField);
+        m_inputField = nullptr;
+    }
+    
+    // Clean up pan gesture recognizer
+    if (m_panGestureRecognizer) {
+        CFRelease(m_panGestureRecognizer);
+        m_panGestureRecognizer = nullptr;
+    }
+    
+    // Clear chat history
+    m_messages.clear();
+#endif
 }
 
 } // namespace UI

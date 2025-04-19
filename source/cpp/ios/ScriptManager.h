@@ -125,6 +125,25 @@ namespace iOS {
         bool AddScript(const Script& script, bool save = true);
         
         /**
+         * @brief Save a script with basic info (for UI integration)
+         * @param name Script name
+         * @param content Script content
+         * @return True if saved successfully
+         */
+        bool SaveScript(const std::string& name, const std::string& content) {
+            Script script(name, content);
+            return AddScript(script, true);
+        }
+        
+        /**
+         * @brief Get all saved scripts in simple format (for UI integration)
+         * @return Vector of all scripts
+         */
+        std::vector<Script> GetSavedScripts() {
+            return GetAllScripts();
+        }
+        
+        /**
          * @brief Get a script by name
          * @param name Name of the script to get
          * @return Script if found, or empty script if not found

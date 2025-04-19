@@ -1,4 +1,3 @@
-
 #include "../../ios_compat.h"
 #include "AIIntegration.h"
 #include "AIConfig.h"
@@ -425,6 +424,24 @@ public:
                 callback("AI system not initialized");
             }
             return;
+        }
+        
+        // Try to use the GeneralAssistantModel directly if available
+        auto aiSystemInitializer = AISystemInitializer::GetInstance();
+        if (aiSystemInitializer) {
+            auto generalAssistantModel = aiSystemInitializer->GetGeneralAssistantModel();
+            if (generalAssistantModel && generalAssistantModel->IsInitialized()) {
+                // Create an AIRequest
+                HybridAISystem::AIRequest request(query);
+                
+                // Process the query using the GeneralAssistantModel
+                generalAssistantModel->ProcessQuery(request, [callback](const HybridAISystem::AIResponse& response) {
+                    if (callback) {
+                        callback(response.m_content);
+                    }
+                });
+                return;
+            }
         }
         
         // Check if in low memory mode

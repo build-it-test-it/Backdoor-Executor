@@ -1,12 +1,13 @@
 #include "GeneralAssistantModel.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <ctime>
-#include <algorithm>
+#include "../HybridAISystem.h" // For AIRequest and AIResponse definitions
 #include <chrono>
-#include <regex>
+#include <algorithm>
+#include <sstream>
+#include <fstream>
+#include <iostream>
 #include <random>
+#include <thread>
+#include <json/json.h>
 
 namespace iOS {
 namespace AIFeatures {
@@ -176,6 +177,134 @@ std::string GeneralAssistantModel::ProcessInputWithContext(const std::string& in
     
     // Now process the input normally
     return ProcessInput(input, userId);
+}
+
+// Process a query from the AI system
+::iOS::AIFeatures::AIResponse GeneralAssistantModel::ProcessQuery(
+    const ::iOS::AIFeatures::AIRequest& request) {
+    
+    // Start timing for performance measurement
+    auto startTime = std::chrono::high_resolution_clock::now();
+    
+    // Create response object
+    ::iOS::AIFeatures::AIResponse response;
+    
+    try {
+        // Lock for thread safety
+        std::lock_guard<std::mutex> lock(m_mutex);
+        
+        // Check if model is initialized
+        if (!m_isInitialized) {
+            response.m_success = false;
+            response.m_errorMessage = "Model not initialized";
+            return response;
+        }
+        
+        // Extract query and context from request
+        std::string query = request.m_query;
+        std::string context = request.m_context;
+        std::string requestType = request.m_requestType;
+        
+        // Process based on request type
+        if (requestType == "script_generation") {
+            // Handle script generation request
+            std::string scriptCode = ProcessInputWithContext(
+                query, 
+                "Generate a script based on the following description: " + context,
+                ""  // No specific user ID
+            );
+            
+            response.m_success = true;
+            response.m_content = "Generated script based on your description.";
+            response.m_scriptCode = scriptCode;
+            
+            // Add relevant suggestions
+            response.m_suggestions.push_back("Optimize this script");
+            response.m_suggestions.push_back("Explain how this script works");
+            response.m_suggestions.push_back("Make this script more efficient");
+        }
+        else if (requestType == "debug") {
+            // Handle debug request
+            std::string debugResult = ProcessInputWithContext(
+                query,
+                "Debug the following script and provide fixes: " + context,
+                ""  // No specific user ID
+            );
+            
+            response.m_success = true;
+            response.m_content = debugResult;
+            
+            // Add relevant suggestions
+            response.m_suggestions.push_back("Optimize this script");
+            response.m_suggestions.push_back("Add error handling");
+            response.m_suggestions.push_back("Explain this script");
+        }
+        else {
+            // Handle general query
+            // Extract user context from history if available
+            std::string userContext = "";
+            if (!request.m_history.empty()) {
+                for (const auto& historyItem : request.m_history) {
+                    userContext += historyItem + "\n";
+                }
+            }
+            
+            // Add game info if available
+            if (!request.m_gameInfo.empty()) {
+                userContext += "Game context: " + request.m_gameInfo + "\n";
+            }
+            
+            // Process the query with context
+            std::string result;
+            if (!userContext.empty()) {
+                result = ProcessInputWithContext(query, userContext);
+            } else if (!context.empty()) {
+                result = ProcessInputWithContext(query, context);
+            } else {
+                result = ProcessInput(query);
+            }
+            
+            response.m_success = true;
+            response.m_content = result;
+            
+            // Generate relevant suggestions based on the query
+            std::vector<std::string> topics = FindRelevantTopics(query);
+            for (const auto& topic : topics) {
+                if (response.m_suggestions.size() < 3) {  // Limit to 3 suggestions
+                    response.m_suggestions.push_back("Tell me more about " + topic);
+                }
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        // Handle any exceptions
+        response.m_success = false;
+        response.m_errorMessage = std::string("Error processing query: ") + e.what();
+    }
+    
+    // Calculate processing time
+    auto endTime = std::chrono::high_resolution_clock::now();
+    response.m_processingTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        endTime - startTime).count();
+    
+    return response;
+}
+
+// Process a query from the AI system asynchronously
+void GeneralAssistantModel::ProcessQuery(
+    const ::iOS::AIFeatures::AIRequest& request,
+    std::function<void(const ::iOS::AIFeatures::AIResponse&)> callback) {
+    
+    // Process asynchronously in a new thread
+    std::thread([this, request, callback]() {
+        // Process the query
+        ::iOS::AIFeatures::AIResponse response = this->ProcessQuery(request);
+        
+        // Call the callback with the response
+        if (callback) {
+            callback(response);
+        }
+    }).detach();
 }
 
 // Set current user

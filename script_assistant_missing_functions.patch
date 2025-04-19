@@ -1,0 +1,229 @@
+--- a/source/cpp/ios/ai_features/ScriptAssistant.mm
++++ b/source/cpp/ios/ai_features/ScriptAssistant.mm
+@@ -1158,7 +1158,7 @@ ScriptAssistant::ScriptTemplate ScriptAssistant::FindClosestTemplate(const std::
+     }
+     
+     // Find template with most matching keywords
+-    std::vector<std::string> keywords = ExtractKeywords(description);
++    std::vector<std::string> keywords = this->ExtractKeywords(description);
+     
+     int highestScore = 0;
+     ScriptTemplate bestMatch;
+@@ -1183,6 +1183,42 @@ ScriptAssistant::ScriptTemplate ScriptAssistant::FindClosestTemplate(const std::
+     return bestMatch;
+ }
+ 
++// Analyze game object recursively
++void ScriptAssistant::AnalyzeGameObject(std::shared_ptr<GameObject> obj, std::set<std::string>& classNames) {
++    if (!obj) return;
++    
++    // Add class name
++    classNames.insert(obj->m_className);
++    
++    // Recursively analyze children
++    for (const auto& child : obj->m_children) {
++        this->AnalyzeGameObject(child, classNames);
++    }
++}
++
++// Remove unnecessary whitespace
++std::string ScriptAssistant::RemoveUnnecessaryWhitespace(const std::string& script) {
++    std::string optimized = script;
++    
++    // Replace multiple spaces with single space
++    size_t pos = optimized.find("  ");
++    while (pos != std::string::npos) {
++        optimized.replace(pos, 2, " ");
++        pos = optimized.find("  ", pos);
++    }
++    
++    // Replace multiple empty lines with a single empty line
++    pos = optimized.find("\n\n\n");
++    while (pos != std::string::npos) {
++        optimized.replace(pos, 3, "\n\n");
++        pos = optimized.find("\n\n\n", pos);
++    }
++    
++    return optimized;
++}
++
++// Extract keywords from text
++std::vector<std::string> ScriptAssistant::ExtractKeywords(const std::string& text) {
+     std::vector<std::string> keywords;
+     std::string lowercaseText = text;
+     
+@@ -1208,38 +1244,6 @@ std::vector<std::string> ScriptAssistant::ExtractKeywords(const std::string& tex
+     return keywords;
+ }
+ 
+-// Analyze game object recursively
+-void ScriptAssistant::AnalyzeGameObject(std::shared_ptr<GameObject> obj, std::set<std::string>& classNames) {
+-    if (!obj) return;
+-    
+-    // Add class name
+-    classNames.insert(obj.m_className);
+-    
+-    // Recursively analyze children
+-    for (const auto& child : obj.m_children) {
+-        AnalyzeGameObject(child, classNames);
+-    }
+-}
+-
+-// Optimize local variables
+-std::string ScriptAssistant::OptimizeLocalVariables(const std::string& script) {
+-    // Basic implementation - in a real system, this would be more sophisticated
+-    
+-    // Replace redundant local declarations
+-    std::string optimized = script;
+-    
+-    // Find common patterns
+-    size_t pos = optimized.find("local function");
+-    while (pos != std::string::npos) {
+-        // Keep local functions as they are
+-        pos = optimized.find("local function", pos + 14);
+-    }
+-    
+-    // Look for multiple consecutive local declarations that could be combined
+-    pos = optimized.find("local ");
+-    while (pos != std::string::npos) {
+-        size_t nextLocal = optimized.find("local ", pos + 6);
+-        if (nextLocal != std::string::npos && nextLocal - pos < 50) {
+-            // Check if these could be combined (simple heuristic)
+-            size_t lineEnd = optimized.find("\n", pos);
+-            if (lineEnd != std::string::npos && lineEnd < nextLocal) {
+-                // These are on different lines, could potentially combine
+-                // In a real implementation, would need to analyze variable usage
+-            }
+-        }
+-        
+-        pos = optimized.find("local ", pos + 6);
+-    }
+-    
+-    return optimized;
+-}
+-
+-// Optimize loops
+-std::string ScriptAssistant::OptimizeLoops(const std::string& script) {
+-    // Basic implementation - in a real system, this would use more advanced analysis
+-    
+-    // Replace inefficient loop patterns
+-    std::string optimized = script;
+-    
+-    // Replace pairs() with ipairs() for array-like tables
+-    size_t pos = optimized.find("for k, v in pairs(");
+-    while (pos != std::string::npos) {
+-        // Check if this could use ipairs instead (simple heuristic)
+-        size_t closingParen = optimized.find(")", pos);
+-        if (closingParen != std::string::npos) {
+-            std::string tableName = optimized.substr(pos + 16, closingParen - (pos + 16));
+-            
+-            // Check if tableName ends with common array identifiers
+-            if (tableName.find("List") != std::string::npos ||
+-                tableName.find("Array") != std::string::npos ||
+-                tableName.find("s") == tableName.length() - 1) { // Plural name
+-                
+-                // Replace with ipairs for array-like tables
+-                optimized.replace(pos, 16, "for k, v in ipairs(");
+-            }
+-        }
+-        
+-        pos = optimized.find("for k, v in pairs(", pos + 10);
+-    }
+-    
+-    return optimized;
+-}
+-
+-// Remove unnecessary whitespace
+-std::string ScriptAssistant::RemoveUnnecessaryWhitespace(const std::string& script) {
+-    std::string optimized = script;
+-    
+-    // Replace multiple spaces with single space
+-    size_t pos = optimized.find("  ");
+-    while (pos != std::string::npos) {
+-        optimized.replace(pos, 2, " ");
+-        pos = optimized.find("  ", pos);
+-    }
+-    
+-    // Replace multiple empty lines with a single empty line
+-    pos = optimized.find("\n\n\n");
+-    while (pos != std::string::npos) {
+-        optimized.replace(pos, 3, "\n\n");
+-        pos = optimized.find("\n\n\n", pos);
+-    }
+-    
+-    return optimized;
+-}
+-
+ // Detect performance issues
+ std::vector<std::string> ScriptAssistant::DetectPerformanceIssues(const std::string& script) {
+     std::vector<std::string> issues;
+@@ -1272,5 +1276,69 @@ std::vector<std::string> ScriptAssistant::DetectPerformanceIssues(const std::str
+     return issues;
+ }
+ 
++// Optimize local variables
++std::string ScriptAssistant::OptimizeLocalVariables(const std::string& script) {
++    // Basic implementation - in a real system, this would be more sophisticated
++    
++    // Replace redundant local declarations
++    std::string optimized = script;
++    
++    // Find common patterns
++    size_t pos = optimized.find("local function");
++    while (pos != std::string::npos) {
++        // Keep local functions as they are
++        pos = optimized.find("local function", pos + 14);
++    }
++    
++    // Look for multiple consecutive local declarations that could be combined
++    pos = optimized.find("local ");
++    while (pos != std::string::npos) {
++        size_t nextLocal = optimized.find("local ", pos + 6);
++        if (nextLocal != std::string::npos && nextLocal - pos < 50) {
++            // Check if these could be combined (simple heuristic)
++            size_t lineEnd = optimized.find("\n", pos);
++            if (lineEnd != std::string::npos && lineEnd < nextLocal) {
++                // These are on different lines, could potentially combine
++                // In a real implementation, would need to analyze variable usage
++            }
++        }
++        
++        pos = optimized.find("local ", pos + 6);
++    }
++    
++    return optimized;
++}
++
++// Optimize loops
++std::string ScriptAssistant::OptimizeLoops(const std::string& script) {
++    // Basic implementation - in a real system, this would use more advanced analysis
++    
++    // Replace inefficient loop patterns
++    std::string optimized = script;
++    
++    // Replace pairs() with ipairs() for array-like tables
++    size_t pos = optimized.find("for k, v in pairs(");
++    while (pos != std::string::npos) {
++        // Check if this could use ipairs instead (simple heuristic)
++        size_t closingParen = optimized.find(")", pos);
++        if (closingParen != std::string::npos) {
++            std::string tableName = optimized.substr(pos + 16, closingParen - (pos + 16));
++            
++            // Check if tableName ends with common array identifiers
++            if (tableName.find("List") != std::string::npos ||
++                tableName.find("Array") != std::string::npos ||
++                tableName.find("s") == tableName.length() - 1) { // Plural name
++                
++                // Replace with ipairs for array-like tables
++                optimized.replace(pos, 16, "for k, v in ipairs(");
++            }
++        }
++        
++        pos = optimized.find("for k, v in pairs(", pos + 10);
++    }
++    
++    return optimized;
++}
++
+ } // namespace AIFeatures
+ } // namespace iOS

@@ -1,4 +1,3 @@
-
 #include "../../ios_compat.h"
 #include "OnlineService.h"
 #include <iostream>
@@ -82,13 +81,12 @@ extern "C" {
     if (self.reachabilityRef) {
         CFRelease(self.reachabilityRef);
     }
-    [super dealloc]; // Added [super dealloc] call for non-ARC
 }
 
 // This section has been moved earlier to be properly inside the @implementation block
 
 static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void* info) {
-    NetworkReachability* reachability = (NetworkReachability*)info; // Removed __bridge cast
+    NetworkReachability* reachability = (__bridge NetworkReachability*)info; // Added __bridge cast
     if (reachability.statusCallback) {
         reachability.statusCallback(flags);
     }
@@ -101,7 +99,7 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     
     self.statusCallback = callback;
     
-    SCNetworkReachabilityContext context = {0, (void*)(self), NULL, NULL, NULL}; // Removed __bridge cast
+    SCNetworkReachabilityContext context = {0, (__bridge void*)(self), NULL, NULL, NULL}; // Added __bridge cast
     if (SCNetworkReachabilitySetCallback(self.reachabilityRef, ReachabilityCallback, &context)) {
         return SCNetworkReachabilityScheduleWithRunLoop(self.reachabilityRef, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
     }
@@ -188,7 +186,7 @@ void OnlineService::MonitorNetworkStatus() {
         if (!m_reachability) {
             NetworkReachability* reachability = [NetworkReachability sharedInstance];
             // Store pointer without __bridge_retained which requires ARC
-            m_reachability = (void*)reachability;
+            m_reachability = (__bridge void*)reachability;
             [reachability retain]; // Manually retain since we're not using ARC
             
             // Start monitoring
@@ -297,27 +295,23 @@ void OnlineService::SendRequest(const Request& request, ResponseCallback callbac
     NSURLSessionDataTask* task = [session dataTaskWithRequest:nsUrlRequest completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
         // Calculate response time
         auto endTime = std::chrono::high_resolution_clock::now();
-        uint64_t responseTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         
         // Parse response
-        Response onlineResponse = ParseNSURLResponse((__bridge void*)response, (__bridge void*)data, (__bridge void*)error);
+        Response apiResponse = ParseNSURLResponse((__bridge void*)response, (__bridge void*)data, (__bridge void*)error);
+        apiResponse.m_responseTimeMs = duration.count();
         
-        // Set response time
-        onlineResponse.m_responseTimeMs = responseTimeMs;
-        
-        // Cache response if successful
-        if (onlineResponse.m_success) {
-            CacheResponse(request, onlineResponse);
+        // Cache response if successful and caching is enabled
+        if (apiResponse.m_success && request.m_useCache) {
+            CacheResponse(request, apiResponse);
         }
         
         // Call callback
-        callback(onlineResponse);
+        callback(apiResponse);
     }];
     
+    // Start task
     [task resume];
-    
-    // Release urlRequest
-    CFRelease(urlRequest);
 }
 
 // Send a request synchronously
@@ -497,7 +491,7 @@ OnlineService::Response OnlineService::ParseNSURLResponse(void* urlResponse, voi
     
     // Check for error
     if (error) {
-        NSError* nsError = (NSError*)error; // Removed __bridge cast
+        NSError* nsError = (__bridge NSError*)error; // Removed __bridge cast
         response.m_success = false;
         response.m_statusCode = (int)[nsError code];
         response.m_errorMessage = [[nsError localizedDescription] UTF8String];
@@ -513,7 +507,7 @@ OnlineService::Response OnlineService::ParseNSURLResponse(void* urlResponse, voi
     }
     
     // Get HTTP status code
-    NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)urlResponse; // Removed __bridge cast
+    NSHTTPURLResponse* httpResponse = (__bridge NSHTTPURLResponse*)urlResponse; // Removed __bridge cast
     response.m_statusCode = (int)[httpResponse statusCode];
     
     // Get headers
@@ -525,7 +519,7 @@ OnlineService::Response OnlineService::ParseNSURLResponse(void* urlResponse, voi
     
     // Get body
     if (data) {
-        NSData* nsData = (NSData*)data; // Removed __bridge cast
+        NSData* nsData = (__bridge NSData*)data; // Removed __bridge cast
         if ([nsData length] > 0) {
             // Convert to string
             std::string body(static_cast<const char*>([nsData bytes]), [nsData length]);

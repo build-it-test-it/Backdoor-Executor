@@ -49,7 +49,7 @@ bool ScriptAssistant::Initialize() {
     
     try {
         // Initialize language model
-        auto languageModel = new LocalModels::GeneralAssistantModel();
+        LocalModels::GeneralAssistantModel* languageModel = new LocalModels::GeneralAssistantModel();
         if (!languageModel->Initialize("models/assistant")) {
             std::cerr << "Failed to initialize language model" << std::endl;
             delete languageModel;
@@ -66,7 +66,7 @@ bool ScriptAssistant::Initialize() {
         m_scriptGenerator = scriptGenerator;
         
         // Load default templates
-        LoadDefaultTemplates();
+        this->LoadDefaultTemplates();
         
         return true;
     } catch (const std::exception& e) {
@@ -115,7 +115,7 @@ void ScriptAssistant::GenerateScript(const std::string& description) {
         std::string errorMsg = "Script generation is not available. Using template instead.";
         
         // Find closest template
-        auto closestTemplate = FindClosestTemplate(description);
+        auto closestTemplate = this->FindClosestTemplate(description);
         
         if (closestTemplate.m_name.empty()) {
             errorMsg += " No suitable template found.";
@@ -145,7 +145,7 @@ void ScriptAssistant::GenerateScript(const std::string& description) {
             std::string script = generator->GenerateScript(description);
             
             if (script.empty()) {
-                if (m_responseCallback) {
+                if (this->m_responseCallback) {
                     m_responseCallback("Failed to generate script for: " + description, false);
                 }
                 return;
@@ -154,7 +154,7 @@ void ScriptAssistant::GenerateScript(const std::string& description) {
             // Prepare response
             std::string response = "Generated script based on your description:\n\n```lua\n" + script + "\n```";
             
-            // Call callback
+            // Call callback with the response
             if (m_responseCallback) {
                 m_responseCallback(response, true);
             }
@@ -190,7 +190,7 @@ void ScriptAssistant::AnalyzeGame(const GameContext& context) {
         
         // Analyze key game components
         std::set<std::string> classNames;
-        AnalyzeGameObject(context.m_rootObject, classNames);
+        this->AnalyzeGameObject(context.m_rootObject, classNames);
         
         analysis << "Detected classes:\n";
         for (const auto& className : classNames) {
@@ -208,11 +208,11 @@ void ScriptAssistant::AnalyzeGame(const GameContext& context) {
     // Generate recommendations based on analysis
     analysis << "\nRecommendations:\n";
     
-    if (classNames.find("Player") != classNames.end()) {
+    if (!classNames.empty() && classNames.find("Player") != classNames.end()) {
         analysis << "- Player object detected, can use GetService('Players'):GetLocalPlayer()\n";
     }
     
-    if (classNames.find("Workspace") != classNames.end()) {
+    if (!classNames.empty() && classNames.find("Workspace") != classNames.end()) {
         analysis << "- Workspace detected, can access the 3D world\n";
     }
     
@@ -238,13 +238,13 @@ void ScriptAssistant::OptimizeScript(const std::string& script) {
         std::string optimized = script;
         
         // Remove unnecessary whitespace
-        optimized = RemoveUnnecessaryWhitespace(optimized);
+        optimized = this->RemoveUnnecessaryWhitespace(optimized);
         
         // Optimize local variable usage
-        optimized = OptimizeLocalVariables(optimized);
+        optimized = this->OptimizeLocalVariables(optimized);
         
         // Optimize loops
-        optimized = OptimizeLoops(optimized);
+        optimized = this->OptimizeLoops(optimized);
         
         // Prepare response
         std::stringstream response;
@@ -257,7 +257,7 @@ void ScriptAssistant::OptimizeScript(const std::string& script) {
         response << "- Improved loop efficiency\n";
         
         // Check for potential performance issues
-        std::vector<std::string> issues = DetectPerformanceIssues(optimized);
+        std::vector<std::string> issues = this->DetectPerformanceIssues(optimized);
         if (!issues.empty()) {
             response << "\nPotential performance issues:\n";
             for (const auto& issue : issues) {
@@ -440,7 +440,7 @@ std::vector<std::string> ScriptAssistant::GetSuggestions(const std::string& part
 
 // Get templates
 std::vector<ScriptAssistant::ScriptTemplate> ScriptAssistant::GetTemplates() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::mutex> lock(this->m_mutex);
     return m_scriptTemplates;
 }
 
@@ -567,7 +567,7 @@ std::string ScriptAssistant::GenerateResponse(const std::string& input) {
 
 // Load default templates
 void ScriptAssistant::LoadDefaultTemplates() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::mutex> lock(this->m_mutex);
     
     // Clear existing templates
     m_scriptTemplates.clear();
@@ -1150,18 +1150,18 @@ return UI
 
 // Find closest template
 ScriptAssistant::ScriptTemplate ScriptAssistant::FindClosestTemplate(const std::string& description) {
-    if (m_scriptTemplates.empty()) {
+    if (this->m_scriptTemplates.empty()) {
         return ScriptTemplate();
     }
-    
+
     // Find template with most matching keywords
-    std::vector<std::string> keywords = ExtractKeywords(description);
+    std::vector<std::string> keywords = this->ExtractKeywords(description);
     
     int highestScore = 0;
     ScriptTemplate bestMatch;
     
     for (const auto& tmpl : m_scriptTemplates) {
-        std::vector<std::string> templateKeywords = ExtractKeywords(tmpl.m_description);
+        std::vector<std::string> templateKeywords = this->ExtractKeywords(tmpl.m_description);
         
         // Count matching keywords
         int score = 0;
@@ -1218,11 +1218,11 @@ void ScriptAssistant::AnalyzeGameObject(std::shared_ptr<GameObject> obj, std::se
     if (!obj) return;
     
     // Add class name
-    classNames.insert(obj.m_className);
+    classNames.insert(obj->m_className);
     
     // Recursively analyze children
-    for (const auto& child : obj.m_children) {
-        AnalyzeGameObject(child, classNames);
+    for (const auto& child : obj->m_children) {
+        this->AnalyzeGameObject(child, classNames);
     }
 }
 

@@ -29,11 +29,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y curl unzip libplist-utils git g++ pkg-config libssl-dev libminizip-dev zlib1g-dev
-          # Clone zsign repository
+          # Clone zsign repository at a specific commit
           git clone https://github.com/zhlynn/zsign.git
           cd zsign
-          # Compile zsign
-          g++ *.cpp common/*.cpp -lcrypto -I/usr/include -L/usr/lib -O3 -o zsign
+          git checkout 9f29e6f1b8a3926c1302e3d5e7ae6bc4566d5268 # Latest commit as of Oct 2023
+          # Debug directory contents
+          echo "Listing zsign directory contents:"
+          ls -R
+          # Compile zsign with explicit file list
+          g++ zsign.cpp signer.cpp bundle.cpp archive.cpp -I. -Icommon common/common.cpp common/pk7.cpp common/sha1.c common/sha256.c -lssl -lcrypto -lz -O3 -o zsign
           if [ ! -f zsign ]; then
             echo "Error: zsign compilation failed"
             exit 1

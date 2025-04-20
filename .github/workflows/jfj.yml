@@ -24,32 +24,35 @@ jobs:
           echo "Checking for Priv folder:"
           find . -type d -name "Priv" || echo "Priv folder not found"
 
-      # Step 3: Install dependencies (zsign and other tools)
-      - name: Install zsign and Dependencies
+      # Step 3: Install dependencies and compile zsign
+      - name: Install Dependencies and Compile zsign
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl unzip libplist-utils
-          # Download a specific version of zsign to ensure compatibility
-          curl -L -o zsign https://github.com/zhlynn/zsign/releases/download/v0.2.2/zsign_linux_x86_64
-          # Verify download
-          if [ ! -s zsign ]; then
-            echo "Error: zsign download failed or file is empty"
+          sudo apt-get install -y curl unzip libplist-utils git g++ pkg-config libssl-dev libminizip-dev zlib1g-dev
+          # Clone zsign repository
+          git clone https://github.com/zhlynn/zsign.git
+          cd zsign
+          # Compile zsign
+          g++ *.cpp common/*.cpp -lcrypto -I/usr/include -L/usr/lib -O3 -o zsign
+          if [ ! -f zsign ]; then
+            echo "Error: zsign compilation failed"
             exit 1
           fi
           chmod +x zsign
           sudo mv zsign /usr/local/bin/zsign
-          # Verify zsign is executable
+          # Verify zsign
           if ! /usr/local/bin/zsign -h >/dev/null 2>&1; then
             echo "Error: zsign is not executable or invalid"
+            /usr/local/bin/zsign -h
             exit 1
           fi
-          echo "zsign installed successfully"
-          zsign -h
+          echo "zsign compiled and installed successfully"
+          /usr/local/bin/zsign -h
 
       # Step 4: Download the IPA file from Filebin
       - name: Download IPA File
         run: |
-          curl -L -o DokkanSparking_Release_5.25.3.ipa https://filebin.net/mwoj4adth3toumo1/DokkanSparking_Release_5.25.3.ipa
+          curl -L -o DokkanSparking_Release_5.25.3.ipa https://filebin.net/mwoj4adth3toumo1/DokkanSparking_Release_5.25.3.ipa --fail --show-error
           if [ ! -f DokkanSparking_Release_5.25.3.ipa ]; then
             echo "Error: IPA download failed"
             exit 1
@@ -60,7 +63,6 @@ jobs:
       - name: Locate Certificate and Provisioning Profile
         id: find-files
         run: |
-          # Search recursively for Priv folder
           P12_FILE=$(find . -type f -name "*.p12" -path "*/Priv/*" | head -n 1)
           MOBILEPROVISION_FILE=$(find . -type f -name "*.mobileprovision" -path "*/Priv/*" | head -n 1)
           if [ -z "$P12_FILE" ] || [ -z "$MOBILEPROVISION_FILE" ]; then

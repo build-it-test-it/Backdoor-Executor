@@ -15,30 +15,57 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Install dependencies (zsign and other tools)
+      # Step 2: Debug directory structure
+      - name: List Directory Structure
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Listing all files in repository:"
+          find . -type f -ls
+          echo "Checking for Priv folder:"
+          find . -type d -name "Priv" || echo "Priv folder not found"
+
+      # Step 3: Install dependencies (zsign and other tools)
       - name: Install zsign and Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl unzip
-          # Download and install zsign
-          curl -L -o zsign https://github.com/zhlynn/zsign/releases/latest/download/zsign_linux_x86_64
+          sudo apt-get install -y curl unzip libplist-utils
+          # Download a specific version of zsign to ensure compatibility
+          curl -L -o zsign https://github.com/zhlynn/zsign/releases/download/v0.2.2/zsign_linux_x86_64
+          # Verify download
+          if [ ! -s zsign ]; then
+            echo "Error: zsign download failed or file is empty"
+            exit 1
+          fi
           chmod +x zsign
-          sudo mv zsign /usr/local/bin/
+          sudo mv zsign /usr/local/bin/zsign
+          # Verify zsign is executable
+          if ! /usr/local/bin/zsign -h >/dev/null 2>&1; then
+            echo "Error: zsign is not executable or invalid"
+            exit 1
+          fi
+          echo "zsign installed successfully"
+          zsign -h
 
-      # Step 3: Download the IPA file from Filebin
+      # Step 4: Download the IPA file from Filebin
       - name: Download IPA File
         run: |
           curl -L -o DokkanSparking_Release_5.25.3.ipa https://filebin.net/mwoj4adth3toumo1/DokkanSparking_Release_5.25.3.ipa
+          if [ ! -f DokkanSparking_Release_5.25.3.ipa ]; then
+            echo "Error: IPA download failed"
+            exit 1
+          fi
           ls -lh DokkanSparking_Release_5.25.3.ipa
 
-      # Step 4: Find certificate and provisioning profile
+      # Step 5: Find certificate and provisioning profile
       - name: Locate Certificate and Provisioning Profile
         id: find-files
         run: |
-          P12_FILE=$(find Priv -name "*.p12" | head -n 1)
-          MOBILEPROVISION_FILE=$(find Priv -name "*.mobileprovision" | head -n 1)
+          # Search recursively for Priv folder
+          P12_FILE=$(find . -type f -name "*.p12" -path "*/Priv/*" | head -n 1)
+          MOBILEPROVISION_FILE=$(find . -type f -name "*.mobileprovision" -path "*/Priv/*" | head -n 1)
           if [ -z "$P12_FILE" ] || [ -z "$MOBILEPROVISION_FILE" ]; then
             echo "Error: Could not find .p12 or .mobileprovision file in Priv folder"
+            find . -type f -name "*.p12" -o -name "*.mobileprovision"
             exit 1
           fi
           echo "p12_file=$P12_FILE" >> $GITHUB_OUTPUT
@@ -46,27 +73,31 @@ jobs:
           echo "Found .p12: $P12_FILE"
           echo "Found .mobileprovision: $MOBILEPROVISION_FILE"
 
-      # Step 5: Sign the IPA with zsign
+      # Step 6: Sign the IPA with zsign
       - name: Sign IPA with zsign
         run: |
-          zsign -k "${{ steps.find-files.outputs.p12_file }}" \
-                -p "1234" \
-                -m "${{ steps.find-files.outputs.mobileprovision_file }}" \
-                -o signed_DokkanSparking_Release_5.25.3.ipa \
-                DokkanSparking_Release_5.25.3.ipa
+          /usr/local/bin/zsign -k "${{ steps.find-files.outputs.p12_file }}" \
+                              -p "1234" \
+                              -m "${{ steps.find-files.outputs.mobileprovision_file }}" \
+                              -o signed_DokkanSparking_Release_5.25.3.ipa \
+                              DokkanSparking_Release_5.25.3.ipa
           if [ ! -f signed_DokkanSparking_Release_5.25.3.ipa ]; then
             echo "Error: Signing failed, signed IPA not found"
             exit 1
           fi
           echo "Signed IPA created: signed_DokkanSparking_Release_5.25.3.ipa"
+          ls -lh signed_DokkanSparking_Release_5.25.3.ipa
 
-      # Step 6: Create manifest for OTA installation
+      # Step 7: Create manifest for OTA installation
       - name: Create Manifest for OTA Installation
         run: |
-          # Install PlistBuddy for bundle ID extraction
-          sudo apt-get install -y libplist-utils
+          # Extract bundle ID from mobileprovision
           /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "${{ steps.find-files.outputs.mobileprovision_file }}" > temp_bundle_id.txt
           BUNDLE_ID=$(cat temp_bundle_id.txt | cut -d'.' -f2-)
+          if [ -z "$BUNDLE_ID" ]; then
+            echo "Error: Could not extract bundle ID"
+            exit 1
+          fi
           echo "Bundle ID: $BUNDLE_ID"
           
           # Create manifest.plist
@@ -105,7 +136,7 @@ jobs:
           EOF
           cat manifest.plist
 
-      # Step 7: Upload signed IPA and manifest to GitHub Releases
+      # Step 8: Upload signed IPA and manifest to GitHub Releases
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
@@ -119,7 +150,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 8: Generate and output OTA installation link
+      # Step 9: Generate and output OTA installation link
       - name: Output OTA Installation Link
         run: |
           INSTALL_LINK="itms-services://?action=download-manifest&url=https://github.com/${{ github.repository }}/releases/download/v${{ github.run_id }}/manifest.plist"

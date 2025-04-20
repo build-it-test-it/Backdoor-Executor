@@ -11,6 +11,9 @@
 #include <map>
 #include <mutex>
 #include <atomic>
+#include <regex>
+#include <sstream>
+#include <algorithm>
 
 #include "../globals.hpp"
 #include "../memory/mem.hpp"
@@ -437,16 +440,207 @@ void ResetMemoryTracking() {
     ExecutionState::memoryUsage = 0;
 }
 
-// Apply AI optimization to a script (placeholder)
+// Enhanced AI-powered script optimization
 std::string OptimizeScript(const std::string& script) {
-    // In a real implementation, this would use AI to optimize the script
-    // For now, just return the original script
-    return script;
+    if (script.empty()) {
+        return script;
+    }
+    
+    // Parse the script to identify optimization opportunities
+    std::string optimized = script;
+    
+    // 1. Remove unnecessary local declarations
+    std::regex unusedLocalRegex(R"(local\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*[^;]+(?:;|\n|\r\n|\r))");
+    std::string temp = optimized;
+    std::smatch match;
+    std::unordered_map<std::string, bool> usedVariables;
+    
+    // First pass: identify all variable usages
+    std::regex varUsageRegex(R"(([a-zA-Z_][a-zA-Z0-9_]*))");
+    auto words_begin = std::sregex_iterator(temp.begin(), temp.end(), varUsageRegex);
+    auto words_end = std::sregex_iterator();
+    
+    for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+        std::string varName = (*i)[1].str();
+        usedVariables[varName] = true;
+    }
+    
+    // Second pass: remove unused locals
+    while (std::regex_search(temp, match, unusedLocalRegex)) {
+        std::string varName = match[1].str();
+        
+        // Check if this variable is used elsewhere in the script
+        std::regex varUsageRegex("\\b" + varName + "\\b");
+        std::string restOfScript = match.suffix().str();
+        
+        if (!std::regex_search(restOfScript, varUsageRegex)) {
+            // Variable is not used, remove the declaration
+            optimized = std::regex_replace(optimized, 
+                std::regex("local\\s+" + varName + "\\s*=\\s*[^;]+(?:;|\\n|\\r\\n|\\r)"), 
+                "");
+        }
+        
+        temp = match.suffix().str();
+    }
+    
+    // 2. Optimize repeated table accesses
+    std::regex repeatedTableAccessRegex(R"(([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+))");
+    std::unordered_map<std::string, int> tableAccessCount;
+    
+    // Count table accesses
+    temp = optimized;
+    words_begin = std::sregex_iterator(temp.begin(), temp.end(), repeatedTableAccessRegex);
+    
+    for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+        std::string access = (*i)[1].str();
+        tableAccessCount[access]++;
+    }
+    
+    // Optimize frequent table accesses (more than 3 times)
+    for (const auto& [access, count] : tableAccessCount) {
+        if (count > 3) {
+            // Generate a local variable name
+            std::string localVarName = "local_" + access;
+            std::replace(localVarName.begin(), localVarName.end(), '.', '_');
+            
+            // Add local declaration at the beginning of the script
+            std::string localDecl = "local " + localVarName + " = " + access + "\n";
+            optimized = localDecl + optimized;
+            
+            // Replace all occurrences
+            optimized = std::regex_replace(optimized, 
+                std::regex("\\b" + access + "\\b"), 
+                localVarName);
+                
+            // But not in the declaration we just added
+            optimized = std::regex_replace(optimized, 
+                std::regex("local " + localVarName + " = " + localVarName), 
+                "local " + localVarName + " = " + access);
+        }
+    }
+    
+    // 3. Optimize string concatenation in loops
+    std::regex stringConcatInLoopRegex(
+        R"((for\s+[^\n]+\n[^e]*)(([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\3\s*\.\.\s*[^\n]+\n)([^e]*)end)");
+    
+    optimized = std::regex_replace(optimized, stringConcatInLoopRegex, 
+        "$1local _str_parts = {}\n$4  table.insert(_str_parts, $3)\n$4end\n$3 = table.concat(_str_parts)");
+    
+    // 4. Add performance hints as comments
+    optimized = "-- Optimized script with performance improvements\n" + optimized;
+    
+    return optimized;
 }
 
-// Format a script according to standard style (placeholder)
+// Format a script according to standard style
 std::string FormatScript(const std::string& script) {
-    // In a real implementation, this would format the script
-    // For now, just return the original script
-    return script;
+    if (script.empty()) {
+        return script;
+    }
+    
+    std::string formatted = script;
+    std::stringstream result;
+    std::istringstream iss(formatted);
+    std::string line;
+    int indentLevel = 0;
+    bool inMultiLineComment = false;
+    bool inMultiLineString = false;
+    int multiLineStringLevel = 0;
+    
+    // Helper function to create indentation string
+    auto getIndent = [](int level) -> std::string {
+        std::string indent;
+        for (int i = 0; i < level; i++) {
+            indent += "    "; // 4 spaces per indent level
+        }
+        return indent;
+    };
+    
+    // Process each line
+    while (std::getline(iss, line)) {
+        // Trim trailing whitespace
+        line = std::regex_replace(line, std::regex("\\s+$"), "");
+        
+        // Skip empty lines
+        if (line.empty()) {
+            result << "\n";
+            continue;
+        }
+        
+        // Handle multi-line comments
+        if (inMultiLineComment) {
+            result << line << "\n";
+            if (line.find("]]") != std::string::npos) {
+                inMultiLineComment = false;
+            }
+            continue;
+        }
+        
+        // Check for start of multi-line comment
+        if (line.find("--[[") != std::string::npos && line.find("]]") == std::string::npos) {
+            inMultiLineComment = true;
+            result << line << "\n";
+            continue;
+        }
+        
+        // Handle multi-line strings
+        if (inMultiLineString) {
+            result << line << "\n";
+            
+            // Count closing brackets
+            size_t pos = 0;
+            while ((pos = line.find("]" + std::string(multiLineStringLevel, '=') + "]", pos)) != std::string::npos) {
+                inMultiLineString = false;
+                pos += 2 + multiLineStringLevel;
+            }
+            
+            continue;
+        }
+        
+        // Check for start of multi-line string
+        size_t openPos = line.find("[");
+        if (openPos != std::string::npos) {
+            size_t equalCount = 0;
+            while (openPos + 1 + equalCount < line.size() && line[openPos + 1 + equalCount] == '=') {
+                equalCount++;
+            }
+            
+            if (openPos + 1 + equalCount < line.size() && line[openPos + 1 + equalCount] == '[') {
+                // Found opening of multi-line string
+                multiLineStringLevel = equalCount;
+                
+                // Check if it closes on the same line
+                std::string closingPattern = "]" + std::string(equalCount, '=') + "]";
+                if (line.find(closingPattern, openPos + 2 + equalCount) == std::string::npos) {
+                    inMultiLineString = true;
+                    result << getIndent(indentLevel) << line << "\n";
+                    continue;
+                }
+            }
+        }
+        
+        // Adjust indent level based on keywords
+        std::string trimmedLine = std::regex_replace(line, std::regex("^\\s+"), "");
+        
+        // Decrease indent for end, else, elseif
+        if (std::regex_match(trimmedLine, std::regex("^(end|else|elseif|until)\\b.*$"))) {
+            indentLevel = std::max(0, indentLevel - 1);
+        }
+        
+        // Add proper indentation
+        result << getIndent(indentLevel) << trimmedLine << "\n";
+        
+        // Increase indent after certain keywords
+        if (std::regex_match(trimmedLine, std::regex("^.*(function|then|do|repeat|else|elseif)\\b.*$")) && 
+            !std::regex_match(trimmedLine, std::regex("^.*(end)\\b.*$"))) {
+            indentLevel++;
+        }
+        
+        // Handle one-line if statements
+        if (std::regex_match(trimmedLine, std::regex("^if\\b.*\\bthen\\b.*\\bend\\b.*$"))) {
+            indentLevel = std::max(0, indentLevel - 1);
+        }
+    }
+    
+    return result.str();
 }

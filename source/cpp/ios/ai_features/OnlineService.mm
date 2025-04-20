@@ -146,8 +146,7 @@ OnlineService::OnlineService()
 OnlineService::~OnlineService() {
     // Stop monitoring network status
     if (m_reachability) {
-        [(NetworkReachability*)m_reachability stopMonitoring];
-        [(NetworkReachability*)m_reachability release]; // Manual release instead of CFRelease
+        [((__bridge NetworkReachability*)m_reachability) stopMonitoring];
         m_reachability = nullptr;
     }
     
@@ -185,9 +184,9 @@ void OnlineService::MonitorNetworkStatus() {
         // Create reachability object if not already created
         if (!m_reachability) {
             NetworkReachability* reachability = [NetworkReachability sharedInstance];
-            // Store pointer without __bridge_retained which requires ARC
+            // Store pointer with __bridge cast for ARC compatibility
             m_reachability = (__bridge void*)reachability;
-            [reachability retain]; // Manually retain since we're not using ARC
+            // Remove explicit retain since we're using ARC
             
             // Start monitoring
             // Removed __weak since it's not available without ARC
@@ -480,9 +479,8 @@ void* OnlineService::CreateNSURLRequest(const Request& request) {
         [urlRequest setHTTPBody:bodyData];
     }
     
-    // Return as opaque pointer (manual retain instead of __bridge_retained which requires ARC)
-    [urlRequest retain];
-    return (void*)urlRequest;
+    // Return as opaque pointer with __bridge cast for ARC compatibility
+    return (__bridge void*)urlRequest;
 }
 
 // Parse NSURLResponse

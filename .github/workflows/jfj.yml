@@ -8,7 +8,7 @@ on:
 
 jobs:
   sign-ipa:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest # Switched to macOS runner for zsign binary
 
     steps:
       # Step 1: Checkout the repository
@@ -24,33 +24,30 @@ jobs:
           echo "Checking for Priv folder:"
           find . -type d -name "Priv" || echo "Priv folder not found"
 
-      # Step 3: Install dependencies and compile zsign
-      - name: Install Dependencies and Compile zsign
+      # Step 3: Install dependencies and download zsign
+      - name: Install Dependencies and Download zsign
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl unzip libplist-utils git g++ pkg-config libssl-dev libminizip-dev zlib1g-dev
-          # Clone zsign repository at a specific commit
-          git clone https://github.com/zhlynn/zsign.git
-          cd zsign
-          git checkout 9f29e6f1b8a3926c1302e3d5e7ae6bc4566d5268 # Latest commit as of Oct 2023
-          # Debug directory contents
-          echo "Listing zsign directory contents:"
-          ls -R
-          # Compile zsign with explicit file list
-          g++ zsign.cpp signer.cpp bundle.cpp archive.cpp -I. -Icommon common/common.cpp common/pk7.cpp common/sha1.c common/sha256.c -lssl -lcrypto -lz -O3 -o zsign
-          if [ ! -f zsign ]; then
-            echo "Error: zsign compilation failed"
+          brew install curl unzip libplist # Install required tools
+          # Download and extract zsign v0.7 for macOS
+          curl -L -o zsign-v0.7-macos-x64.zip https://github.com/zhlynn/zsign/releases/download/v0.7/zsign-v0.7-macos-x64.zip --fail --show-error
+          if [ ! -f zsign-v0.7-macos-x64.zip ]; then
+            echo "Error: zsign download failed"
             exit 1
           fi
-          chmod +x zsign
-          sudo mv zsign /usr/local/bin/zsign
+          unzip zsign-v0.7-macos-x64.zip -d zsign-bin
+          if [ ! -f zsign-bin/zsign ]; then
+            echo "Error: zsign binary not found after unzip"
+            exit 1
+          fi
+          chmod +x zsign-bin/zsign
+          sudo mv zsign-bin/zsign /usr/local/bin/zsign
           # Verify zsign
           if ! /usr/local/bin/zsign -h >/dev/null 2>&1; then
             echo "Error: zsign is not executable or invalid"
             /usr/local/bin/zsign -h
             exit 1
           fi
-          echo "zsign compiled and installed successfully"
+          echo "zsign installed successfully"
           /usr/local/bin/zsign -h
 
       # Step 4: Download the IPA file from Filebin

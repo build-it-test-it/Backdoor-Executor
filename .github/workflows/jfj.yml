@@ -28,21 +28,36 @@ jobs:
       - name: Install Dependencies and Download zsign
         run: |
           brew install curl unzip libplist
-          # Download and extract zsign v0.7 for macOS
+          # Download zsign v0.7 for macOS
           curl -L -o zsign-v0.7-macos-x64.zip https://github.com/zhlynn/zsign/releases/download/v0.7/zsign-v0.7-macos-x64.zip --fail --show-error
           if [ ! -f zsign-v0.7-macos-x64.zip ]; then
             echo "Error: zsign download failed"
             exit 1
           fi
+          echo "ZIP download completed"
+          # Extract ZIP
           unzip zsign-v0.7-macos-x64.zip -d zsign-bin
           if [ ! -f zsign-bin/zsign ]; then
             echo "Error: zsign binary not found after unzip"
             exit 1
           fi
+          echo "ZIP extraction completed"
+          # Check binary architecture
+          file zsign-bin/zsign
+          # Remove quarantine attributes
+          xattr -d com.apple.quarantine zsign-bin/zsign || true
+          # Set executable permissions
           chmod +x zsign-bin/zsign
+          echo "Permissions set for zsign"
+          # Move to /usr/local/bin
           sudo mv zsign-bin/zsign /usr/local/bin/zsign
+          if [ ! -f /usr/local/bin/zsign ]; then
+            echo "Error: Failed to move zsign to /usr/local/bin"
+            exit 1
+          fi
+          echo "zsign moved to /usr/local/bin"
           # Verify zsign
-          ZSIGN_OUTPUT=$(/usr/local/bin/zsign -h 2>&1)
+          ZSIGN_OUTPUT=$(/usr/local/bin/zsign -h 2>&1 || true)
           ZSIGN_EXIT_CODE=$?
           echo "zsign -h exit code: $ZSIGN_EXIT_CODE"
           echo "zsign -h output: $ZSIGN_OUTPUT"

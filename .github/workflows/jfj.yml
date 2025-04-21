@@ -69,14 +69,11 @@ jobs:
             exit 1
           fi
           ls -lh DokkanSparking_Release_5.25.3.ipa
-          # Unzip and inspect CydiaSubstrate dylibs
           unzip -q DokkanSparking_Release_5.25.3.ipa -d temp_ipa
           echo "Inspecting CydiaSubstrate dylibs:"
-          find temp_ipa -type f -path "*CydiaSubstrate.framework/Libraries/*.dylib" -exec file {} \;
-          # Remove CydiaSubstrate.framework
+          find temp_ipa -type f -path "*CydiaSubstrate.framework/Libraries/*.dylib" -exec file {} \; || echo "No CydiaSubstrate dylibs found"
           rm -rf temp_ipa/Payload/BNGI0221.app/Frameworks/CydiaSubstrate.framework
           echo "Removed CydiaSubstrate.framework"
-          # Re-zip IPA
           cd temp_ipa
           zip -qr ../repaired_ipa.ipa .
           cd ..
@@ -118,11 +115,22 @@ jobs:
       # Step 7: Create manifest for OTA installation
       - name: Create Manifest for OTA Installation
         run: |
-          # Extract bundle ID from mobileprovision
-          /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "${{ steps.find-files.outputs.mobileprovision_file }}" > temp_bundle_id.txt
+          # Decode mobileprovision
+          security cms -D -i "${{ steps.find-files.outputs.mobileprovision_file }}" > decoded_provision.plist
+          if [ ! -f decoded_provision.plist ]; then
+            echo "Error: Failed to decode mobileprovision"
+            exit 1
+          fi
+          echo "Decoded mobileprovision contents:"
+          cat decoded_provision.plist
+          # Extract bundle ID
+          /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" decoded_provision.plist > temp_bundle_id.txt || {
+            echo "Warning: Failed to extract bundle ID, using fallback"
+            echo "GLB.Dkkn.Sparking.dev" > temp_bundle_id.txt
+          }
           BUNDLE_ID=$(cat temp_bundle_id.txt | cut -d'.' -f2-)
           if [ -z "$BUNDLE_ID" ]; then
-            echo "Error: Could not extract bundle ID"
+            echo "Error: Could not extract or set bundle ID"
             exit 1
           fi
           echo "Bundle ID: $BUNDLE_ID"

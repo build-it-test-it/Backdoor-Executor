@@ -8,7 +8,7 @@ on:
 
 jobs:
   sign-ipa:
-    runs-on: macos-latest # Switched to macOS runner for zsign binary
+    runs-on: macos-latest
 
     steps:
       # Step 1: Checkout the repository
@@ -27,7 +27,7 @@ jobs:
       # Step 3: Install dependencies and download zsign
       - name: Install Dependencies and Download zsign
         run: |
-          brew install curl unzip libplist # Install required tools
+          brew install curl unzip libplist
           # Download and extract zsign v0.7 for macOS
           curl -L -o zsign-v0.7-macos-x64.zip https://github.com/zhlynn/zsign/releases/download/v0.7/zsign-v0.7-macos-x64.zip --fail --show-error
           if [ ! -f zsign-v0.7-macos-x64.zip ]; then
@@ -42,13 +42,15 @@ jobs:
           chmod +x zsign-bin/zsign
           sudo mv zsign-bin/zsign /usr/local/bin/zsign
           # Verify zsign
-          if ! /usr/local/bin/zsign -h >/dev/null 2>&1; then
-            echo "Error: zsign is not executable or invalid"
-            /usr/local/bin/zsign -h
+          ZSIGN_OUTPUT=$(/usr/local/bin/zsign -h 2>&1)
+          ZSIGN_EXIT_CODE=$?
+          echo "zsign -h exit code: $ZSIGN_EXIT_CODE"
+          echo "zsign -h output: $ZSIGN_OUTPUT"
+          if ! echo "$ZSIGN_OUTPUT" | grep -q "zsign (v0.7)"; then
+            echo "Error: zsign is not valid or incorrect version"
             exit 1
           fi
           echo "zsign installed successfully"
-          /usr/local/bin/zsign -h
 
       # Step 4: Download the IPA file from Filebin
       - name: Download IPA File

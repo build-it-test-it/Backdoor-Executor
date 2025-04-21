@@ -28,35 +28,28 @@ jobs:
       - name: Install Dependencies and Download zsign
         run: |
           brew install curl unzip libplist
-          # Download zsign v0.7 for macOS
           curl -L -o zsign-v0.7-macos-x64.zip https://github.com/zhlynn/zsign/releases/download/v0.7/zsign-v0.7-macos-x64.zip --fail --show-error
           if [ ! -f zsign-v0.7-macos-x64.zip ]; then
             echo "Error: zsign download failed"
             exit 1
           fi
           echo "ZIP download completed"
-          # Extract ZIP
           unzip zsign-v0.7-macos-x64.zip -d zsign-bin
           if [ ! -f zsign-bin/zsign ]; then
             echo "Error: zsign binary not found after unzip"
             exit 1
           fi
           echo "ZIP extraction completed"
-          # Check binary architecture
           file zsign-bin/zsign
-          # Remove quarantine attributes
           xattr -d com.apple.quarantine zsign-bin/zsign || true
-          # Set executable permissions
           chmod +x zsign-bin/zsign
           echo "Permissions set for zsign"
-          # Move to /usr/local/bin
           sudo mv zsign-bin/zsign /usr/local/bin/zsign
           if [ ! -f /usr/local/bin/zsign ]; then
             echo "Error: Failed to move zsign to /usr/local/bin"
             exit 1
           fi
           echo "zsign moved to /usr/local/bin"
-          # Verify zsign
           ZSIGN_OUTPUT=$(/usr/local/bin/zsign -h 2>&1 || true)
           ZSIGN_EXIT_CODE=$?
           echo "zsign -h exit code: $ZSIGN_EXIT_CODE"
@@ -67,8 +60,8 @@ jobs:
           fi
           echo "zsign installed successfully"
 
-      # Step 4: Download the IPA file from Filebin
-      - name: Download IPA File
+      # Step 4: Download and inspect the IPA file
+      - name: Download and Inspect IPA File
         run: |
           curl -L -o DokkanSparking_Release_5.25.3.ipa https://filebin.net/mwoj4adth3toumo1/DokkanSparking_Release_5.25.3.ipa --fail --show-error
           if [ ! -f DokkanSparking_Release_5.25.3.ipa ]; then
@@ -76,6 +69,10 @@ jobs:
             exit 1
           fi
           ls -lh DokkanSparking_Release_5.25.3.ipa
+          # Unzip and inspect CydiaSubstrate dylibs
+          unzip -q DokkanSparking_Release_5.25.3.ipa -d temp_ipa
+          echo "Inspecting CydiaSubstrate dylibs:"
+          find temp_ipa -type f -path "*CydiaSubstrate.framework/Libraries/*.dylib" -exec file {} \;
 
       # Step 5: Find certificate and provisioning profile
       - name: Locate Certificate and Provisioning Profile
@@ -96,13 +93,14 @@ jobs:
       # Step 6: Sign the IPA with zsign
       - name: Sign IPA with zsign
         run: |
-          /usr/local/bin/zsign -k "${{ steps.find-files.outputs.p12_file }}" \
+          /usr/local/bin/zsign -d -k "${{ steps.find-files.outputs.p12_file }}" \
                               -p "1234" \
                               -m "${{ steps.find-files.outputs.mobileprovision_file }}" \
                               -o signed_DokkanSparking_Release_5.25.3.ipa \
                               DokkanSparking_Release_5.25.3.ipa
           if [ ! -f signed_DokkanSparking_Release_5.25.3.ipa ]; then
             echo "Error: Signing failed, signed IPA not found"
+            ls -lh .zsign_debug || echo "No debug folder found"
             exit 1
           fi
           echo "Signed IPA created: signed_DokkanSparking_Release_5.25.3.ipa"

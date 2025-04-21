@@ -7,6 +7,16 @@
 #include "naming_conventions/function_resolver.h"
 #include "naming_conventions/script_preprocessor.h"
 
+// Include iOS-specific headers only when compiling for iOS
+#ifdef __APPLE__
+  #include "ios/ExecutionEngine.h"
+  #include "ios/ScriptManager.h"
+  #include "ios/UIController.h"
+  #include "ios/ai_features/AIIntegrationManager.h"
+  #include "ios/ai_features/ScriptAssistant.h"
+  #include "ios/ai_features/SignatureAdaptation.h"
+#endif
+
 namespace RobloxExecutor {
 
 // Implementation of SystemState::Initialize declared in init.hpp
@@ -105,6 +115,7 @@ bool SystemState::Initialize(const InitOptions& options) {
             }
         }
         
+#ifdef __APPLE__
         // Initialize execution engine
         s_executionEngine = std::make_shared<iOS::ExecutionEngine>();
         if (!s_executionEngine->Initialize()) {
@@ -202,6 +213,14 @@ bool SystemState::Initialize(const InitOptions& options) {
                 // Continue without AI support
             }
         }
+#else
+        // Non-iOS platform - mark these as initialized to avoid errors
+        Logging::LogInfo("System", "iOS-specific components skipped on non-iOS platform");
+        s_status.executionEngineInitialized = true;
+        s_status.scriptManagerInitialized = true;
+        s_status.uiInitialized = true;
+        s_status.aiInitialized = true;
+#endif
         
         // Mark as initialized
         s_initialized = true;
@@ -232,6 +251,7 @@ void SystemState::Shutdown() {
         
         // Clean up in reverse order of initialization
         
+#ifdef __APPLE__
         // Clean up UI controller
         if (s_uiController) {
             s_uiController.reset();
@@ -250,6 +270,10 @@ void SystemState::Shutdown() {
             // Cleanup would go here
             s_aiIntegration = nullptr;
         }
+#else
+        // No iOS-specific cleanup needed on non-iOS platforms
+        Logging::LogInfo("System", "Skipping iOS-specific cleanup on non-iOS platform");
+#endif
         
         // Stop performance monitoring
         if (s_status.performanceInitialized) {

@@ -120,6 +120,7 @@ public:
      */
     static const InitOptions& GetOptions() { return s_options; }
     
+#ifdef __APPLE__
     /**
      * @brief Get the execution engine
      * @return Shared pointer to the execution engine
@@ -155,6 +156,43 @@ public:
      * @return Shared pointer to the signature adaptation
      */
     static std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> GetSignatureAdaptation() { return s_signatureAdaptation; }
+#else
+    /**
+     * @brief Get the execution engine (non-iOS stub)
+     * @return nullptr on non-iOS platforms
+     */
+    static void* GetExecutionEngine() { return s_executionEngine; }
+    
+    /**
+     * @brief Get the script manager (non-iOS stub)
+     * @return nullptr on non-iOS platforms
+     */
+    static void* GetScriptManager() { return s_scriptManager; }
+    
+    /**
+     * @brief Get the UI controller (non-iOS stub)
+     * @return nullptr on non-iOS platforms
+     */
+    static void* GetUIController() { return s_uiController; }
+    
+    /**
+     * @brief Get the AI integration manager (non-iOS stub)
+     * @return nullptr on non-iOS platforms
+     */
+    static void* GetAIManager() { return s_aiManager; }
+    
+    /**
+     * @brief Get the script assistant (non-iOS stub)
+     * @return nullptr on non-iOS platforms
+     */
+    static void* GetScriptAssistant() { return s_scriptAssistant; }
+    
+    /**
+     * @brief Get the signature adaptation (non-iOS stub)
+     * @return nullptr on non-iOS platforms
+     */
+    static void* GetSignatureAdaptation() { return s_signatureAdaptation; }
+#endif
     
 private:
     // Private static members
@@ -163,6 +201,7 @@ private:
     static InitOptions s_options;
     
     // Shared components
+#ifdef __APPLE__
     static std::shared_ptr<iOS::ExecutionEngine> s_executionEngine;
     static std::shared_ptr<iOS::ScriptManager> s_scriptManager;
     static std::unique_ptr<iOS::UIController> s_uiController;
@@ -171,6 +210,15 @@ private:
     static std::shared_ptr<iOS::AIFeatures::AIIntegrationManager> s_aiManager;
     static std::shared_ptr<iOS::AIFeatures::ScriptAssistant> s_scriptAssistant;
     static std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> s_signatureAdaptation;
+#else
+    // Use void pointers for non-iOS platforms
+    static void* s_executionEngine;
+    static void* s_scriptManager;
+    static void* s_uiController;
+    static void* s_aiManager;
+    static void* s_scriptAssistant;
+    static void* s_signatureAdaptation;
+#endif
     static void* s_aiIntegration; // Placeholder for future AI integration
 };
 
@@ -178,12 +226,23 @@ private:
 inline std::atomic<bool> SystemState::s_initialized(false);
 inline SystemStatus SystemState::s_status;
 inline InitOptions SystemState::s_options;
+
+#ifdef __APPLE__
 inline std::shared_ptr<iOS::ExecutionEngine> SystemState::s_executionEngine;
 inline std::shared_ptr<iOS::ScriptManager> SystemState::s_scriptManager;
 inline std::unique_ptr<iOS::UIController> SystemState::s_uiController;
 inline std::shared_ptr<iOS::AIFeatures::AIIntegrationManager> SystemState::s_aiManager;
 inline std::shared_ptr<iOS::AIFeatures::ScriptAssistant> SystemState::s_scriptAssistant;
 inline std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> SystemState::s_signatureAdaptation;
+#else
+inline void* SystemState::s_executionEngine = nullptr;
+inline void* SystemState::s_scriptManager = nullptr;
+inline void* SystemState::s_uiController = nullptr;
+inline void* SystemState::s_aiManager = nullptr;
+inline void* SystemState::s_scriptAssistant = nullptr;
+inline void* SystemState::s_signatureAdaptation = nullptr;
+#endif
+
 inline void* SystemState::s_aiIntegration = nullptr;
 
 } // namespace RobloxExecutor

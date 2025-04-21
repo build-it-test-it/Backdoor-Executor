@@ -1,5 +1,6 @@
 // library.cpp - Implementation of public library interface
 #include "library.hpp"
+#include "init.hpp"
 #include <cstring>
 #include <iostream>
 
@@ -8,13 +9,14 @@
 #include "ios/ScriptManager.h"
 #include "ios/JailbreakBypass.h"
 #include "ios/UIController.h"
-#include "init.hpp"
 #endif
 
+#ifdef __APPLE__
 // Global references to keep objects alive
 static std::shared_ptr<iOS::ExecutionEngine> g_executionEngine;
 static std::shared_ptr<iOS::ScriptManager> g_scriptManager;
 static std::unique_ptr<iOS::UIController> g_uiController;
+#endif
 
 // The function called when the library is loaded (constructor attribute)
 extern "C" {
@@ -32,7 +34,7 @@ extern "C" {
         options.enableUI = true;
         options.enableAI = true; // Enable AI features - consolidated flag
         
-        if (!RobloxExecutor::Initialize(options)) {
+        if (!RobloxExecutor::SystemState::Initialize(options)) {
             std::cerr << "Failed to initialize library" << std::endl;
         } else {
             // Initialize AI integration with execution engine
@@ -45,7 +47,7 @@ extern "C" {
         std::cout << "Roblox Executor dylib unloading" << std::endl;
         
         // Clean up resources
-        RobloxExecutor::Shutdown();
+        RobloxExecutor::SystemState::Shutdown();
     }
     
     // Lua module entry point
@@ -61,6 +63,7 @@ extern "C" {
         if (!script) return false;
         
         try {
+#ifdef __APPLE__
             // Get the execution engine
             auto engine = RobloxExecutor::SystemState::GetExecutionEngine();
             if (!engine) {
@@ -71,6 +74,10 @@ extern "C" {
             // Execute script
             auto result = engine->Execute(script);
             return result.m_success;
+#else
+            std::cerr << "ExecuteScript: Not supported on this platform" << std::endl;
+            return false;
+#endif
         } catch (const std::exception& ex) {
             std::cerr << "Exception during script execution: " << ex.what() << std::endl;
             return false;
@@ -125,6 +132,7 @@ extern "C" {
     // UI integration
     bool InjectRobloxUI() {
         try {
+#ifdef __APPLE__
             // Get UI controller
             auto uiController = RobloxExecutor::SystemState::GetUIController();
             if (!uiController) {
@@ -134,6 +142,10 @@ extern "C" {
             
             uiController->Show();
             return true; // Return success after showing UI
+#else
+            std::cerr << "InjectRobloxUI: UI not supported on this platform" << std::endl;
+            return false;
+#endif
         } catch (const std::exception& ex) {
             std::cerr << "Exception during UI injection: " << ex.what() << std::endl;
             return false;
@@ -144,6 +156,7 @@ extern "C" {
     void AIFeatures_Enable(bool enable) {
         // Implementation to configure AI features
         try {
+#ifdef __APPLE__
             // Get the AI manager
             auto aiManager = RobloxExecutor::SystemState::GetAIManager();
             if (!aiManager) {
@@ -167,6 +180,7 @@ extern "C" {
             
             // Save configuration
             aiManager->SaveConfig();
+#endif
             
             std::cout << "AI features " << (enable ? "enabled" : "disabled") << std::endl;
         } catch (const std::exception& ex) {
@@ -195,7 +209,7 @@ extern "C" {
                 // Register a callback to allow AI to execute scripts
                 scriptAssistant->SetExecutionCallback([](const std::string& script) -> bool {
                     // Use the execution engine to run the script
-                    auto result = RobloxExecutor::ExecuteScript(script);
+                    auto result = RobloxExecutor::SystemState::GetExecutionEngine()->Execute(script);
                     return result.m_success;
                 });
                 
@@ -215,6 +229,8 @@ extern "C" {
         } catch (const std::exception& ex) {
             std::cerr << "Exception during AI Integration initialization: " << ex.what() << std::endl;
         }
+        #else
+        std::cout << "AI Integration not available on this platform" << std::endl;
         #endif
 #endif
     }
@@ -226,6 +242,7 @@ extern "C" {
         
 #ifdef ENABLE_AI_FEATURES
         try {
+#ifdef __APPLE__
             // Get script assistant
             auto scriptAssistant = RobloxExecutor::SystemState::GetScriptAssistant();
             
@@ -254,6 +271,11 @@ extern "C" {
                 suggestions += "-- 1. Remember to use pcall() for safer script execution\n";
                 suggestions += "-- 2. Consider using task.wait() instead of wait()\n";
             }
+#else
+            suggestions = "-- AI assistance not available on this platform. Basic suggestions:\n";
+            suggestions += "-- 1. Remember to use pcall() for safer script execution\n";
+            suggestions += "-- 2. Consider using task.wait() instead of wait()\n";
+#endif
         } catch (const std::exception& ex) {
             suggestions = "-- Error generating AI suggestions: ";
             suggestions += ex.what();

@@ -1,9 +1,20 @@
 // Fixed dobby_wrapper.cpp implementation without DobbyUnHook
-#include "../external/dobby/include/dobby.h"
 #include <cstdint>
 #include <unordered_map>
 #include <mutex>
 #include <vector>
+
+#ifdef __APPLE__
+  // On iOS, we would include the actual Dobby header
+  // #include "../external/dobby/include/dobby.h"
+  // For compilation purposes, we'll define the function we need
+  extern "C" {
+    int DobbyHook(void* address, void* replacement, void** original);
+  }
+#else
+  // Stub for non-iOS platforms
+  #define DobbyHook(a, b, c) (-1)
+#endif
 
 namespace DobbyWrapper {
     // Thread-safe storage for original function pointers
@@ -59,9 +70,9 @@ namespace DobbyWrapper {
                 originalFunctions.erase(targetAddr);
                 return true;
             }
-            
-            return false;
         }
+        
+        return false;
     }
 
     // Unhook all previously hooked functions

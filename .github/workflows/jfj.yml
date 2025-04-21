@@ -60,8 +60,8 @@ jobs:
           fi
           echo "zsign installed successfully"
 
-      # Step 4: Download and inspect the IPA file
-      - name: Download and Inspect IPA File
+      # Step 4: Download and repair IPA file
+      - name: Download and Repair IPA File
         run: |
           curl -L -o DokkanSparking_Release_5.25.3.ipa https://filebin.net/mwoj4adth3toumo1/DokkanSparking_Release_5.25.3.ipa --fail --show-error
           if [ ! -f DokkanSparking_Release_5.25.3.ipa ]; then
@@ -73,6 +73,15 @@ jobs:
           unzip -q DokkanSparking_Release_5.25.3.ipa -d temp_ipa
           echo "Inspecting CydiaSubstrate dylibs:"
           find temp_ipa -type f -path "*CydiaSubstrate.framework/Libraries/*.dylib" -exec file {} \;
+          # Remove CydiaSubstrate.framework
+          rm -rf temp_ipa/Payload/BNGI0221.app/Frameworks/CydiaSubstrate.framework
+          echo "Removed CydiaSubstrate.framework"
+          # Re-zip IPA
+          cd temp_ipa
+          zip -qr ../repaired_ipa.ipa .
+          cd ..
+          mv repaired_ipa.ipa DokkanSparking_Release_5.25.3.ipa
+          ls -lh DokkanSparking_Release_5.25.3.ipa
 
       # Step 5: Find certificate and provisioning profile
       - name: Locate Certificate and Provisioning Profile

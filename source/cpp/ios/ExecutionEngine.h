@@ -4,170 +4,144 @@
 #pragma once
 
 #include <string>
-#include <functional>
 #include <vector>
-#include <unordered_map>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <atomic>
+#include <unordered_map>
 #include "ScriptManager.h"
 #include "../filesystem_utils.h"
 
 namespace iOS {
     /**
      * @class ExecutionEngine
-     * @brief Handles script execution with advanced anti-detection
+     * @brief Engine for executing Lua scripts in the Roblox environment
      * 
-     * This class provides a robust execution system that works on both jailbroken
-     * and non-jailbroken devices. It integrates advanced Byfron bypass techniques
+     * This class provides functionality to execute Lua scripts in the Roblox
+     * environment, with support for various execution options and callbacks.
      */
     class ExecutionEngine {
     public:
-        // Execution result structure
-        struct ExecutionResult {
-            bool m_success;              // Execution succeeded
-            std::string m_error;         // Error message if failed
-            uint64_t m_executionTime;    // Execution time in milliseconds
-            std::string m_output;        // Output from execution
-            
-            ExecutionResult()
-                : m_success(false), m_executionTime(0) {}
-            
-            ExecutionResult(bool success, const std::string& error = "", 
-                           uint64_t executionTime = 0, const std::string& output = "")
-                : m_success(success), m_error(error), 
-                  m_executionTime(executionTime), m_output(output) {}
-        };
-        
-        // Execution context for advanced features
+        // Execution context structure
         struct ExecutionContext {
-            bool m_isJailbroken;                 // Whether device is jailbroken
-            bool m_enableObfuscation;            // Whether to enable obfuscation
-            bool m_enableAntiDetection;          // Whether to enable anti-detection
-            bool m_autoRetry;                    // Whether to auto-retry on failure
-            int m_maxRetries;                    // Maximum number of retries
-            int m_obfuscationLevel;              // Level of obfuscation to apply (0-5)
-            uint64_t m_timeout;                  // Execution timeout in milliseconds
-            std::string m_gameName;              // Current game name
-            std::string m_placeId;               // Current place ID
-            std::unordered_map<std::string, std::string> m_environment;  // Environment variables
+            bool m_isJailbroken;                                // Whether the device is jailbroken
+            bool m_enableObfuscation;                           // Whether to obfuscate the script
+            bool m_enableAntiDetection;                         // Whether to use anti-detection measures
+            bool m_autoRetry;                                   // Whether to automatically retry on failure
+            int m_maxRetries;                                   // Maximum number of retries
+            int m_timeout;                                      // Timeout in milliseconds (0 for no timeout)
+            std::string m_gameName;                             // Name of the game
+            std::string m_placeId;                              // Place ID of the game
+            std::unordered_map<std::string, std::string> m_environment;   // Environment variables for the script
+            bool m_enableNamingConventions;                     // Whether to enable naming conventions
             
             ExecutionContext()
-                : m_isJailbroken(false), m_enableObfuscation(true),
-                  m_enableAntiDetection(true), m_autoRetry(true),
-                  m_maxRetries(3), m_obfuscationLevel(3), m_timeout(5000) {}
+                : m_isJailbroken(false),
+                  m_enableObfuscation(true),
+                  m_enableAntiDetection(true),
+                  m_autoRetry(true),
+                  m_maxRetries(3),
+                  m_timeout(5000),
+                  m_gameName(""),
+                  m_placeId(""),
+                  m_enableNamingConventions(true) {}
         };
         
-        // Execution event callback types
-        using BeforeExecuteCallback = std::function<bool(const std::string&, ExecutionContext&)>;
+        // Execution result structure
+        struct ExecutionResult {
+            bool m_success;                // Whether the execution succeeded
+            std::string m_error;           // Error message if execution failed
+            std::string m_output;          // Output from the script
+            int64_t m_executionTime;       // Execution time in milliseconds
+            
+            ExecutionResult(bool success = false, const std::string& error = "")
+                : m_success(success), m_error(error), m_executionTime(0) {}
+        };
+        
+        // Callback types
+        using BeforeExecuteCallback = std::function<bool(const std::string&, const ExecutionContext&)>;
         using AfterExecuteCallback = std::function<void(const std::string&, const ExecutionResult&)>;
         using OutputCallback = std::function<void(const std::string&)>;
         
+        // Constructor
+        ExecutionEngine(std::shared_ptr<ScriptManager> scriptManager = nullptr);
+        
+        // Initialize the execution engine
+        bool Initialize();
+        
+        // Execute a script
+        ExecutionResult Execute(const std::string& script, const ExecutionContext& context = ExecutionContext());
+        
+        // Set the default execution context
+        void SetDefaultContext(const ExecutionContext& context);
+        
+        // Get the default execution context
+        ExecutionContext GetDefaultContext() const;
+        
+        // Register a callback to be called before script execution
+        void RegisterBeforeExecuteCallback(const BeforeExecuteCallback& callback);
+        
+        // Register a callback to be called after script execution
+        void RegisterAfterExecuteCallback(const AfterExecuteCallback& callback);
+        
+        // Set the output callback function
+        void SetOutputCallback(const OutputCallback& callback);
+        
+        // Check if the engine is currently executing a script
+        bool IsExecuting() const;
+        
+        // Set the script manager
+        void SetScriptManager(std::shared_ptr<ScriptManager> scriptManager);
+        
+        // Get available bypass methods
+        std::vector<std::string> GetAvailableBypassMethods() const;
+        
+        // Check if a specific bypass method is available
+        bool IsMethodAvailable(const std::string& methodName) const;
+        
     private:
+        // Script manager
         std::shared_ptr<ScriptManager> m_scriptManager;
+        
+        // Default execution context
         ExecutionContext m_defaultContext;
+        
+        // Callbacks
         std::vector<BeforeExecuteCallback> m_beforeCallbacks;
         std::vector<AfterExecuteCallback> m_afterCallbacks;
         OutputCallback m_outputCallback;
+        
+        // Execution state
         std::mutex m_executionMutex;
-        bool m_isExecuting;
+        std::atomic<bool> m_isExecuting;
         int m_retryCount;
         
-        // Private methods
-        std::string ObfuscateScript(const std::string& script);
-        std::string PrepareScript(const std::string& script, const ExecutionContext& context);
-        void ProcessOutput(const std::string& output);
-        bool SetupBypassEnvironment(const ExecutionContext& context);
-        bool CheckJailbreakStatus();
-        void LogExecution(const std::string& script, const ExecutionResult& result);
-        std::string GenerateExecutionEnvironment(const ExecutionContext& context);
-        
-    public:
-        /**
-         * @brief Constructor
-         * @param scriptManager Script manager to use
-         */
-        ExecutionEngine(std::shared_ptr<ScriptManager> scriptManager = nullptr);
-        
-        /**
-         * @brief Initialize the execution engine
-         * @return True if initialization succeeded, false otherwise
-         */
-        bool Initialize();
-        
-        /**
-         * @brief Execute a script
-         * @param script Script content to execute
-         * @param context Execution context (optional)
-         * @return Execution result
-         */
-        ExecutionResult Execute(const std::string& script, const ExecutionContext& context = ExecutionContext());
-        
-        /**
-         * @brief Execute a script by name from the script manager
-         * @param scriptName Name of the script to execute
-         * @param context Execution context (optional)
-         * @return Execution result
-         */
-        ExecutionResult ExecuteByName(const std::string& scriptName, const ExecutionContext& context = ExecutionContext());
-        
-        /**
-         * @brief Set the default execution context
-         * @param context New default context
-         */
-        void SetDefaultContext(const ExecutionContext& context);
-        
-        /**
-         * @brief Get the default execution context
-         * @return Default execution context
-         */
-        ExecutionContext GetDefaultContext() const;
-        
-        /**
-         * @brief Register a callback to be called before script execution
-         * @param callback Callback function
-         */
-        void RegisterBeforeExecuteCallback(const BeforeExecuteCallback& callback);
-        
-        /**
-         * @brief Register a callback to be called after script execution
-         * @param callback Callback function
-         */
-        void RegisterAfterExecuteCallback(const AfterExecuteCallback& callback);
-        
-        /**
-         * @brief Set the output callback function
-         * @param callback Callback function
-         */
-        void SetOutputCallback(const OutputCallback& callback);
-        
-        /**
-         * @brief Check if the engine is currently executing a script
-         * @return True if executing, false otherwise
-         */
-        bool IsExecuting() const;
-        
-        /**
-         * @brief Set the script manager
-         * @param scriptManager New script manager
-         */
-        void SetScriptManager(std::shared_ptr<ScriptManager> scriptManager);
-        
-        /**
-         * @brief Detect if device is jailbroken
-         * @return True if jailbroken, false otherwise
-         */
+        // Detect if device is jailbroken
         static bool IsJailbroken();
         
-        /**
-         * @brief Get a list of available Byfron bypass methods
-         * @return Vector of available method names
-         */
-        std::vector<std::string> GetAvailableBypassMethods() const;
+        // Check jailbreak status
+        bool CheckJailbreakStatus();
         
-        /**
-         * @param methodName Name of the method to check
-         * @return True if available, false otherwise
-         */
-        bool IsMethodAvailable(const std::string& methodName) const;
+        // Obfuscate a script
+        std::string ObfuscateScript(const std::string& script);
+        
+        // Prepare a script for execution
+        std::string PrepareScript(const std::string& script, const ExecutionContext& context);
+        
+        // Process output from script execution
+        void ProcessOutput(const std::string& output);
+        
+        // Setup the bypass environment based on device capabilities
+        bool SetupBypassEnvironment(const ExecutionContext& context);
+        
+        // Log script execution
+        void LogExecution(const std::string& script, const ExecutionResult& result);
+        
+        // Generate execution environment with variables and helper functions
+        std::string GenerateExecutionEnvironment(const ExecutionContext& context);
+        
+        // Apply naming conventions to a script
+        std::string ApplyNamingConventions(const std::string& script);
     };
 }

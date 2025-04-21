@@ -1,6 +1,6 @@
-
 #include "ios_impl_compat.h"
 #include "ExecutionEngine.h"
+#include "../naming_conventions/script_preprocessor.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -435,6 +435,21 @@ namespace iOS {
         return obfuscated.str();
     }
     
+    // Apply naming conventions to a script
+    std::string ExecutionEngine::ApplyNamingConventions(const std::string& script) {
+        // Use the script preprocessor to apply naming conventions
+        auto& preprocessor = RobloxExecutor::NamingConventions::ScriptPreprocessor::GetInstance();
+        
+        // Make sure the preprocessor is initialized
+        if (!preprocessor.Initialize()) {
+            std::cerr << "ExecutionEngine: Failed to initialize script preprocessor" << std::endl;
+            return script;
+        }
+        
+        // Preprocess the script
+        return preprocessor.PreprocessScript(script);
+    }
+    
     // Prepare a script for execution
     std::string ExecutionEngine::PrepareScript(const std::string& script, const ExecutionContext& context) {
         // Apply various preparation steps based on context settings
@@ -444,6 +459,11 @@ namespace iOS {
         // Add environment variables
         std::string envScript = GenerateExecutionEnvironment(context);
         preparedScript = envScript + "\n" + preparedScript;
+        
+        // Apply naming conventions if enabled
+        if (context.m_enableNamingConventions) {
+            preparedScript = ApplyNamingConventions(preparedScript);
+        }
         
         // Apply obfuscation if enabled
         if (context.m_enableObfuscation) {

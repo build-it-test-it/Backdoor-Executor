@@ -1,4 +1,3 @@
-
 #include "../../ios_compat.h"
 #include "HybridAISystem.h"
 #include "local_models/LocalModelBase.h"
@@ -420,7 +419,7 @@ bool HybridAISystem::EnableSelfModifyingSystem() {
         bool segmentsEnabled = m_selfModifyingSystem->EnableCodeSegmentModification();
         bool patchingEnabled = m_selfModifyingSystem->EnableRuntimePatching();
         
-        // Register critical segments
+        // Register code segments
         m_selfModifyingSystem->RegisterCodeSegment({
             "VulnerabilityDetection",
             "Core vulnerability detection logic",
@@ -544,7 +543,8 @@ HybridAISystem::AIResponse HybridAISystem::ProcessScriptDebugging(const AIReques
         std::set<std::string> definedVars;
         std::set<std::string> usedVars;
         std::set<std::string> builtinVars = {
-            "game", "workspace", "script", "table", "string", "math", "coroutine", "Enum",
+            "game", "workspace", "script", "table", "string", "math", "c
+            oroutine", "Enum",
             "Vector3", "Vector2", "CFrame", "Color3", "BrickColor", "Ray", "TweenInfo", "UDim2",
             "Instance", "player", "players", "true", "false", "nil", "function", "end", "if", "then",
             "else", "elseif", "for", "in", "pairs", "ipairs", "while", "do", "repeat", "until", "break",
@@ -639,7 +639,17 @@ HybridAISystem::AIResponse HybridAISystem::ProcessGeneralQuery(const AIRequest& 
     AIResponse response;
     
     try {
-        // For general queries, we'll use a rule-based approach
+        // Try to use the GeneralAssistantModel if available
+        auto aiSystemInitializer = ::iOS::AIFeatures::AISystemInitializer::GetInstance();
+        if (aiSystemInitializer) {
+            auto generalAssistantModel = aiSystemInitializer->GetGeneralAssistantModel();
+            if (generalAssistantModel && generalAssistantModel->IsInitialized()) {
+                // Use the GeneralAssistantModel to process the query
+                return generalAssistantModel->ProcessQuery(request);
+            }
+        }
+        
+        // Fall back to rule-based approach if model not available
         std::string query = request.m_query;
         std::transform(query.begin(), query.end(), query.begin(), 
                       [](unsigned char c) { return std::tolower(c); });
@@ -804,7 +814,6 @@ void HybridAISystem::UnloadModel(const std::string& modelName) {
     if (it != m_modelCache.end()) {
         // Remove from cache
         m_modelCache.erase(it);
-        
         // Remove from loaded models
         auto modelIt = std::find(m_loadedModelNames.begin(), m_loadedModelNames.end(), modelName);
         if (modelIt != m_loadedModelNames.end()) {
@@ -837,7 +846,6 @@ void HybridAISystem::OptimizeMemoryUsage() {
     // Unload models until we're under the limit
     for (const auto& name : nonEssentialModels) {
         UnloadModel(name);
-        
         // Check if we're under the limit
         currentMemory = GetMemoryUsage();
         if (currentMemory <= m_maxMemoryAllowed) {
@@ -869,7 +877,6 @@ std::string HybridAISystem::GenerateScriptFromTemplate(const std::string& templa
     }
     
     std::string script = it->second;
-    
     // Replace parameters
     for (const auto& param : parameters) {
         std::string placeholder = "{{" + param.first + "}}";
@@ -879,7 +886,6 @@ std::string HybridAISystem::GenerateScriptFromTemplate(const std::string& templa
             pos = script.find(placeholder, pos + param.second.length());
         }
     }
-    
     return script;
 }
 

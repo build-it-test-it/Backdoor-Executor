@@ -3,6 +3,9 @@
 #include "logging.hpp"
 #include "performance.hpp"
 #include "security/anti_tamper.hpp"
+#include "naming_conventions/naming_conventions.h"
+#include "naming_conventions/function_resolver.h"
+#include "naming_conventions/script_preprocessor.h"
 
 namespace RobloxExecutor {
 
@@ -73,6 +76,33 @@ bool SystemState::Initialize(const InitOptions& options) {
                 options.performanceThresholdMs
             );
             s_status.performanceInitialized = true;
+        }
+        
+        // Initialize naming conventions system
+        if (options.enableNamingConventions) {
+            // Initialize naming convention manager
+            auto& namingConventionManager = NamingConventions::NamingConventionManager::GetInstance();
+            if (!namingConventionManager.Initialize()) {
+                Logging::LogError("System", "Failed to initialize naming convention manager");
+                // Continue despite naming convention initialization failure
+            } else {
+                // Initialize function resolver
+                auto& functionResolver = NamingConventions::FunctionResolver::GetInstance();
+                if (!functionResolver.Initialize()) {
+                    Logging::LogError("System", "Failed to initialize function resolver");
+                    // Continue despite function resolver initialization failure
+                } else {
+                    // Initialize script preprocessor
+                    auto& scriptPreprocessor = NamingConventions::ScriptPreprocessor::GetInstance();
+                    if (!scriptPreprocessor.Initialize()) {
+                        Logging::LogError("System", "Failed to initialize script preprocessor");
+                        // Continue despite script preprocessor initialization failure
+                    } else {
+                        Logging::LogInfo("System", "Naming conventions system initialized");
+                        s_status.namingConventionsInitialized = true;
+                    }
+                }
+            }
         }
         
         // Initialize execution engine

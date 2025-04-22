@@ -11,12 +11,11 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
+# Copy application code first (including requirements.txt)
 COPY . .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

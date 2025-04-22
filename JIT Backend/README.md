@@ -1,6 +1,16 @@
-# SideStore Flask Backend
+# JIT Backend for iOS Apps
 
-This is the Flask backend for SideStore, which provides JIT enablement for iOS apps.
+A Flask-based backend for enabling Just-In-Time (JIT) compilation in sideloaded iOS applications. This backend is designed to be deployed on Render.com and provides a secure, scalable solution for enabling JIT without requiring device pairing or provisioning profiles.
+
+## Features
+
+- **Secure JIT Enablement**: Enables JIT compilation for iOS apps by toggling memory page permissions to comply with iOS's W^X security policy
+- **Device Registration and Authentication**: Secure JWT-based authentication for iOS devices
+- **Dropbox Database Integration**: Persistent storage using Dropbox API with automatic token refresh
+- **iOS Version-Specific Strategies**: Different JIT enablement strategies optimized for iOS 15, 16, and 17+
+- **Secure Communication**: HTTPS and token-based authentication to secure all communications
+- **Render.com Deployment Ready**: Configured for easy deployment on Render.com
+- **Monitoring and Statistics**: Anonymous usage statistics and detailed logging
 
 ## Setup
 
@@ -11,44 +21,113 @@ This is the Flask backend for SideStore, which provides JIT enablement for iOS a
 
 2. Run the server:
    ```
-   python production_app.py
+   python app.py
    ```
-
-## Important Notes
-
-### pymobiledevice3 Compatibility
-
-The backend requires specific versions of dependencies to work correctly:
-
-- `pymobiledevice3==2.30.0`: Version 2.31.0+ breaks the JIT functionality due to changes in the API.
-- `construct==2.10.69`: Required for pymobiledevice3 2.30.0 to work properly. Newer versions cause 'stream.tell()' errors.
-
-If you encounter the error `ModuleNotFoundError: No module named 'pymobiledevice3.services.debugserver'`, the backend will automatically use a compatibility module that implements the missing functionality.
-
-### Compatibility Module
-
-The `pymobiledevice3_compat` directory contains a compatibility layer that implements the missing `debugserver` module. This allows the backend to work with newer versions of pymobiledevice3 if needed, although it's still recommended to use the pinned versions in requirements.txt.
 
 ## API Endpoints
 
-- `/health`: Check if the server is running
-- `/register`: Register a device
-- `/enable-jit`: Enable JIT for an app
-- `/session/<session_id>`: Get the status of a JIT enablement session
-- `/devices`: List registered devices and active sessions
+### Authentication
+
+- `POST /register`: Register a device and get an authentication token
+  - Request: `{ "udid": "device-udid", "device_name": "iPhone", "ios_version": "17.0", "device_model": "iPhone15,2" }`
+  - Response: `{ "token": "jwt-token", "message": "Device registered successfully" }`
+
+### JIT Enablement
+
+- `POST /enable-jit`: Enable JIT for an application (requires authentication)
+  - Request: `{ "bundle_id": "com.example.app", "ios_version": "17.0" }`
+  - Response: `{ "status": "JIT enabled", "session_id": "uuid", "message": "Enabled JIT for 'com.example.app'!", "token": "jit-token", "method": "memory_permission_toggle", "instructions": {...} }`
+
+### Session Management
+
+- `GET /session/<session_id>`: Get the status of a JIT session (requires authentication)
+  - Response: `{ "status": "completed", "started_at": 1650000000, "completed_at": 1650000010, "bundle_id": "com.example.app", "method": "memory_permission_toggle" }`
+
+- `GET /device/sessions`: Get all JIT sessions for the authenticated device (requires authentication)
+  - Response: `{ "sessions": [...] }`
+
+### Monitoring
+
+- `GET /health`: Health check endpoint
+  - Response: `{ "status": "healthy", "timestamp": "2023-04-22T12:00:00", "version": "1.0.0" }`
+
+- `GET /stats`: Get anonymous statistics about the JIT backend usage
+  - Response: `{ "total_devices": 10, "active_devices": 5, "total_sessions": 100, "completed_sessions": 90, "failed_sessions": 5, "processing_sessions": 5 }`
+
+## Deployment
+
+### Local Development
+
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. Run the development server:
+   ```bash
+   export FLASK_ENV=development
+   export FLASK_APP=app.py
+   flask run --host=0.0.0.0 --port=5000
+   ```
+
+### Docker Deployment
+
+1. Build the Docker image:
+   ```bash
+   docker build -t jit-backend .
+   ```
+
+2. Run the container:
+   ```bash
+   docker run -d -p 5000:5000 \
+     -e JWT_SECRET_KEY=your_secret_key \
+     -e DROPBOX_APP_KEY=your_dropbox_app_key \
+     -e DROPBOX_APP_SECRET=your_dropbox_app_secret \
+     -e DROPBOX_REFRESH_TOKEN=your_dropbox_refresh_token \
+     jit-backend
+   ```
+
+### Render.com Deployment
+
+1. Fork this repository to your GitHub account
+
+2. Connect your GitHub repository to Render.com
+
+3. Create a new Web Service with the following settings:
+   - Environment: Docker
+   - Dockerfile Path: `./JIT Backend/Dockerfile`
+   - Environment Variables:
+     - `JWT_SECRET_KEY`: (Generate a secure random string)
+     - `FLASK_ENV`: production
+     - `DROPBOX_APP_KEY`: Your Dropbox app key
+     - `DROPBOX_APP_SECRET`: Your Dropbox app secret
+     - `DROPBOX_REFRESH_TOKEN`: Your Dropbox refresh token
+
+4. Deploy the service
+
+## Security Considerations
+
+- Always use HTTPS in production
+- Generate a strong JWT secret key
+- Keep your Dropbox credentials secure
+- Implement rate limiting in production environments
+- Monitor logs for suspicious activity
+
+## iOS Client Integration
+
+To integrate with this backend from your iOS app:
+
+1. Register your device with the backend
+2. Store the JWT token securely
+3. When JIT is needed, call the `/enable-jit` endpoint
+4. Follow the instructions returned by the backend to enable JIT in your app
+5. Implement the memory permission toggling based on the instructions
 
 ## Troubleshooting
 
 If you encounter issues with JIT enablement:
 
-1. Make sure you're using the correct versions of pymobiledevice3 and construct:
-   ```
-   pip install pymobiledevice3==2.30.0 construct==2.10.69
-   ```
-
-2. If you're using a system-wide Python installation, you might need to use the specific Python executable:
-   ```
-   /Library/Developer/CommandLineTools/usr/bin/python3 -m pip install pymobiledevice3==2.30.0 construct==2.10.69
-   ```
-
-3. Check the logs for detailed error messages.
+1. Check the logs for detailed error messages
+2. Verify that your device is properly registered
+3. Ensure your JWT token is valid and not expired
+4. Confirm that the bundle ID is correct and the app is running on the device

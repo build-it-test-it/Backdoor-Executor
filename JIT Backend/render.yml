@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: jit-backend
+    env: docker
+    dockerfilePath: ./JIT Backend/Dockerfile
+    envVars:
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: DROPBOX_APP_KEY
+        value: 2bi422xpd3xd962
+      - key: DROPBOX_APP_SECRET
+        sync: false
+      - key: DROPBOX_REFRESH_TOKEN
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: starter

@@ -210,14 +210,14 @@ extern "C" {
             }
             
             // Set up AI features with execution engine
-            auto engine = RobloxExecutor::SystemState::GetExecutionEngine();
-            auto scriptAssistant = RobloxExecutor::SystemState::GetScriptAssistant();
+            auto engine = std::move(RobloxExecutor::SystemState::GetExecutionEngine());
+            auto scriptAssistant = std::move(RobloxExecutor::SystemState::GetScriptAssistant());
             
             if (engine && scriptAssistant) {
                 // Register a callback to allow AI to execute scripts
                 scriptAssistant->SetExecutionCallback([](const std::string& script) -> bool {
                     // Use the execution engine to run the script
-                    auto result = RobloxExecutor::SystemState::GetExecutionEngine()->Execute(script);
+                    auto result = std::move(RobloxExecutor::SystemState::GetExecutionEngine()->Execute(script));
                     return result.m_success;
                 });
                 
@@ -252,7 +252,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get script assistant
-            auto scriptAssistant = RobloxExecutor::SystemState::GetScriptAssistant();
+            auto scriptAssistant = std::move(RobloxExecutor::SystemState::GetScriptAssistant());
             
             if (scriptAssistant && script) {
                 // Process the script with AI for suggestions

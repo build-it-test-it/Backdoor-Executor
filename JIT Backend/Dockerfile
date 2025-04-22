@@ -20,11 +20,14 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV FLASK_APP=production_app.py
-ENV PORT=5000
+ENV FLASK_APP=app.py
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Use the PORT environment variable provided by Render
+ENV PORT=10000
 
 # Expose port
-EXPOSE 5000
+EXPOSE ${PORT}
 
 # Run the application with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "production_app:app"]
+CMD gunicorn --bind 0.0.0.0:${PORT} --workers 4 --timeout 120 --access-logfile - --error-logfile - app:app

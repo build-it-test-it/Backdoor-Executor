@@ -3,8 +3,6 @@ services:
     name: jit-backend
     env: docker
     dockerfilePath: ./JIT Backend/Dockerfile
-    plan: free
-    healthCheckPath: /health
     envVars:
       - key: JWT_SECRET_KEY
         generateValue: true
@@ -13,6 +11,9 @@ services:
       - key: DROPBOX_APP_KEY
         value: 2bi422xpd3xd962
       - key: DROPBOX_APP_SECRET
-        value: j3yx0b41qdvfu86
+        sync: false
       - key: DROPBOX_REFRESH_TOKEN
-        value: RvyL03RE5qAAAAAAAAAAAVMVebvE7jDx8Okd0ploMzr85c6txvCRXpJAt30mxrKF
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: starter

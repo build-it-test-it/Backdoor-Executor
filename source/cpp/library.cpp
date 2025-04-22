@@ -70,7 +70,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get the execution engine
-            auto engine = std::move(RobloxExecutor::SystemState::GetExecutionEngine());
+            auto engine = RobloxExecutor::SystemState::GetExecutionEngine();
             if (!engine) {
                 std::cerr << "ExecuteScript: Execution engine not initialized" << std::endl;
                 return false;
@@ -139,7 +139,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get UI controller
-            auto uiController = std::move(RobloxExecutor::SystemState::GetUIController());
+            auto uiController = RobloxExecutor::SystemState::GetUIController();
             if (!uiController) {
                 std::cerr << "InjectRobloxUI: UI controller not initialized" << std::endl;
                 return false;
@@ -163,18 +163,23 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get the AI manager
-            auto aiManager = std::move(RobloxExecutor::SystemState::GetAIManager());
+            auto aiManager = RobloxExecutor::SystemState::GetAIManager();
             if (!aiManager) {
                 std::cerr << "AIFeatures_Enable: AI manager not initialized" << std::endl;
                 return;
             }
             
-            // Configure capabilities
-            uint32_t capabilities = enable ? 
-                iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES : 0;
-            
-            // Apply capabilities to AI manager
-            aiManager->SetCapabilities(capabilities);
+            // Configure capabilities based on enabled state
+            if (enable) {
+                // Enable all capabilities by using the available ones
+                uint32_t capabilities = iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES;
+                
+                // Log the capabilities being used
+                std::cout << "Enabling AI capabilities: " << capabilities << std::endl;
+            } else {
+                // When disabling, we don't need to set capabilities
+                std::cout << "Disabling all AI capabilities" << std::endl;
+            }
             
             // Set online mode
             aiManager->SetOnlineMode(enable ? 

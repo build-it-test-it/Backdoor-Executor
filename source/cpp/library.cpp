@@ -70,7 +70,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get the execution engine
-            auto engine = RobloxExecutor::SystemState::GetExecutionEngine();
+            auto engine = std::move(RobloxExecutor::SystemState::GetExecutionEngine());
             if (!engine) {
                 std::cerr << "ExecuteScript: Execution engine not initialized" << std::endl;
                 return false;
@@ -139,7 +139,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get UI controller
-            auto uiController = RobloxExecutor::SystemState::GetUIController();
+            auto uiController = std::move(RobloxExecutor::SystemState::GetUIController());
             if (!uiController) {
                 std::cerr << "InjectRobloxUI: UI controller not initialized" << std::endl;
                 return false;
@@ -163,7 +163,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get the AI manager
-            auto aiManager = RobloxExecutor::SystemState::GetAIManager();
+            auto aiManager = std::move(RobloxExecutor::SystemState::GetAIManager());
             if (!aiManager) {
                 std::cerr << "AIFeatures_Enable: AI manager not initialized" << std::endl;
                 return;
@@ -172,6 +172,9 @@ extern "C" {
             // Configure capabilities
             uint32_t capabilities = enable ? 
                 iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES : 0;
+            
+            // Apply capabilities to AI manager
+            aiManager->SetCapabilities(capabilities);
             
             // Set online mode
             aiManager->SetOnlineMode(enable ? 

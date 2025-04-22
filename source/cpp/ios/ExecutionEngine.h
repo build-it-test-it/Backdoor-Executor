@@ -57,7 +57,7 @@ namespace iOS {
             
             ExecutionResult(bool success = false, const std::string& error = "", 
                       int64_t executionTime = 0, const std::string& output = "")
-                : m_success(success), m_error(error), m_executionTime(executionTime), m_output(output) {}
+                : m_success(success), m_error(error), m_output(output), m_executionTime(executionTime) {}
         };
         
         // Callback types

@@ -55,8 +55,9 @@ namespace iOS {
             std::string m_output;          // Output from the script
             int64_t m_executionTime;       // Execution time in milliseconds
             
-            ExecutionResult(bool success = false, const std::string& error = "")
-                : m_success(success), m_error(error), m_executionTime(0) {}
+            ExecutionResult(bool success = false, const std::string& error = "", 
+                      int64_t executionTime = 0, const std::string& output = "")
+                : m_success(success), m_error(error), m_output(output), m_executionTime(executionTime) {}
         };
         
         // Callback types
@@ -72,6 +73,9 @@ namespace iOS {
         
         // Execute a script
         ExecutionResult Execute(const std::string& script, const ExecutionContext& context = ExecutionContext());
+        
+        // Execute a script by name from the script manager
+        ExecutionResult ExecuteByName(const std::string& scriptName, const ExecutionContext& context = ExecutionContext());
         
         // Set the default execution context
         void SetDefaultContext(const ExecutionContext& context);

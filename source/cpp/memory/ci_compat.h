@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef> // For size_t
+
 // CI compatibility header
 // This file provides compatibility definitions for continuous integration builds
 // where certain platform-specific features may not be available

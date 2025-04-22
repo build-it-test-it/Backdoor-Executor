@@ -9,6 +9,10 @@
 #include "ios/ScriptManager.h"
 #include "ios/JailbreakBypass.h"
 #include "ios/UIController.h"
+#include "ios/ai_features/AIIntegrationManager.h"
+#include "ios/ai_features/HybridAISystem.h"
+#include "ios/ai_features/AIConfig.h"
+#include "ios/ai_features/ScriptAssistant.h"
 #endif
 
 #ifdef __APPLE__
@@ -52,6 +56,7 @@ extern "C" {
     
     // Lua module entry point
     int luaopen_mylibrary(void* L) {
+        (void)L; // Prevent unused parameter warning
         std::cout << "Lua module loaded: mylibrary" << std::endl;
         
         // This will be called when the Lua state loads our library
@@ -134,7 +139,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get UI controller
-            auto uiController = RobloxExecutor::SystemState::GetUIController();
+            auto& uiController = RobloxExecutor::SystemState::GetUIController();
             if (!uiController) {
                 std::cerr << "InjectRobloxUI: UI controller not initialized" << std::endl;
                 return false;
@@ -164,9 +169,19 @@ extern "C" {
                 return;
             }
             
-            // Configure capabilities
-            uint32_t capabilities = enable ? 
-                iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES : 0;
+            // Configure capabilities based on enabled state
+            if (enable) {
+                // Log the capabilities being used
+                uint32_t capabilities = iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES;
+                std::cout << "Enabling AI capabilities: " << capabilities << std::endl;
+                
+                // Check available capabilities
+                uint32_t availableCapabilities = aiManager->GetAvailableCapabilities();
+                std::cout << "Available AI capabilities: " << availableCapabilities << std::endl;
+            } else {
+                // When disabling, we don't need to set capabilities
+                std::cout << "Disabling all AI capabilities" << std::endl;
+            }
             
             // Set online mode
             aiManager->SetOnlineMode(enable ? 
@@ -214,7 +229,7 @@ extern "C" {
                 });
                 
                 // Register AI-generated script suggestions before execution
-                engine->RegisterBeforeExecuteCallback([scriptAssistant](const std::string& script, 
+                engine->RegisterBeforeExecuteCallback([&scriptAssistant](const std::string& script, 
                                                                        iOS::ExecutionEngine::ExecutionContext& context) {
                     if (scriptAssistant) {
                         // Log script for AI learning

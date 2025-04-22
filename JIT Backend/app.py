@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_file, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
 import os
@@ -219,6 +219,20 @@ class JITEnabler:
         return base64.urlsafe_b64encode(token_data.encode()).decode()
 
 # Routes
+@app.route('/', methods=['GET'])
+def index():
+    """Main page with shortcut download instructions"""
+    return render_template('index.html')
+
+@app.route('/download-shortcut', methods=['GET'])
+def download_shortcut():
+    """Download the JIT Enabler Shortcut"""
+    shortcut_path = os.path.join(os.path.dirname(__file__), 'JIT_Enabler_Shortcut.json')
+    return send_file(shortcut_path, 
+                    mimetype='application/json',
+                    as_attachment=True,
+                    download_name='JIT_Enabler.shortcut')
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""

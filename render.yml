@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: sidestore-jit-backend
+    name: jit-backend
     env: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./JIT Backend/Dockerfile
     plan: free
     healthCheckPath: /health
     envVars:
@@ -10,3 +10,9 @@ services:
         generateValue: true
       - key: FLASK_ENV
         value: production
+      - key: DROPBOX_APP_KEY
+        value: 2bi422xpd3xd962
+      - key: DROPBOX_APP_SECRET
+        value: j3yx0b41qdvfu86
+      - key: DROPBOX_REFRESH_TOKEN
+        value: RvyL03RE5qAAAAAAAAAAAVMVebvE7jDx8Okd0ploMzr85c6txvCRXpJAt30mxrKF

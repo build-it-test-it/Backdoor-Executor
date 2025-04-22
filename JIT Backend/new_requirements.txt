@@ -1,0 +1,8 @@
+flask==2.3.3
+flask-jwt-extended==4.5.2
+flask-cors==4.0.0
+gunicorn==21.2.0
+cryptography==41.0.3
+dropbox==11.36.2
+requests==2.31.0
+python-dotenv==1.0.0

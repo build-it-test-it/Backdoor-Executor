@@ -139,7 +139,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get UI controller
-            auto uiController = RobloxExecutor::SystemState::GetUIController();
+            auto uiController = std::move(RobloxExecutor::SystemState::GetUIController());
             if (!uiController) {
                 std::cerr << "InjectRobloxUI: UI controller not initialized" << std::endl;
                 return false;

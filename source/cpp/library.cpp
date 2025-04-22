@@ -9,6 +9,10 @@
 #include "ios/ScriptManager.h"
 #include "ios/JailbreakBypass.h"
 #include "ios/UIController.h"
+#include "ios/ai_features/AIIntegrationManager.h"
+#include "ios/ai_features/HybridAISystem.h"
+#include "ios/ai_features/AIConfig.h"
+#include "ios/ai_features/ScriptAssistant.h"
 #endif
 
 #ifdef __APPLE__
@@ -52,6 +56,7 @@ extern "C" {
     
     // Lua module entry point
     int luaopen_mylibrary(void* L) {
+        (void)L; // Prevent unused parameter warning
         std::cout << "Lua module loaded: mylibrary" << std::endl;
         
         // This will be called when the Lua state loads our library
@@ -134,7 +139,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get UI controller
-            auto uiController = RobloxExecutor::SystemState::GetUIController();
+            auto& uiController = RobloxExecutor::SystemState::GetUIController();
             if (!uiController) {
                 std::cerr << "InjectRobloxUI: UI controller not initialized" << std::endl;
                 return false;

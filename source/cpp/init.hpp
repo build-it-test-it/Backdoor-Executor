@@ -156,6 +156,12 @@ public:
      * @return Shared pointer to the signature adaptation
      */
     static std::shared_ptr<iOS::AIFeatures::SignatureAdaptation> GetSignatureAdaptation() { return s_signatureAdaptation; }
+    
+    /**
+     * @brief Get the AI integration
+     * @return Shared pointer to the AI integration
+     */
+    static void* GetAIIntegration() { return s_aiIntegration; }
 #else
     /**
      * @brief Get the execution engine (non-iOS stub)
@@ -192,6 +198,12 @@ public:
      * @return nullptr on non-iOS platforms
      */
     static void* GetSignatureAdaptation() { return s_signatureAdaptation; }
+    
+    /**
+     * @brief Get the AI integration (non-iOS stub)
+     * @return nullptr on non-iOS platforms
+     */
+    static void* GetAIIntegration() { return s_aiIntegration; }
 #endif
     
 private:

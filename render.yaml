@@ -3,6 +3,7 @@ services:
     name: jit-backend
     env: docker
     dockerfilePath: ./JIT Backend/Dockerfile
+    dockerContext: ./JIT Backend
     plan: free
     healthCheckPath: /health
     envVars:

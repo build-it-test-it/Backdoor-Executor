@@ -171,11 +171,13 @@ extern "C" {
             
             // Configure capabilities based on enabled state
             if (enable) {
-                // Enable all capabilities by using the available ones
-                uint32_t capabilities = iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES;
-                
                 // Log the capabilities being used
+                uint32_t capabilities = iOS::AIFeatures::AIIntegrationManager::FULL_CAPABILITIES;
                 std::cout << "Enabling AI capabilities: " << capabilities << std::endl;
+                
+                // Check available capabilities
+                uint32_t availableCapabilities = aiManager->GetAvailableCapabilities();
+                std::cout << "Available AI capabilities: " << availableCapabilities << std::endl;
             } else {
                 // When disabling, we don't need to set capabilities
                 std::cout << "Disabling all AI capabilities" << std::endl;
@@ -215,14 +217,14 @@ extern "C" {
             }
             
             // Set up AI features with execution engine
-            auto engine = std::move(RobloxExecutor::SystemState::GetExecutionEngine());
-            auto scriptAssistant = std::move(RobloxExecutor::SystemState::GetScriptAssistant());
+            auto engine = RobloxExecutor::SystemState::GetExecutionEngine();
+            auto scriptAssistant = RobloxExecutor::SystemState::GetScriptAssistant();
             
             if (engine && scriptAssistant) {
                 // Register a callback to allow AI to execute scripts
                 scriptAssistant->SetExecutionCallback([](const std::string& script) -> bool {
                     // Use the execution engine to run the script
-                    auto result = std::move(RobloxExecutor::SystemState::GetExecutionEngine()->Execute(script));
+                    auto result = RobloxExecutor::SystemState::GetExecutionEngine()->Execute(script);
                     return result.m_success;
                 });
                 
@@ -257,7 +259,7 @@ extern "C" {
         try {
 #ifdef __APPLE__
             // Get script assistant
-            auto scriptAssistant = std::move(RobloxExecutor::SystemState::GetScriptAssistant());
+            auto scriptAssistant = RobloxExecutor::SystemState::GetScriptAssistant();
             
             if (scriptAssistant && script) {
                 // Process the script with AI for suggestions

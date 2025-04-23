@@ -153,7 +153,7 @@
             transform: translateY(1px);
         }
 
-        .shortcut-box {
+        .app-box {
             border: 2px dashed var(--border-color);
             border-radius: 12px;
             padding: 24px;
@@ -162,18 +162,13 @@
             background-color: rgba(0, 122, 255, 0.05);
         }
 
-        .shortcut-icon {
+        .app-icon {
             width: 80px;
             height: 80px;
             margin-bottom: 16px;
         }
 
-        .qr-code {
-            display: block;
-            margin: 20px auto;
-            max-width: 200px;
-            height: auto;
-        }
+
 
         footer {
             text-align: center;
@@ -194,7 +189,7 @@
                 --body-bg: #1c1c1e;
             }
             
-            .shortcut-box {
+            .app-box {
                 border-color: #38383a;
                 background-color: rgba(0, 122, 255, 0.1);
             }
@@ -219,23 +214,23 @@
                 <li>Virtual machines</li>
                 <li>Programming language interpreters</li>
             </ul>
-            <p>iOS normally restricts JIT compilation for security reasons, but our JIT Enabler Shortcut allows you to enable it for your apps.</p>
+            <p>iOS normally restricts JIT compilation for security reasons, but our JIT Enabler iOS App allows you to enable it for your apps.</p>
         </div>
 
         <div class="card">
             <h2>How to Enable JIT</h2>
             <div class="steps">
                 <div class="step">
-                    <h3>Download the JIT Enabler Shortcut</h3>
-                    <p>Tap the button below to download our iOS Shortcut.</p>
+                    <h3>Download the JIT Enabler iOS App</h3>
+                    <p>Download our iOS App from the App Store or through TestFlight.</p>
                 </div>
                 <div class="step">
-                    <h3>Add the Shortcut to your device</h3>
-                    <p>Follow the on-screen instructions to add the shortcut to your device.</p>
+                    <h3>Configure the App</h3>
+                    <p>Open the JIT Enabler app and enter this server URL in the settings.</p>
                 </div>
                 <div class="step">
-                    <h3>Run the Shortcut</h3>
-                    <p>Open the Shortcuts app and run the JIT Enabler shortcut.</p>
+                    <h3>Register Your Device</h3>
+                    <p>The app will automatically register your device with our JIT backend.</p>
                 </div>
                 <div class="step">
                     <h3>Select your app</h3>
@@ -248,24 +243,20 @@
             </div>
         </div>
 
-        <div class="shortcut-box">
-            <img src="https://help.apple.com/assets/6231D2AAFC8AD1B76D67A55B/6231D2ACFC8AD1B76D67A562/en_US/8b631353a441420c74e54416e4a0e83e.png" alt="Shortcuts Icon" class="shortcut-icon">
-            <h3>JIT Enabler Shortcut</h3>
-            <p>Choose your preferred format to download the shortcut:</p>
+        <div class="app-box">
+            <img src="/static/app_icon.png" alt="JIT Enabler App Icon" class="app-icon" onerror="this.src='https://developer.apple.com/design/human-interface-guidelines/foundations/app-icons/images/app-icon-sizes_2x.png'">
+            <h3>JIT Enabler iOS App</h3>
+            <p>Our dedicated iOS app provides a seamless experience for enabling JIT:</p>
             
             <div style="display: flex; justify-content: center; gap: 16px; margin: 20px 0; flex-wrap: wrap;">
-                <a href="/download-shortcut" class="btn">Download Standard Shortcut</a>
-                <a href="/download-shortcut?type=jellycuts" class="btn" style="background-color: var(--success-color);">Download Jellycuts Version</a>
-                <a href="/install" class="btn" style="background-color: var(--warning-color); margin-top: 10px;">Install Signed Shortcut</a>
+                <a href="https://apps.apple.com/app/jit-enabler" class="btn">Download from App Store</a>
+                <a href="https://testflight.apple.com/join/jitenabler" class="btn" style="background-color: var(--success-color);">Join TestFlight Beta</a>
             </div>
             
-            <div style="margin-top: 20px; padding: 15px; background-color: rgba(255, 149, 0, 0.1); border-radius: 8px;">
-                <h4 style="color: var(--warning-color); margin-bottom: 10px;">Why use Jellycuts?</h4>
-                <p>The Jellycuts version doesn't require signing and can be easily customized. <a href="/JELLYCUTS_README.md" style="color: var(--primary-color);">Learn more</a></p>
+            <div style="margin-top: 20px; padding: 15px; background-color: rgba(0, 122, 255, 0.1); border-radius: 8px;">
+                <h4 style="color: var(--primary-color); margin-bottom: 10px;">Why use the iOS App?</h4>
+                <p>The dedicated iOS app provides a better user experience, improved reliability, and more features than the previous shortcut-based solution.</p>
             </div>
-            
-            <p style="margin-top: 16px;">Or scan this QR code for the standard version:</p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ request.url_root }}download-shortcut" alt="QR Code" class="qr-code">
         </div>
 
         <div class="card">
@@ -282,14 +273,14 @@
 
         <div class="card">
             <h2>How It Works</h2>
-            <p>The JIT Enabler Shortcut works by:</p>
+            <p>The JIT Enabler iOS App works by:</p>
             <ol>
                 <li>Registering your device with our secure JIT backend</li>
                 <li>Requesting JIT enablement for your selected app</li>
                 <li>Applying the necessary memory permission changes to enable JIT</li>
                 <li>All communication is encrypted and secure</li>
             </ol>
-            <p>The shortcut uses different techniques based on your iOS version to ensure compatibility with iOS 15, 16, and 17+.</p>
+            <p>The app uses different techniques based on your iOS version to ensure compatibility with iOS 15, 16, and 17+.</p>
         </div>
     </div>
 

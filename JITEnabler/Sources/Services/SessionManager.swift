@@ -26,7 +26,7 @@ class SessionManager {
         
         // Set default backend URL if not set
         if backendURL == nil {
-            backendURL = "https://your-jit-backend.onrender.com"
+            backendURL = "https://jit-backend-dna8.onrender.com"
         }
     }
     

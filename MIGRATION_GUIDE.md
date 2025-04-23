@@ -10,24 +10,25 @@ If you're experiencing issues with CodeMagic builds, such as the "Invalid encryp
 - Potentially lower costs
 - Elimination of team-specific encryption key issues
 
-## Simplified Approach
+## Robust Build Approach
 
-This migration takes a simplified approach:
+This migration implements a robust build process:
+- Multiple build methods (Makefile and script) for reliability
+- Proper IPA file structure creation
+- IPA verification steps
 - No code signing required (builds for simulator)
 - No GitHub secrets needed (values hardcoded)
 - No TestFlight deployment (artifact only)
-- Simple IPA creation (zip file of the app)
 
 ## Migration Steps
 
-### 1. Add the GitHub Workflow File
+### 1. Add the Build Tools
 
-The GitHub Actions workflow file (`.github/workflows/ios-app-build.yml`) has been created for you. It includes:
+The migration includes several build tools:
 
-- Setting up the macOS build environment
-- Building the app for iOS simulator
-- Creating a zip file of the app (as an IPA)
-- Uploading the build as a GitHub Actions artifact
+1. **Makefile** (`Makefile.ios`): Provides a structured build process with various targets
+2. **Build Script** (`scripts/build_ipa.sh`): Offers an alternative build method
+3. **GitHub Actions Workflow** (`.github/workflows/ios-app-build.yml`): Orchestrates the build process
 
 ### 2. Remove CodeMagic Configuration
 
@@ -51,12 +52,46 @@ After the workflow completes:
 3. Scroll down to the "Artifacts" section
 4. Download the "ios-app-build" artifact which contains the IPA file
 
+## Build Process Details
+
+### Makefile Targets
+
+The `Makefile.ios` includes several useful targets:
+
+- `clean`: Removes build artifacts
+- `setup`: Sets up environment variables
+- `build-simulator`: Builds the app for iOS simulator
+- `create-simulator-ipa`: Creates an IPA from the simulator build
+- `build-ipa`: Main target that builds the IPA file
+- `info`: Shows build information
+
+### Build Script
+
+The `scripts/build_ipa.sh` script:
+
+1. Builds the app for iOS simulator
+2. Creates a proper IPA file structure with Payload directory
+3. Adds required metadata
+4. Packages everything into an IPA file
+5. Verifies the build
+
+### GitHub Actions Workflow
+
+The workflow:
+
+1. Sets up the macOS build environment
+2. Tries building with the Makefile
+3. Falls back to the build script if needed
+4. Verifies the IPA file structure
+5. Uploads the build as a GitHub Actions artifact
+
 ## Troubleshooting
 
 ### Build Failures
 
 If the build fails:
 - Check the GitHub Actions logs for specific error messages
+- Try building locally using the Makefile or script
 - Verify that your Xcode project builds locally without issues
 - Ensure all dependencies are correctly specified
 
@@ -65,7 +100,6 @@ If the build fails:
 Note that building for the simulator has some limitations:
 - The app will only run on iOS simulators, not real devices
 - Some device-specific features may not work in the simulator
-- The IPA is not a standard IPA file but a zip of the app bundle
 
 ## Future Enhancements
 
@@ -79,5 +113,6 @@ If you need to deploy to real devices or TestFlight in the future:
 
 If you encounter issues during migration:
 1. Check the GitHub Actions logs for detailed error messages
-2. Review Apple's documentation on Xcode builds
-3. Consider consulting with an iOS CI/CD specialist if problems persist
+2. Try building locally using the provided tools
+3. Review Apple's documentation on Xcode builds
+4. Consider consulting with an iOS CI/CD specialist if problems persist

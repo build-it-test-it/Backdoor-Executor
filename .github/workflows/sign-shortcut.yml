@@ -75,7 +75,7 @@ jobs:
           zip -r ../JITEnabler.ipa .
       
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ios-app-build
           path: build/ios/JITEnabler.ipa

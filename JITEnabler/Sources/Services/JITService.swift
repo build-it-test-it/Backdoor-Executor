@@ -133,6 +133,19 @@ class JITService {
         // In a real implementation, this would use private APIs to apply the JIT instructions
         // Since we can't include that code here, we'll simulate success
         
+        // Log the instructions for debugging
+        print("Applying JIT instructions:")
+        print("- Set CS_DEBUGGED: \(instructions.setCsDebugged)")
+        if let toggleWx = instructions.toggleWxMemory {
+            print("- Toggle W^X Memory: \(toggleWx)")
+        }
+        if let memoryRegions = instructions.memoryRegions {
+            print("- Memory Regions: \(memoryRegions.count)")
+            for (index, region) in memoryRegions.enumerated() {
+                print("  Region \(index): \(region.address) (size: \(region.size), permissions: \(region.permissions))")
+            }
+        }
+        
         // Simulate a delay for the JIT enablement process
         DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) {
             // Simulate success

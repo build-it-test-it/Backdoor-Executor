@@ -82,7 +82,7 @@ jobs:
           echo "IPA file structure verified successfully!"
       
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ios-app-build
           path: build/ios/ipa/*.ipa

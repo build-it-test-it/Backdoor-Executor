@@ -25,14 +25,30 @@ jobs:
             exit 1
           fi
 
-      # Import signing certificate from Priv folder
+      # Verify .p12 file exists and print checksum for debugging
+      - name: Verify certificate file
+        run: |
+          if [ ! -f "Priv/Games.p12" ]; then
+            echo "Error: Priv/Games.p12 not found"
+            exit 1
+          fi
+          echo "Checksum of Priv/Games.p12:"
+          shasum -a 256 Priv/Games.p12
+
+      # Import signing certificate
       - name: Import signing certificate
         run: |
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
-          security import Priv/Games.p12 -k build.keychain -P "1234" -T /usr/bin/codesign -T /usr/bin/shortcuts
+          echo "Importing Priv/Games.p12 with password 1234"
+          security import Priv/Games.p12 -k build.keychain -P "1234" -T /usr/bin/codesign -T /usr/bin/shortcuts || {
+            echo "Error: Failed to import certificate"
+            exit 1
+          }
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          echo "Listing identities in keychain:"
+          security find-identity -v -p codesigning
         # Alternative using a secret (recommended):
         # env:
         #   CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
@@ -46,10 +62,14 @@ jobs:
       # Find and sign all .shortcut files
       - name: Sign Shortcuts
         run: |
-          SIGNING_IDENTITY="Developer ID Application: (*K5S7WU9FSX)"
+          SIGNING_IDENTITY="Developer ID Application: Lynq Inc (K5S7WU9FSX)"
+          echo "Using signing identity: $SIGNING_IDENTITY"
           find . -type f -name "*.shortcut" | while read -r file; do
             echo "Signing $file..."
-            shortcuts sign --input "$file" --output "${file%.shortcut}-signed.shortcut" --identity "$SIGNING_IDENTITY"
+            shortcuts sign --input "$file" --output "${file%.shortcut}-signed.shortcut" --identity "$SIGNING_IDENTITY" || {
+              echo "Error: Failed to sign $file"
+              exit 1
+            }
           done
 
       # Upload signed artifacts

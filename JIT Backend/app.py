@@ -221,43 +221,8 @@ class JITEnabler:
 # Routes
 @app.route('/', methods=['GET'])
 def index():
-    """Main page with shortcut download instructions"""
+    """Main page with iOS app download instructions"""
     return render_template('index.html')
-
-@app.route('/install', methods=['GET'])
-def install_shortcut():
-    """Page for installing the signed shortcut"""
-    return render_template('shortcut_install.html')
-
-@app.route('/download-shortcut', methods=['GET'])
-def download_shortcut():
-    """Download the JIT Enabler Shortcut"""
-    shortcut_type = request.args.get('type', 'json')
-    
-    if shortcut_type == 'jellycuts':
-        shortcut_path = os.path.join(os.path.dirname(__file__), 'JIT_Enabler.jellycuts')
-        return send_file(shortcut_path, 
-                        mimetype='text/plain',
-                        as_attachment=True,
-                        download_name='JIT_Enabler.jellycuts')
-    else:
-        shortcut_path = os.path.join(os.path.dirname(__file__), 'JIT_Enabler_Shortcut.json')
-        return send_file(shortcut_path, 
-                        mimetype='application/json',
-                        as_attachment=True,
-                        download_name='JIT_Enabler.shortcut')
-
-@app.route('/JELLYCUTS_README.md', methods=['GET'])
-def jellycuts_readme():
-    """Serve the Jellycuts README file"""
-    readme_path = os.path.join(os.path.dirname(__file__), 'JELLYCUTS_README.md')
-    return send_file(readme_path, mimetype='text/markdown')
-
-@app.route('/SHORTCUT_SIGNING.md', methods=['GET'])
-def shortcut_signing_readme():
-    """Serve the Shortcut Signing README file"""
-    readme_path = os.path.join(os.path.dirname(__file__), 'SHORTCUT_SIGNING.md')
-    return send_file(readme_path, mimetype='text/markdown')
 
 @app.route('/health', methods=['GET'])
 def health_check():

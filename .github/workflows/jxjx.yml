@@ -25,15 +25,28 @@ jobs:
             exit 1
           fi
 
+      # Import signing certificate from Priv folder
+      - name: Import signing certificate
+        run: |
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import Priv/certificate.p12 -k build.keychain -P "1234" -T /usr/bin/codesign -T /usr/bin/shortcuts
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+        # Alternative using a secret (recommended):
+        # env:
+        #   CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        # run: |
+        #   security create-keychain -p "" build.keychain
+        #   security default-keychain -s build.keychain
+        #   security unlock-keychain -p "" build.keychain
+        #   security import Priv/certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/shortcuts
+        #   security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
       # Find and sign all .shortcut files
       - name: Sign Shortcuts
-        env:
-          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
         run: |
-          if [ -z "$SIGNING_IDENTITY" ]; then
-            echo "SIGNING_IDENTITY not set. Skipping signing."
-            exit 1
-          fi
+          SIGNING_IDENTITY="Developer ID Application: (*K5S7WU9FSX)"
           find . -type f -name "*.shortcut" | while read -r file; do
             echo "Signing $file..."
             shortcuts sign --input "$file" --output "${file%.shortcut}-signed.shortcut" --identity "$SIGNING_IDENTITY"

@@ -6,7 +6,7 @@ A Flask-based backend for enabling Just-In-Time (JIT) compilation in sideloaded 
 
 - **Secure JIT Enablement**: Enables JIT compilation for iOS apps by toggling memory page permissions to comply with iOS's W^X security policy
 - **Device Registration and Authentication**: Secure JWT-based authentication for iOS devices
-- **Dropbox Database Integration**: Persistent storage using Dropbox API with automatic token refresh
+- **Dropbox Database Integration**: Persistent storage using Dropbox API with automatic token refresh for reliable database access without requiring a traditional database server
 - **iOS Version-Specific Strategies**: Different JIT enablement strategies optimized for iOS 15, 16, and 17+
 - **Secure Communication**: HTTPS and token-based authentication to secure all communications
 - **Render.com Deployment Ready**: Configured for easy deployment on Render.com
@@ -123,6 +123,21 @@ To integrate with this backend from your iOS app:
 4. Follow the instructions returned by the backend to enable JIT in your app
 5. Implement the memory permission toggling based on the instructions
 
+## Dropbox Database Implementation
+
+The backend uses Dropbox as a database to store device and session information:
+
+1. **Automatic Token Refresh**: The system automatically refreshes the Dropbox access token to maintain continuous database connectivity
+2. **Thread-Safe Operations**: All database operations are thread-safe using a global lock
+3. **Persistent Storage**: Device registrations, JIT sessions, and usage statistics are stored in JSON files on Dropbox
+4. **Automatic Cleanup**: A background thread periodically cleans up old sessions to prevent database bloat
+5. **Error Handling**: Comprehensive error handling ensures database operations are reliable
+
+### Database Files
+
+- `/jit_backend/devices.json`: Stores device registration information
+- `/jit_backend/sessions.json`: Stores JIT session data
+
 ## Troubleshooting
 
 If you encounter issues with JIT enablement:
@@ -131,3 +146,4 @@ If you encounter issues with JIT enablement:
 2. Verify that your device is properly registered
 3. Ensure your JWT token is valid and not expired
 4. Confirm that the bundle ID is correct and the app is running on the device
+5. Check the Dropbox connection status using the `/health` endpoint

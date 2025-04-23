@@ -79,8 +79,6 @@ build-simulator:
 		-configuration Debug \
 		-sdk iphonesimulator \
 		-derivedDataPath $(DERIVED_DATA_PATH) \
-		-destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' \
-		CODE_SIGN_IDENTITY="" \
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGNING_ALLOWED=NO
 

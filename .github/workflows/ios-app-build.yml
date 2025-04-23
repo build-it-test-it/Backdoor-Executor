@@ -35,20 +35,17 @@ jobs:
         run: |
           xcrun simctl list devices available
       
-      - name: Build iOS app using Makefile
+      - name: Make build script executable
         run: |
-          echo "Building iOS app using Makefile..."
-          make -f Makefile.ios clean setup build-ipa
+          chmod +x build-ios.sh
+          
+      - name: Build iOS app
+        run: |
+          echo "Building iOS app..."
+          ./build-ios.sh
           
           # Verify the build
           ls -la build/ios/ipa/
-          
-          # If the Makefile build fails, try the script
-          if [ ! -f "build/ios/ipa/JITEnabler-simulator.ipa" ] && [ ! -f "build/ios/ipa/JITEnabler.ipa" ]; then
-            echo "Makefile build failed, trying script..."
-            chmod +x scripts/build_ipa.sh
-            ./scripts/build_ipa.sh
-          fi
       
       - name: Verify IPA file
         run: |
@@ -89,3 +86,4 @@ jobs:
         with:
           name: ios-app-build
           path: build/ios/ipa/*.ipa
+          if-no-files-found: error

@@ -17,7 +17,7 @@ The iOS app is built using GitHub Actions with a robust build process that:
 The repository includes multiple build methods to ensure reliability:
 
 1. **Makefile**: `Makefile.ios` provides a structured build process with various targets
-2. **Build Script**: `scripts/build_ipa.sh` offers an alternative build method if the Makefile fails
+2. **Build Script**: `build-ios.sh` offers a simplified way to run the Makefile
 3. **GitHub Actions Workflow**: Orchestrates the build process in CI/CD
 
 ### GitHub Actions Workflow
@@ -43,17 +43,39 @@ After the workflow completes:
 
 You can build the app locally using the following methods:
 
-#### Using Makefile:
+#### Using the Build Script (Recommended):
+```bash
+./build-ios.sh
+```
+
+#### Using Makefile Directly:
 ```bash
 make -f Makefile.ios clean setup build-ipa
 ```
 
-#### Using Build Script:
-```bash
-./scripts/build_ipa.sh
-```
-
 The IPA file will be created in the `build/ios/ipa/` directory.
+
+### Build Options
+
+The Makefile provides several targets for different build scenarios:
+
+- `clean`: Removes all build artifacts
+- `setup`: Sets up the build environment
+- `build-simulator`: Builds the app for iOS simulator
+- `create-simulator-ipa`: Creates an IPA from the simulator build
+- `build-ipa`: Creates the final IPA file
+- `info`: Shows information about the build configuration
+
+### IPA File Structure
+
+The generated IPA file is a standard iOS app package with the following structure:
+
+```
+Payload/
+  JITEnabler.app/
+    Info.plist
+    ...app contents...
+```
 
 ### Manual Workflow Trigger
 

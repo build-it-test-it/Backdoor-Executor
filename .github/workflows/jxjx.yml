@@ -41,8 +41,8 @@ jobs:
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
-          echo "Importing Priv/Games.p12 with password 1234"
-          security import Priv/Games.p12 -k build.keychain -P "1234" -T /usr/bin/codesign -T /usr/bin/shortcuts || {
+          echo "Importing Priv/Games.p12 with password "
+          security import Priv/Games.p12 -k build.keychain -P "" -T /usr/bin/codesign -T /usr/bin/shortcuts || {
             echo "Error: Failed to import certificate"
             exit 1
           }

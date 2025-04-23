@@ -26,55 +26,66 @@ jobs:
         with:
           xcode-version: latest-stable
       
-      - name: Set up environment variables
+      - name: List available Xcode versions
         run: |
-          echo "Setting up environment variables..."
-          echo "DROPBOX_APP_KEY=2bi422xpd3xd962" >> .env
-          echo "DROPBOX_APP_SECRET=j3yx0b41qdvfu86" >> .env
-          echo "DROPBOX_REFRESH_TOKEN=RvyL03RE5qAAAAAAAAAAAVMVebvE7jDx8Okd0ploMzr85c6txvCRXpJAt30mxrKF" >> .env
+          ls -la /Applications/ | grep Xcode
+          xcodebuild -version
+          
+      - name: List available simulators
+        run: |
+          xcrun simctl list devices available
       
-      - name: Create ExportOptions.plist for development build
+      - name: Build iOS app using Makefile
         run: |
-          cat > ExportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>development</string>
-              <key>compileBitcode</key>
-              <false/>
-              <key>signingStyle</key>
-              <string>automatic</string>
-          </dict>
-          </plist>
-          EOF
+          echo "Building iOS app using Makefile..."
+          make -f Makefile.ios clean setup build-ipa
+          
+          # Verify the build
+          ls -la build/ios/ipa/
+          
+          # If the Makefile build fails, try the script
+          if [ ! -f "build/ios/ipa/JITEnabler-simulator.ipa" ] && [ ! -f "build/ios/ipa/JITEnabler.ipa" ]; then
+            echo "Makefile build failed, trying script..."
+            chmod +x scripts/build_ipa.sh
+            ./scripts/build_ipa.sh
+          fi
       
-      - name: Build iOS app
+      - name: Verify IPA file
         run: |
-          echo "Building iOS app..."
-          # Build for simulator to avoid code signing requirements
-          xcodebuild build \
-            -project "$XCODE_PROJECT" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          echo "Verifying IPA file..."
+          # Find the IPA file
+          IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           
-          # Create a directory for the app
-          mkdir -p build/ios/app
+          if [ -z "$IPA_FILE" ]; then
+            echo "Error: No IPA file found!"
+            exit 1
+          fi
           
-          # Find the app in the build directory and copy it
-          find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d -path "*$XCODE_SCHEME*" | xargs -I {} cp -R {} build/ios/app/
+          echo "Found IPA file: $IPA_FILE"
+          ls -la "$IPA_FILE"
           
-          # Create a simple zip file as our "IPA" for artifact purposes
-          cd build/ios/app
-          zip -r ../JITEnabler.ipa .
+          # Verify the IPA file structure
+          mkdir -p /tmp/ipa_check
+          unzip -q "$IPA_FILE" -d /tmp/ipa_check
+          ls -la /tmp/ipa_check
+          
+          # Check if Payload directory exists
+          if [ ! -d "/tmp/ipa_check/Payload" ]; then
+            echo "Error: Payload directory not found in IPA!"
+            exit 1
+          fi
+          
+          # Check if app exists in Payload
+          APP_COUNT=$(find /tmp/ipa_check/Payload -name "*.app" -type d | wc -l)
+          if [ "$APP_COUNT" -eq 0 ]; then
+            echo "Error: No .app found in Payload directory!"
+            exit 1
+          fi
+          
+          echo "IPA file structure verified successfully!"
       
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: ios-app-build
-          path: build/ios/JITEnabler.ipa
+          path: build/ios/ipa/*.ipa

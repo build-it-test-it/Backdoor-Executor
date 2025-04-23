@@ -1,88 +1,114 @@
-name: Sign iOS Shortcuts
+name: Sign and Distribute Shortcuts
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   sign-shortcuts:
     runs-on: macos-latest
 
     steps:
-      # Checkout the repository
-      - name: Checkout code
+      # Step 1: Checkout the repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Ensure the shortcuts CLI tool is available
-      - name: Verify shortcuts CLI
+      # Step 2: Debug directory structure
+      - name: List Directory Structure
         run: |
-          if ! command -v shortcuts &> /dev/null; then
-            echo "shortcuts CLI not found. Ensure it's installed on the runner."
+          echo "Current working directory: $(pwd)"
+          echo "Listing all files in repository:"
+          find . -type f -ls
+          echo "Checking for Priv folder:"
+          find . -type d -name "Priv" || echo "Priv folder not found"
+          echo "Listing .shortcut files:"
+          find . -type f -name "*.shortcut" || echo "No .shortcut files found"
+
+      # Step 3: Install dependencies and download zsign
+      - name: Install Dependencies and Download zsign
+        run: |
+          brew install curl unzip
+          curl -L -o zsign-v0.7-macos-x64.zip https://github.com/zhlynn/zsign/releases/download/v0.7/zsign-v0.7-macos-x64.zip --fail --show-error
+          if [ ! -f zsign-v0.7-macos-x64.zip ]; then
+            echo "Error: zsign download failed"
             exit 1
           fi
-
-      # Verify .p12 file exists and print checksum for debugging
-      - name: Verify certificate file
-        run: |
-          if [ ! -f "Priv/Games.p12" ]; then
-            echo "Error: Priv/Games.p12 not found"
+          echo "ZIP download completed"
+          unzip zsign-v0.7-macos-x64.zip -d zsign-bin
+          if [ ! -f zsign-bin/zsign ]; then
+            echo "Error: zsign binary not found after unzip"
             exit 1
           fi
-          echo "Checksum of Priv/Games.p12:"
-          shasum -a 256 Priv/Games.p12
-
-      # Import signing certificate
-      - name: Import signing certificate
-        run: |
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          echo "Importing Priv/Games.p12 (no password)"
-          security import Priv/Games.p12 -k build.keychain -P "" -A -T /usr/bin/codesign -T /usr/bin/shortcuts || {
-            echo "Error: Failed to import certificate"
+          echo "ZIP extraction completed"
+          file zsign-bin/zsign
+          xattr -d com.apple.quarantine zsign-bin/zsign || true
+          chmod +x zsign-bin/zsign
+          echo "Permissions set for zsign"
+          sudo mv zsign-bin/zsign /usr/local/bin/zsign
+          if [ ! -f /usr/local/bin/zsign ]; then
+            echo "Error: Failed to move zsign to /usr/local/bin"
             exit 1
-          }
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain || {
-            echo "Error: Failed to set key partition list"
+          fi
+          echo "zsign moved to /usr/local/bin"
+          ZSIGN_OUTPUT=$(/usr/local/bin/zsign -h 2>&1 || true)
+          ZSIGN_EXIT_CODE=$?
+          echo "zsign -h exit code: $ZSIGN_EXIT_CODE"
+          echo "zsign -h output: $ZSIGN_OUTPUT"
+          if ! echo "$ZSIGN_OUTPUT" | grep -q "zsign (v0.7)"; then
+            echo "Error: zsign is not valid or incorrect version"
             exit 1
-          }
-          echo "Listing identities in keychain:"
-          security find-identity -v -p codesigning
+          fi
+          echo "zsign installed successfully"
 
-      # Find and sign all .shortcut files
-      - name: Sign Shortcuts
+      # Step 4: Find certificate
+      - name: Locate Certificate
+        id: find-files
         run: |
-          SIGNING_IDENTITY="Developer ID Application: Lynq Inc (K5S7WU9FSX)"
-          echo "Using signing identity: $SIGNING_IDENTITY"
-          find . -type f -name "*.shortcut" | while read -r file; do
+          P12_FILE=$(find . -type f -name "*.p12" -path "*/Priv/*" | head -n 1)
+          if [ -z "$P12_FILE" ]; then
+            echo "Error: Could not find .p12 file in Priv folder"
+            find . -type f -name "*.p12"
+            exit 1
+          fi
+          echo "p12_file=$P12_FILE" >> $GITHUB_OUTPUT
+          echo "Found .p12: $P12_FILE"
+          echo "Checksum of .p12 file:"
+          shasum -a 256 "$P12_FILE"
+
+      # Step 5: Sign Shortcuts with zsign
+      - name: Sign Shortcuts with zsign
+        run: |
+          SHORTCUT_FILES=$(find . -type f -name "*.shortcut")
+          if [ -z "$SHORTCUT_FILES" ]; then
+            echo "Error: No .shortcut files found in repository"
+            exit 1
+          fi
+          for file in $SHORTCUT_FILES; do
             echo "Signing $file..."
-            shortcuts sign --input "$file" --output "${file%.shortcut}-signed.shortcut" --identity "$SIGNING_IDENTITY" || {
-              echo "Error: Failed to sign $file"
+            /usr/local/bin/zsign -d -k "${{ steps.find-files.outputs.p12_file }}" \
+                                -p "" \
+                                -o "${file%.shortcut}-signed.shortcut" \
+                                "$file"
+            if [ ! -f "${file%.shortcut}-signed.shortcut" ]; then
+              echo "Error: Signing failed for $file, signed shortcut not found"
+              ls -lh .zsign_debug || echo "No debug folder found"
               exit 1
-            }
+            fi
+            echo "Signed shortcut created: ${file%.shortcut}-signed.shortcut"
+            ls -lh "${file%.shortcut}-signed.shortcut"
           done
 
-      # Upload signed artifacts
-      - name: Upload signed shortcuts
-        uses: actions/upload-artifact@v4
+      # Step 6: Upload signed shortcuts to GitHub Releases
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: signed-shortcuts
-          path: |
+          files: |
             **/*-signed.shortcut
-          if-no-files-found: warn
-
-      # Optional: Commit signed shortcuts back to the repository
-      - name: Commit signed shortcuts
-        if: github.event_name == 'push'
-        run: |
-          git config user.name "GitHub Action"
-          git config user.email "action@github.com"
-          git add *-signed.shortcut
-          git commit -m "Add signed shortcut files" || echo "No changes to commit"
-          git push
+          tag_name: v${{ github.run_id }}
+          name: Signed Shortcuts Release
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

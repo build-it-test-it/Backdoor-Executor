@@ -227,11 +227,26 @@ def index():
 @app.route('/download-shortcut', methods=['GET'])
 def download_shortcut():
     """Download the JIT Enabler Shortcut"""
-    shortcut_path = os.path.join(os.path.dirname(__file__), 'JIT_Enabler_Shortcut.json')
-    return send_file(shortcut_path, 
-                    mimetype='application/json',
-                    as_attachment=True,
-                    download_name='JIT_Enabler.shortcut')
+    shortcut_type = request.args.get('type', 'json')
+    
+    if shortcut_type == 'jellycuts':
+        shortcut_path = os.path.join(os.path.dirname(__file__), 'JIT_Enabler.jellycuts')
+        return send_file(shortcut_path, 
+                        mimetype='text/plain',
+                        as_attachment=True,
+                        download_name='JIT_Enabler.jellycuts')
+    else:
+        shortcut_path = os.path.join(os.path.dirname(__file__), 'JIT_Enabler_Shortcut.json')
+        return send_file(shortcut_path, 
+                        mimetype='application/json',
+                        as_attachment=True,
+                        download_name='JIT_Enabler.shortcut')
+
+@app.route('/JELLYCUTS_README.md', methods=['GET'])
+def jellycuts_readme():
+    """Serve the Jellycuts README file"""
+    readme_path = os.path.join(os.path.dirname(__file__), 'JELLYCUTS_README.md')
+    return send_file(readme_path, mimetype='text/markdown')
 
 @app.route('/health', methods=['GET'])
 def health_check():

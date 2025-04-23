@@ -251,9 +251,19 @@
         <div class="shortcut-box">
             <img src="https://help.apple.com/assets/6231D2AAFC8AD1B76D67A55B/6231D2ACFC8AD1B76D67A562/en_US/8b631353a441420c74e54416e4a0e83e.png" alt="Shortcuts Icon" class="shortcut-icon">
             <h3>JIT Enabler Shortcut</h3>
-            <p>Tap the button below to download the shortcut to your iOS device.</p>
-            <a href="/download-shortcut" class="btn">Download Shortcut</a>
-            <p style="margin-top: 16px;">Or scan this QR code:</p>
+            <p>Choose your preferred format to download the shortcut:</p>
+            
+            <div style="display: flex; justify-content: center; gap: 16px; margin: 20px 0;">
+                <a href="/download-shortcut" class="btn">Download Standard Shortcut</a>
+                <a href="/download-shortcut?type=jellycuts" class="btn" style="background-color: var(--success-color);">Download Jellycuts Version</a>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: rgba(255, 149, 0, 0.1); border-radius: 8px;">
+                <h4 style="color: var(--warning-color); margin-bottom: 10px;">Why use Jellycuts?</h4>
+                <p>The Jellycuts version doesn't require signing and can be easily customized. <a href="/JELLYCUTS_README.md" style="color: var(--primary-color);">Learn more</a></p>
+            </div>
+            
+            <p style="margin-top: 16px;">Or scan this QR code for the standard version:</p>
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ request.url_root }}download-shortcut" alt="QR Code" class="qr-code">
         </div>
 

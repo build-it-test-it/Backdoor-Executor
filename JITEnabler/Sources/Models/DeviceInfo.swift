@@ -8,10 +8,9 @@ struct DeviceInfo: Codable {
     let iosVersion: String
     
     static func current() -> DeviceInfo {
-        // Generate a unique device identifier based on device properties
-        // This is a pseudo-UDID since we can't access the actual UDID without special entitlements
+        // Get the real device identifier
         let deviceName = UIDevice.current.name
-        let deviceModel = UIDevice.modelName
+        let deviceModel = UIDevice.modelName // Raw device identifier
         let iosVersion = UIDevice.current.systemVersion
         
         // Create a string with device info
@@ -23,7 +22,7 @@ struct DeviceInfo: Codable {
         return DeviceInfo(
             udid: pseudoUDID,
             deviceName: deviceName,
-            deviceModel: deviceModel,
+            deviceModel: deviceModel, // Using the raw device identifier
             iosVersion: iosVersion
         )
     }
@@ -48,6 +47,14 @@ extension UIDevice {
             guard let value = element.value as? Int8, value != 0 else { return identifier }
             return identifier + String(UnicodeScalar(UInt8(value)))
         }
+        
+        // Always return the raw identifier for accurate device identification
+        return identifier
+    }
+    
+    // Helper method to get a user-friendly device name
+    static var marketingName: String {
+        let identifier = modelName
         
         // Map common device identifiers to human-readable names
         switch identifier {

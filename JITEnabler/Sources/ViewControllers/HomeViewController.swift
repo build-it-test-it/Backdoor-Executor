@@ -58,8 +58,8 @@ class HomeViewController: UIViewController {
         recentAppsCollectionView.delegate = self
         recentAppsCollectionView.dataSource = self
         
-        // Register cell
-        recentAppsCollectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "RecentAppCell")
+        // Register a standard cell that supports content configuration
+        recentAppsCollectionView.register(UICollectionViewListCell.self, forCellWithReuseIdentifier: "RecentAppCell")
     }
     
     private func setupTableView() {

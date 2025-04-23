@@ -1,0 +1,35 @@
+workflows:
+  ios-native-workflow:
+    name: iOS JIT Enabler Build
+    instance_type: mac_mini_m1
+    environment:
+      vars:
+        XCODE_WORKSPACE: "iOS-JIT-Enabler.xcworkspace" # Uncomment if using CocoaPods
+        XCODE_PROJECT: "iOS-JIT-Enabler.xcodeproj" # Comment out if using CocoaPods
+        XCODE_SCHEME: "iOS-JIT-Enabler"
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install CocoaPods dependencies
+        script: |
+          # Uncomment if using CocoaPods
+          # pod install
+      - name: Set up code signing settings
+        script: |
+          echo "Setting up code signing"
+          # Codemagic will automatically generate the necessary code signing files
+      - name: Build iOS app
+        script: |
+          xcodebuild build -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+            -configuration Release -sdk iphoneos \
+            CODE_SIGN_IDENTITY="$CM_CERTIFICATE" \
+            PROVISIONING_PROFILE="$CM_PROVISIONING_PROFILE"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      email:
+        recipients:
+          - user@example.com

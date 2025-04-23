@@ -1,0 +1,57 @@
+name: Sign iOS Shortcuts
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sign-shortcuts:
+    runs-on: macos-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Ruby (needed for shortcuts signing tool)
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      # Install shortcuts signing tool
+      - name: Install shortcuts-sign
+        run: gem install shortcuts-sign
+
+      # Find and sign all .shortcut files
+      - name: Sign Shortcuts
+        run: |
+          find . -type f -name "*.shortcut" | while read -r file; do
+            echo "Signing $file..."
+            shortcuts-sign sign --input "$file" --output "${file%.shortcut}-signed.shortcut"
+          done
+
+      # Upload signed artifacts
+      - name: Upload signed shortcuts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-shortcuts
+          path: |
+            **/*-signed.shortcut
+          if-no-files-found: warn
+
+      # Optional: Commit signed shortcuts back to the repository
+      - name: Commit signed shortcuts
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add *-signed.shortcut
+          git commit -m "Add signed shortcut files" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

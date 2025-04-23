@@ -224,6 +224,11 @@ def index():
     """Main page with shortcut download instructions"""
     return render_template('index.html')
 
+@app.route('/install', methods=['GET'])
+def install_shortcut():
+    """Page for installing the signed shortcut"""
+    return render_template('shortcut_install.html')
+
 @app.route('/download-shortcut', methods=['GET'])
 def download_shortcut():
     """Download the JIT Enabler Shortcut"""
@@ -246,6 +251,12 @@ def download_shortcut():
 def jellycuts_readme():
     """Serve the Jellycuts README file"""
     readme_path = os.path.join(os.path.dirname(__file__), 'JELLYCUTS_README.md')
+    return send_file(readme_path, mimetype='text/markdown')
+
+@app.route('/SHORTCUT_SIGNING.md', methods=['GET'])
+def shortcut_signing_readme():
+    """Serve the Shortcut Signing README file"""
+    readme_path = os.path.join(os.path.dirname(__file__), 'SHORTCUT_SIGNING.md')
     return send_file(readme_path, mimetype='text/markdown')
 
 @app.route('/health', methods=['GET'])

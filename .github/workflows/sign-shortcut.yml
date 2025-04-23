@@ -1,0 +1,137 @@
+name: Sign iOS Shortcut
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'JIT Backend/JIT_Enabler_Shortcut.json'
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'Backend URL to use in the shortcut'
+        required: false
+        default: 'https://your-jit-backend.onrender.com'
+
+jobs:
+  sign-shortcut:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests plistlib
+
+      - name: Create signed shortcut directory
+        run: mkdir -p signed_shortcuts
+
+      - name: Process and prepare shortcut for signing
+        id: prepare_shortcut
+        run: |
+          python .github/scripts/prepare_shortcut.py \
+            --input "JIT Backend/JIT_Enabler_Shortcut.json" \
+            --output "signed_shortcuts/JIT_Enabler_Shortcut_prepared.json" \
+            --backend-url "${{ github.event.inputs.backend_url || 'https://your-jit-backend.onrender.com' }}"
+          echo "prepared_shortcut=signed_shortcuts/JIT_Enabler_Shortcut_prepared.json" >> $GITHUB_OUTPUT
+
+      - name: Sign shortcut using Shortcut Signing Service
+        id: sign_shortcut
+        run: |
+          python .github/scripts/sign_shortcut.py \
+            --input "${{ steps.prepare_shortcut.outputs.prepared_shortcut }}" \
+            --output "signed_shortcuts/JIT_Enabler.shortcut"
+          echo "signed_shortcut=signed_shortcuts/JIT_Enabler.shortcut" >> $GITHUB_OUTPUT
+
+      - name: Create QR code for shortcut
+        run: |
+          pip install qrcode[pil]
+          python .github/scripts/create_qrcode.py \
+            --shortcut-path "${{ steps.sign_shortcut.outputs.signed_shortcut }}" \
+            --output "signed_shortcuts/JIT_Enabler_QR.png" \
+            --url "${{ github.server_url }}/${{ github.repository }}/releases/latest/download/JIT_Enabler.shortcut"
+
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: JIT Enabler Shortcut v${{ github.run_number }}
+          body: |
+            # JIT Enabler Shortcut
+            
+            This release contains a signed version of the JIT Enabler Shortcut that can be directly installed on iOS devices.
+            
+            ## Installation Options:
+            
+            1. **Direct Download**: Click on the JIT_Enabler.shortcut file below to download and install
+            2. **QR Code**: Scan the QR code with your iOS device camera to install
+            
+            ## Backend URL
+            
+            This shortcut is configured to use: ${{ github.event.inputs.backend_url || 'https://your-jit-backend.onrender.com' }}
+            
+            ## Note
+            
+            After installation, you may need to confirm that you trust the shortcut.
+          files: |
+            signed_shortcuts/JIT_Enabler.shortcut
+            signed_shortcuts/JIT_Enabler_QR.png
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update website with latest shortcut link
+        run: |
+          echo "<!DOCTYPE html>
+          <html>
+          <head>
+            <title>JIT Enabler Shortcut</title>
+            <meta name='viewport' content='width=device-width, initial-scale=1'>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+              .container { text-align: center; margin-top: 50px; }
+              .button { display: inline-block; background-color: #007AFF; color: white; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: bold; margin: 10px; }
+              .qr-code { margin-top: 30px; }
+              .instructions { text-align: left; margin-top: 40px; }
+            </style>
+          </head>
+          <body>
+            <div class='container'>
+              <h1>JIT Enabler Shortcut</h1>
+              <p>Install the JIT Enabler shortcut on your iOS device</p>
+              
+              <a href='${{ steps.create_release.outputs.upload_url }}' class='button'>Download Shortcut</a>
+              
+              <div class='qr-code'>
+                <h2>Or scan this QR code:</h2>
+                <img src='${{ github.server_url }}/${{ github.repository }}/releases/latest/download/JIT_Enabler_QR.png' alt='QR Code' width='300'>
+              </div>
+              
+              <div class='instructions'>
+                <h2>Installation Instructions:</h2>
+                <ol>
+                  <li>Click the download button above or scan the QR code with your iOS device camera</li>
+                  <li>When prompted, tap 'Add Shortcut'</li>
+                  <li>If asked, confirm that you trust the shortcut</li>
+                  <li>The shortcut will be added to your Shortcuts app</li>
+                </ol>
+              </div>
+            </div>
+          </body>
+          </html>" > signed_shortcuts/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: signed_shortcuts
+          branch: gh-pages
+          clean: true

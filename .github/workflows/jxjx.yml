@@ -26,45 +26,8 @@ jobs:
           echo "Listing .shortcut files:"
           find . -type f -name "*.shortcut" || echo "No .shortcut files found"
 
-      # Step 3: Install dependencies and download zsign
-      - name: Install Dependencies and Download zsign
-        run: |
-          brew install curl unzip
-          curl -L -o zsign-v0.7-macos-x64.zip https://github.com/zhlynn/zsign/releases/download/v0.7/zsign-v0.7-macos-x64.zip --fail --show-error
-          if [ ! -f zsign-v0.7-macos-x64.zip ]; then
-            echo "Error: zsign download failed"
-            exit 1
-          fi
-          echo "ZIP download completed"
-          unzip zsign-v0.7-macos-x64.zip -d zsign-bin
-          if [ ! -f zsign-bin/zsign ]; then
-            echo "Error: zsign binary not found after unzip"
-            exit 1
-          fi
-          echo "ZIP extraction completed"
-          file zsign-bin/zsign
-          xattr -d com.apple.quarantine zsign-bin/zsign || true
-          chmod +x zsign-bin/zsign
-          echo "Permissions set for zsign"
-          sudo mv zsign-bin/zsign /usr/local/bin/zsign
-          if [ ! -f /usr/local/bin/zsign ]; then
-            echo "Error: Failed to move zsign to /usr/local/bin"
-            exit 1
-          fi
-          echo "zsign moved to /usr/local/bin"
-          ZSIGN_OUTPUT=$(/usr/local/bin/zsign -h 2>&1 || true)
-          ZSIGN_EXIT_CODE=$?
-          echo "zsign -h exit code: $ZSIGN_EXIT_CODE"
-          echo "zsign -h output: $ZSIGN_OUTPUT"
-          if ! echo "$ZSIGN_OUTPUT" | grep -q "zsign (v0.7)"; then
-            echo "Error: zsign is not valid or incorrect version"
-            exit 1
-          fi
-          echo "zsign installed successfully"
-
-      # Step 4: Find certificate
-      - name: Locate Certificate
-        id: find-files
+      # Step 3: Verify certificate file
+      - name: Verify Certificate File
         run: |
           P12_FILE=$(find . -type f -name "*.p12" -path "*/Priv/*" | head -n 1)
           if [ -z "$P12_FILE" ]; then
@@ -72,14 +35,42 @@ jobs:
             find . -type f -name "*.p12"
             exit 1
           fi
-          echo "p12_file=$P12_FILE" >> $GITHUB_OUTPUT
           echo "Found .p12: $P12_FILE"
           echo "Checksum of .p12 file:"
           shasum -a 256 "$P12_FILE"
+          echo "Inspecting .p12 file with openssl:"
+          openssl pkcs12 -info -in "$P12_FILE" -nokeys -passin pass: 2>&1 || {
+            echo "Warning: openssl inspection failed. The .p12 file may be corrupted or password-protected."
+          }
+        env:
+          P12_FILE: ${{ steps.find-files.outputs.p12_file }}
 
-      # Step 5: Sign Shortcuts with zsign
-      - name: Sign Shortcuts with zsign
+      # Step 4: Import signing certificate
+      - name: Import Signing Certificate
         run: |
+          P12_FILE=$(find . -type f -name "*.p12" -path "*/Priv/*" | head -n 1)
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          echo "Importing $P12_FILE (no password)"
+          security import "$P12_FILE" -k build.keychain -P "" -A -T /usr/bin/codesign || {
+            echo "Error: Failed to import certificate. The .p12 file may be corrupted or require a password."
+            exit 1
+          }
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain || {
+            echo "Error: Failed to set key partition list"
+            exit 1
+          }
+          echo "Listing identities in keychain:"
+          security find-identity -v -p codesigning
+        env:
+          P12_FILE: ${{ steps.find-files.outputs.p12_file }}
+
+      # Step 5: Sign Shortcuts with codesign
+      - name: Sign Shortcuts with codesign
+        run: |
+          SIGNING_IDENTITY="Developer ID Application: Lynq Inc (K5S7WU9FSX)"
+          echo "Using signing identity: $SIGNING_IDENTITY"
           SHORTCUT_FILES=$(find . -type f -name "*.shortcut")
           if [ -z "$SHORTCUT_FILES" ]; then
             echo "Error: No .shortcut files found in repository"
@@ -87,15 +78,11 @@ jobs:
           fi
           for file in $SHORTCUT_FILES; do
             echo "Signing $file..."
-            /usr/local/bin/zsign -d -k "${{ steps.find-files.outputs.p12_file }}" \
-                                -p "" \
-                                -o "${file%.shortcut}-signed.shortcut" \
-                                "$file"
-            if [ ! -f "${file%.shortcut}-signed.shortcut" ]; then
-              echo "Error: Signing failed for $file, signed shortcut not found"
-              ls -lh .zsign_debug || echo "No debug folder found"
+            codesign -f -s "$SIGNING_IDENTITY" "$file" --keychain build.keychain || {
+              echo "Error: Failed to sign $file"
               exit 1
-            fi
+            }
+            mv "$file" "${file%.shortcut}-signed.shortcut"
             echo "Signed shortcut created: ${file%.shortcut}-signed.shortcut"
             ls -lh "${file%.shortcut}-signed.shortcut"
           done

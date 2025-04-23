@@ -17,22 +17,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Ruby (needed for shortcuts signing tool)
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-
-      # Install shortcuts signing tool
-      - name: Install shortcuts-sign
-        run: gem install shortcuts-sign
+      # Ensure the shortcuts CLI tool is available
+      - name: Verify shortcuts CLI
+        run: |
+          if ! command -v shortcuts &> /dev/null; then
+            echo "shortcuts CLI not found. Ensure it's installed on the runner."
+            exit 1
+          fi
 
       # Find and sign all .shortcut files
       - name: Sign Shortcuts
+        env:
+          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
         run: |
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            echo "SIGNING_IDENTITY not set. Skipping signing."
+            exit 1
+          fi
           find . -type f -name "*.shortcut" | while read -r file; do
             echo "Signing $file..."
-            shortcuts-sign sign --input "$file" --output "${file%.shortcut}-signed.shortcut"
+            shortcuts sign --input "$file" --output "${file%.shortcut}-signed.shortcut" --identity "$SIGNING_IDENTITY"
           done
 
       # Upload signed artifacts

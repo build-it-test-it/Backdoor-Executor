@@ -1,0 +1,47 @@
+workflows:
+  ios-jit-enabler:
+    name: JIT Enabler iOS App
+    instance_type: mac_mini_m1
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.jitenabler.app
+      vars:
+        XCODE_PROJECT: "JITEnabler.xcodeproj"
+        XCODE_SCHEME: "JITEnabler"
+        APP_STORE_CONNECT_ISSUER_ID: Encrypted(...) # Add your encrypted issuer ID
+        APP_STORE_CONNECT_KEY_IDENTIFIER: Encrypted(...) # Add your encrypted key identifier
+        APP_STORE_CONNECT_PRIVATE_KEY: Encrypted(...) # Add your encrypted private key
+        BUNDLE_ID: "com.jitenabler.app"
+        DROPBOX_APP_KEY: Encrypted(2bi422xpd3xd962) # Encrypted app key
+        DROPBOX_APP_SECRET: Encrypted(j3yx0b41qdvfu86) # Encrypted app secret
+        DROPBOX_REFRESH_TOKEN: Encrypted(RvyL03RE5qAAAAAAAAAAAVMVebvE7jDx8Okd0ploMzr85c6txvCRXpJAt30mxrKF) # Encrypted refresh token
+    scripts:
+      - name: Set up code signing
+        script: |
+          echo "Setting up code signing..."
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Set up environment variables
+        script: |
+          echo "Setting up environment variables..."
+          echo "DROPBOX_APP_KEY=$DROPBOX_APP_KEY" >> .env
+          echo "DROPBOX_APP_SECRET=$DROPBOX_APP_SECRET" >> .env
+          echo "DROPBOX_REFRESH_TOKEN=$DROPBOX_REFRESH_TOKEN" >> .env
+      - name: Build iOS app
+        script: |
+          echo "Building iOS app..."
+          xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        submit_to_app_store: false

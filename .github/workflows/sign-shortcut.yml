@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install requests qrcode[pil]
 
       - name: Create signed shortcut directory
         run: mkdir -p signed_shortcuts
@@ -52,7 +52,6 @@ jobs:
 
       - name: Create QR code for shortcut
         run: |
-          pip install qrcode[pil]
           python .github/scripts/create_qrcode.py \
             --shortcut-path "${{ steps.sign_shortcut.outputs.signed_shortcut }}" \
             --output "signed_shortcuts/JIT_Enabler_QR.png" \

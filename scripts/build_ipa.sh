@@ -30,7 +30,8 @@ xcodebuild clean build \
     -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' \
     CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGNING_ALLOWED=NO
+    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGN_ENTITLEMENTS="JITEnabler/JITEnabler.entitlements"
 
 # Find the app file
 APP_PATH=$(find "${DERIVED_DATA_PATH}/Build/Products" -name "*.app" -type d | head -1)
@@ -47,23 +48,18 @@ echo "=== Creating IPA package ==="
 mkdir -p "${IPA_DIR}/Payload"
 cp -R "${APP_PATH}" "${IPA_DIR}/Payload/"
 
-# Add Info.plist with required metadata
-cat > "${IPA_DIR}/Payload/$(basename "${APP_PATH}")/Info.plist" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleIdentifier</key>
-    <string>com.jitenabler.app</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-    <key>MinimumOSVersion</key>
-    <string>15.0</string>
-</dict>
-</plist>
-EOF
+# Make sure the entitlements file is included
+if [ -f "JITEnabler/JITEnabler.entitlements" ]; then
+    echo "Copying entitlements file..."
+    cp "JITEnabler/JITEnabler.entitlements" "${IPA_DIR}/Payload/$(basename "${APP_PATH}")/"
+fi
+
+# Do NOT overwrite the Info.plist file - use the one from the built app
+# Just ensure the bundle identifier is set correctly
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.jitenabler.app" "${IPA_DIR}/Payload/$(basename "${APP_PATH}")/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1.0" "${IPA_DIR}/Payload/$(basename "${APP_PATH}")/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "${IPA_DIR}/Payload/$(basename "${APP_PATH}")/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 15.0" "${IPA_DIR}/Payload/$(basename "${APP_PATH}")/Info.plist"
 
 # Create the IPA file
 cd "${IPA_DIR}" && zip -r JITEnabler.ipa Payload && rm -rf Payload

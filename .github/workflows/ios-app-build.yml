@@ -1,4 +1,4 @@
-name: Build and Deploy iOS App
+name: Build iOS App
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build and Deploy iOS App
+    name: Build iOS App
     runs-on: macos-latest
     
     env:
@@ -26,46 +26,14 @@ jobs:
         with:
           xcode-version: latest-stable
       
-      - name: Install Apple Certificate
-        uses: apple-actions/import-codesigning-certs@v2
-        with:
-          p12-file-base64: ${{ secrets.IOS_DISTRIBUTION_P12 }}
-          p12-password: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
-          keychain: github-actions-xcode
-          keychain-password: ${{ github.run_id }}
-      
-      - name: Install Provisioning Profile
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-      
       - name: Set up environment variables
         run: |
           echo "Setting up environment variables..."
-          echo "DROPBOX_APP_KEY=${{ secrets.DROPBOX_APP_KEY }}" >> .env
-          echo "DROPBOX_APP_SECRET=${{ secrets.DROPBOX_APP_SECRET }}" >> .env
-          echo "DROPBOX_REFRESH_TOKEN=${{ secrets.DROPBOX_REFRESH_TOKEN }}" >> .env
+          echo "DROPBOX_APP_KEY=2bi422xpd3xd962" >> .env
+          echo "DROPBOX_APP_SECRET=j3yx0b41qdvfu86" >> .env
+          echo "DROPBOX_REFRESH_TOKEN=RvyL03RE5qAAAAAAAAAAAVMVebvE7jDx8Okd0ploMzr85c6txvCRXpJAt30mxrKF" >> .env
       
-      - name: Build iOS app
-        run: |
-          echo "Building iOS app..."
-          xcodebuild archive \
-            -project "$XCODE_PROJECT" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath build/JITEnabler.xcarchive \
-            -allowProvisioningUpdates \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_NAME }}" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.IOS_PROVISIONING_PROFILE_SPECIFIER }}"
-          
-          # Create IPA
-          xcodebuild -exportArchive \
-            -archivePath build/JITEnabler.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist ExportOptions.plist
-      
-      - name: Create ExportOptions.plist
+      - name: Create ExportOptions.plist for development build
         run: |
           cat > ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -73,33 +41,41 @@ jobs:
           <plist version="1.0">
           <dict>
               <key>method</key>
-              <string>app-store</string>
-              <key>teamID</key>
-              <string>${{ secrets.APPLE_TEAM_ID }}</string>
+              <string>development</string>
+              <key>compileBitcode</key>
+              <false/>
               <key>signingStyle</key>
-              <string>manual</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>${BUNDLE_ID}</key>
-                  <string>${{ secrets.IOS_PROVISIONING_PROFILE_SPECIFIER }}</string>
-              </dict>
+              <string>automatic</string>
           </dict>
           </plist>
           EOF
       
-      - name: Upload build artifacts
+      - name: Build iOS app
+        run: |
+          echo "Building iOS app..."
+          # Build for simulator to avoid code signing requirements
+          xcodebuild build \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+          
+          # Create a directory for the app
+          mkdir -p build/ios/app
+          
+          # Find the app in the build directory and copy it
+          find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d -path "*$XCODE_SCHEME*" | xargs -I {} cp -R {} build/ios/app/
+          
+          # Create a simple zip file as our "IPA" for artifact purposes
+          cd build/ios/app
+          zip -r ../JITEnabler.ipa .
+      
+      - name: Upload build artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ios-build
-          path: |
-            build/ios/ipa/*.ipa
-            build/JITEnabler.xcarchive/dSYMs/
-      
-      - name: Upload to TestFlight
-        if: github.event_name != 'pull_request'
-        uses: apple-actions/upload-testflight-build@v1
-        with:
-          app-path: build/ios/ipa/*.ipa
-          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
-          api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          name: ios-app-build
+          path: build/ios/JITEnabler.ipa

@@ -1,9 +1,6 @@
 name: Sign and Distribute Shortcuts
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch: # Allows manual triggering
 
 jobs:

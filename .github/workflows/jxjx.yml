@@ -1,98 +1,91 @@
-name: Sign and Distribute Shortcuts
+name: Roblox Luau Script Workflow
 
 on:
-  workflow_dispatch: # Allows manual triggering
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  sign-shortcuts:
-    runs-on: macos-latest
+  process-luau-script:
+    runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout Repository
+      # Checkout the repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Debug directory structure
-      - name: List Directory Structure
+      # Install dependencies (CMake, g++, git)
+      - name: Install dependencies
         run: |
-          echo "Current working directory: $(pwd)"
-          echo "Listing all files in repository:"
-          find . -type f -ls
-          echo "Checking for Priv folder:"
-          find . -type d -name "Priv" || echo "Priv folder not found"
-          echo "Listing .shortcut files:"
-          find . -type f -name "*.shortcut" || echo "No .shortcut files found"
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ git
 
-      # Step 3: Verify certificate file
-      - name: Verify Certificate File
+      # Install Luau tools
+      - name: Install Luau
         run: |
-          P12_FILE=$(find . -type f -name "*.p12" -path "*/Priv/*" | head -n 1)
-          if [ -z "$P12_FILE" ]; then
-            echo "Error: Could not find .p12 file in Priv folder"
-            find . -type f -name "*.p12"
+          git clone https://github.com/luau-lang/luau.git
+          cd luau
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+          sudo cp build/luau /usr/local/bin/
+          sudo cp build/luau-analyze /usr/local/bin/
+          sudo cp build/luau-compile /usr/local/bin/
+
+      # Install luauDec
+      - name: Install luauDec
+        run: |
+          git clone --recursive https://github.com/xgladius/luauDec.git
+          cd luauDec
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . -j
+          sudo cp luauDec /usr/local/bin/
+
+      # Validate and execute the Luau script
+      - name: Run Luau Script
+        run: |
+          luau script.lua || { echo "Script execution failed"; exit 1; }
+
+      # Compile Luau script to bytecode
+      - name: Compile to Bytecode
+        run: |
+          luau-compile -O2 --binary script.lua > script.luac || { echo "Bytecode compilation failed"; exit 1; }
+
+      # Decompile bytecode to human-readable Luau code
+      - name: Decompile Bytecode
+        run: |
+          luauDec script.luac > script_decompiled.lua || { echo "Bytecode decompilation failed"; exit 1; }
+          # Verify decompiled output exists and is non-empty
+          if [ ! -s script_decompiled.lua ]; then
+            echo "Decompiled file is empty or missing"
             exit 1
           fi
-          echo "Found .p12: $P12_FILE"
-          echo "Checksum of .p12 file:"
-          shasum -a 256 "$P12_FILE"
-          echo "Inspecting .p12 file with openssl:"
-          openssl pkcs12 -info -in "$P12_FILE" -nokeys -passin pass: 2>&1 || {
-            echo "Warning: openssl inspection failed. The .p12 file may be corrupted or password-protected."
-          }
-        env:
-          P12_FILE: ${{ steps.find-files.outputs.p12_file }}
 
-      # Step 4: Import signing certificate
-      - name: Import Signing Certificate
-        run: |
-          P12_FILE=$(find . -type f -name "*.p12" -path "*/Priv/*" | head -n 1)
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          echo "Importing $P12_FILE (no password)"
-          security import "$P12_FILE" -k build.keychain -P "" -A -T /usr/bin/codesign || {
-            echo "Error: Failed to import certificate. The .p12 file may be corrupted or require a password."
-            exit 1
-          }
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain || {
-            echo "Error: Failed to set key partition list"
-            exit 1
-          }
-          echo "Listing identities in keychain:"
-          security find-identity -v -p codesigning
-        env:
-          P12_FILE: ${{ steps.find-files.outputs.p12_file }}
-
-      # Step 5: Sign Shortcuts with codesign
-      - name: Sign Shortcuts with codesign
-        run: |
-          SIGNING_IDENTITY="Developer ID Application: Lynq Inc (K5S7WU9FSX)"
-          echo "Using signing identity: $SIGNING_IDENTITY"
-          SHORTCUT_FILES=$(find . -type f -name "*.shortcut")
-          if [ -z "$SHORTCUT_FILES" ]; then
-            echo "Error: No .shortcut files found in repository"
-            exit 1
-          fi
-          for file in $SHORTCUT_FILES; do
-            echo "Signing $file..."
-            codesign -f -s "$SIGNING_IDENTITY" "$file" --keychain build.keychain || {
-              echo "Error: Failed to sign $file"
-              exit 1
-            }
-            mv "$file" "${file%.shortcut}-signed.shortcut"
-            echo "Signed shortcut created: ${file%.shortcut}-signed.shortcut"
-            ls -lh "${file%.shortcut}-signed.shortcut"
-          done
-
-      # Step 6: Upload signed shortcuts to GitHub Releases
-      - name: Upload to GitHub Releases
-        uses: softprops/action-gh-release@v2
+      # Upload the decompiled output as an artifact
+      - name: Upload Decompiled Artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            **/*-signed.shortcut
-          tag_name: v${{ github.run_id }}
-          name: Signed Shortcuts Release
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: decompiled-luau-script
+          path: script_decompiled.lua
+
+      # Fallback: Disassemble bytecode if decompilation fails (optional)
+      - name: Fallback Disassemble Bytecode
+        if: failure()
+        run: |
+          echo "Falling back to disassembly due to decompilation failure"
+          git clone https://github.com/xgladius/luau-diasm.git
+          cd luau-diasm
+          g++ -o luau-diasm main.cpp
+          ./luau-diasm ../script.luac > ../script_disassembled.txt || { echo "Disassembly failed"; exit 1; }
+          echo "Disassembled output generated"
+
+      # Upload fallback disassembled output as an artifact (if applicable)
+      - name: Upload Fallback Disassembled Artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disassembled-luau-script
+          path: script_disassembled.txt

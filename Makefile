@@ -29,8 +29,8 @@ CFLAGS := -fPIC $(OPT_FLAGS) -Wall -Wextra -fvisibility=hidden -ferror-limit=0 -
 OBJCXXFLAGS := -std=c++17 -fPIC $(OPT_FLAGS) -Wall -Wextra -fvisibility=hidden -ferror-limit=0 -fno-limit-debug-info
 LDFLAGS := -shared
 
-# Include paths
-INCLUDES := -I. -I/usr/local/include -I$(SDK)/usr/include
+# Include paths - add VM includes for Lua headers
+INCLUDES := -I. -I/usr/local/include -I$(SDK)/usr/include -IVM/include -IVM/src
 
 # iOS SDK flags
 PLATFORM_FLAGS := -isysroot $(SDK) -arch $(ARCHS) -mios-version-min=$(MIN_IOS_VERSION)
@@ -86,7 +86,10 @@ CPP_SOURCES += $(shell find $(CPP_DIR)/exec -name "*.cpp" 2>/dev/null)
 # iOS-specific sources
 iOS_CPP_SOURCES :=
 iOS_MM_SOURCES :=
+# Check platform - Darwin is macOS/iOS and runner.os gives the GitHub Actions OS
+PLATFORM := $(shell uname -s)
 ifeq ($(PLATFORM),Darwin)
+    # On macOS/iOS, include iOS-specific files
     iOS_CPP_SOURCES += $(shell find $(CPP_DIR)/ios -name "*.cpp" 2>/dev/null)
     iOS_MM_SOURCES += $(shell find $(CPP_DIR)/ios -name "*.mm" 2>/dev/null)
     

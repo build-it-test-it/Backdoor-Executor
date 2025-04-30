@@ -8,6 +8,15 @@
 #define LUAU_FASTFLAGVARIABLE(name) namespace FFlag { bool name = true; }
 #define LUAU_FASTFLAG(name) FFlag::name
 
+// LIKELY/UNLIKELY macros for optimization
+#if defined(__GNUC__) || defined(__clang__)
+#define LUAU_LIKELY(x) __builtin_expect((x), 1)
+#define LUAU_UNLIKELY(x) __builtin_expect((x), 0)
+#else
+#define LUAU_LIKELY(x) (x)
+#define LUAU_UNLIKELY(x) (x)
+#endif
+
 // Compatibility macros for iOS 15+
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -17,6 +26,11 @@
 #include <dispatch/dispatch.h>
 #endif
 #endif
+
+// Define Luau capture types
+#define LCT_VAL 0  // Capture by value
+#define LCT_REF 1  // Capture by reference
+#define LCT_UPVAL 2  // Capture upvalue
 
 namespace Luau {
     // Common types and utilities

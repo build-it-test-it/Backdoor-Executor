@@ -10,14 +10,13 @@
 
 // Forward declarations for Objective-C runtime types
 #ifdef __APPLE__
-#include <objc/runtime.h>
+#include "../objc_isolation.h"
+#include "../../include/objc/runtime.h"
 typedef void* HookIMP; // Use custom name to avoid conflict with system IMP
 #else
-typedef void* Class;
-typedef void* Method;
-typedef void* SEL;
+#include "../objc_isolation.h"
+#include "../../include/objc/runtime.h"
 typedef void* HookIMP;
-typedef void* id;
 #endif
 
 namespace Hooks {

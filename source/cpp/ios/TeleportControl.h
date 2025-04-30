@@ -14,12 +14,7 @@
 #include "../logging.hpp"
 #include "../globals.hpp"
 
-// Add direct namespace for configuration to avoid circular deps
-namespace ExecutorConfig {
-    namespace Advanced {
-        inline bool BypassIntegrityChecks = true;
-    }
-}
+// No need to redefine BypassIntegrityChecks since it's already in globals.hpp
 
 namespace iOS {
     /**

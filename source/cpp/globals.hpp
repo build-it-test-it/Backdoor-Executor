@@ -13,11 +13,14 @@
 #include <sys/sysctl.h>
 #include <sys/stat.h>
 
-// Include real Lua headers from VM directory
-#include "../VM/include/lua.h"
-#include "../VM/include/luaconf.h"
-#include "../VM/include/lualib.h"
-#include "../VM/src/lstate.h"
+// Objective-C headers needed for iOS functionality
+#include <objc/objc.h>
+#include <objc/runtime.h>
+#include <objc/message.h>
+#include <objc/NSObjCRuntime.h>
+
+// Include Lua headers through our wrapper to avoid macro redefinitions
+#include "luadefs_wrapper.h"
 
 #include "memory/signature.hpp"
 #include "memory/ci_compat.h"
@@ -74,27 +77,67 @@ private:
         return (stat(path.c_str(), &buffer) == 0);
     }
     
+    // Helper functions for safer Objective-C messaging
+    static id objc_msgSend_id(id target, SEL selector) {
+        typedef id (*MsgSendIdType)(id, SEL);
+        MsgSendIdType msgSend = (MsgSendIdType)dlsym(RTLD_DEFAULT, "objc_msgSend");
+        if (msgSend) {
+            return msgSend(target, selector);
+        }
+        return nil;
+    }
+    
+    static id objc_msgSend_id_id(id target, SEL selector, id arg) {
+        typedef id (*MsgSendIdIdType)(id, SEL, id);
+        MsgSendIdIdType msgSend = (MsgSendIdIdType)dlsym(RTLD_DEFAULT, "objc_msgSend");
+        if (msgSend) {
+            return msgSend(target, selector, arg);
+        }
+        return nil;
+    }
+    
+    static id objc_msgSend_id_cstr(id target, SEL selector, const char* arg) {
+        typedef id (*MsgSendIdCstrType)(id, SEL, const char*);
+        MsgSendIdCstrType msgSend = (MsgSendIdCstrType)dlsym(RTLD_DEFAULT, "objc_msgSend");
+        if (msgSend) {
+            return msgSend(target, selector, arg);
+        }
+        return nil;
+    }
+    
+    static const char* objc_msgSend_cstr(id target, SEL selector) {
+        typedef const char* (*MsgSendCstrType)(id, SEL);
+        MsgSendCstrType msgSend = (MsgSendCstrType)dlsym(RTLD_DEFAULT, "objc_msgSend");
+        if (msgSend) {
+            return msgSend(target, selector);
+        }
+        return nullptr;
+    }
+    
     // Dynamic function to extract iOS app bundle version
     static std::string GetIOSAppVersion() {
         // Try to get version from app bundle first
         Class nsBundle = objc_getClass("NSBundle");
         if (nsBundle) {
-            id mainBundle = ((id (*)(Class, SEL))objc_msgSend)(nsBundle, sel_registerName("mainBundle"));
+            id mainBundle = objc_msgSend_id((id)nsBundle, sel_registerName("mainBundle"));
             if (mainBundle) {
-                id infoDictionary = ((id (*)(id, SEL))objc_msgSend)(mainBundle, sel_registerName("infoDictionary"));
+                id infoDictionary = objc_msgSend_id(mainBundle, sel_registerName("infoDictionary"));
                 if (infoDictionary) {
-                    id versionObj = ((id (*)(id, SEL, id))objc_msgSend)(
+                    Class nsStringClass = objc_getClass("NSString");
+                    id versionKey = objc_msgSend_id_cstr(
+                        (id)nsStringClass, 
+                        sel_registerName("stringWithUTF8String:"), 
+                        "CFBundleShortVersionString"
+                    );
+                    
+                    id versionObj = objc_msgSend_id_id(
                         infoDictionary, 
                         sel_registerName("objectForKey:"), 
-                        ((id (*)(Class, SEL, const char*))objc_msgSend)(
-                            objc_getClass("NSString"), 
-                            sel_registerName("stringWithUTF8String:"), 
-                            "CFBundleShortVersionString"
-                        )
+                        versionKey
                     );
                     
                     if (versionObj) {
-                        const char* versionCStr = ((const char* (*)(id, SEL))objc_msgSend)(
+                        const char* versionCStr = objc_msgSend_cstr(
                             versionObj, 
                             sel_registerName("UTF8String")
                         );

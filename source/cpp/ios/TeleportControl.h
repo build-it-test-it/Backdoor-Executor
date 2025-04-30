@@ -8,15 +8,15 @@
 #include <unordered_map>
 #include <memory>
 
+// Include real Lua headers from VM directory
+#include "../../VM/include/lua.h"
+#include "../../VM/include/luaconf.h"
+#include "../../VM/include/lualib.h"
+
 #include "../hooks/hooks.hpp"
 #include "../memory/mem.hpp"
 #include "../logging.hpp"
-// Forward declarations for ExecutorConfig
-namespace ExecutorConfig {
-    namespace Advanced {
-        extern bool BypassIntegrityChecks;
-    }
-}
+#include "../globals.hpp"
 
 namespace iOS {
     /**

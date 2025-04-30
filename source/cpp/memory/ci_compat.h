@@ -21,9 +21,13 @@
 #if defined(__APPLE__)
     #include <TargetConditionals.h>
     #if TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
-        #define PLATFORM_IOS
+        // Check if PLATFORM_IOS is already defined (by system headers)
+        #ifndef PLATFORM_IOS
+            #define PLATFORM_IOS 2
+        #endif
+        #define EXECUTOR_IOS 1
     #elif TARGET_OS_MAC
-        #define PLATFORM_MACOS
+        #define PLATFORM_MACOS 1
     #endif
 #endif
 
@@ -33,7 +37,7 @@
 #define ENABLE_JIT
 
 // iOS-specific constants for memory operations
-#ifdef PLATFORM_IOS
+#ifdef EXECUTOR_IOS
     // Memory protection flags that match iOS mach-o conventions
     #define MEM_PROT_NONE  PROT_NONE
     #define MEM_PROT_READ  PROT_READ
@@ -52,7 +56,7 @@
 #endif
 
 // Memory protection utilities - always enabled with full functionality
-#ifdef PLATFORM_IOS
+#ifdef EXECUTOR_IOS
     // Memory protection using mach vm_protect for iOS
     #ifdef __cplusplus
     extern "C" {

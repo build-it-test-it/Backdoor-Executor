@@ -8,11 +8,15 @@
 #include <memory>
 #include <functional>
 
+// Include real Lua headers from VM directory
+#include "../../VM/include/lua.h"
+#include "../../VM/include/luaconf.h"
+#include "../../VM/include/lualib.h"
+
 #include "../memory/mem.hpp"
 #include "../hooks/hooks.hpp"
 #include "../logging.hpp"
-// Forward declarations and minimal definitions needed instead of globals.hpp
-struct lua_State;
+#include "../globals.hpp"
 
 namespace iOS {
     /**

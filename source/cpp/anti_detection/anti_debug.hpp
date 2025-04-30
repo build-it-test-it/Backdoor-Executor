@@ -12,7 +12,8 @@
 #include <dlfcn.h>
 
 // iOS-specific includes
-#include <sys/ptrace.h>
+// Use Mach-specific APIs instead of ptrace on iOS
+// ptrace is unreliable on iOS anyway as it's heavily restricted
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <unistd.h>
@@ -25,6 +26,14 @@
 #include <sys/param.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
+
+// Define the ptrace constants and function we need for iOS
+#define PT_DENY_ATTACH      31
+
+// Define the ptrace function prototype for iOS
+extern "C" {
+    int ptrace(int request, pid_t pid, caddr_t addr, int data);
+}
 
 namespace AntiDetection {
     /**

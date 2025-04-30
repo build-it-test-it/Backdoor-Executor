@@ -28,21 +28,21 @@ all: $(OUTDIR)/libexecutor.dylib
 
 # Create output directories
 $(OUTDIR):
-mkdir -p $(OUTDIR)
+	mkdir -p $(OUTDIR)
 
 $(BUILDDIR):
-mkdir -p $(BUILDDIR)
+	mkdir -p $(BUILDDIR)
 
 # Compile C++ files
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | $(BUILDDIR)
-$(CXX) $(CXXFLAGS) -c $< -o 
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Link the library
 $(OUTDIR)/libexecutor.dylib: $(OBJECTS) | $(OUTDIR)
-$(CXX) $(LDFLAGS) $(OBJECTS) -o 
+	$(CXX) $(LDFLAGS) $(OBJECTS) -o $@
 
 # Clean build files
 clean:
-rm -rf $(BUILDDIR)
+	rm -rf $(BUILDDIR)
 
 .PHONY: all clean

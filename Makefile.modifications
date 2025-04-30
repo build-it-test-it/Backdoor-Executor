@@ -1,4 +1,0 @@
-# Modify to exclude AI features from build
-ENABLE_AI_FEATURES := 0
-
-# This will disable include of AI feature files

@@ -30,7 +30,7 @@ OBJCXXFLAGS := -std=c++17 -fPIC $(OPT_FLAGS) -Wall -Wextra -fvisibility=hidden -
 LDFLAGS := -shared -undefined dynamic_lookup -framework Foundation -framework UIKit -framework CoreGraphics -framework CoreFoundation -framework Security -framework CoreML -framework Vision -framework Metal -framework MetalKit
 
 # Include paths - add VM includes for Lua headers and source directory
-INCLUDES := -I. -I/usr/local/include -I$(SDK)/usr/include -IVM/include -IVM/src -I$(SRC_DIR) -Iinclude
+INCLUDES := -I. -I/usr/local/include -I$(SDK)/usr/include -IVM/include -IVM/src -IVM/src/Luau -I$(SRC_DIR) -Iinclude
 
 # iOS SDK flags for iOS 15+ compatibility
 PLATFORM_FLAGS := -isysroot $(SDK) -arch $(ARCHS) -mios-version-min=$(MIN_IOS_VERSION) -DIOS_VERSION=$(MIN_IOS_VERSION) -DLUAU_PLATFORM_IOS=1 -DLUAU_TARGET_IOS=1

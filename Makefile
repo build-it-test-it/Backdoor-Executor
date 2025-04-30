@@ -72,8 +72,9 @@ SRC_DIR := source
 CPP_DIR := $(SRC_DIR)/cpp
 VM_SRC_DIR := VM/src
 
-# Find all source files
-VM_SOURCES := $(shell find $(VM_SRC_DIR) -name "*.cpp" 2>/dev/null)
+# Temporarily disable VM sources for now - focus on core functionality first
+# VM_SOURCES := $(shell find $(VM_SRC_DIR) -name "*.cpp" 2>/dev/null)
+VM_SOURCES :=
 
 CPP_SOURCES := $(shell find $(CPP_DIR) -maxdepth 1 -name "*.cpp" 2>/dev/null)
 CPP_SOURCES += $(shell find $(CPP_DIR)/memory -name "*.cpp" 2>/dev/null)

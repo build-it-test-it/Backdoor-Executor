@@ -11,7 +11,12 @@
 #include "../hooks/hooks.hpp"
 #include "../memory/mem.hpp"
 #include "../logging.hpp"
-#include "../globals.hpp"
+// Forward declarations for ExecutorConfig
+namespace ExecutorConfig {
+    namespace Advanced {
+        extern bool BypassIntegrityChecks;
+    }
+}
 
 namespace iOS {
     /**

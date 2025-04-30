@@ -11,7 +11,8 @@
 #include "../memory/mem.hpp"
 #include "../hooks/hooks.hpp"
 #include "../logging.hpp"
-#include "../globals.hpp"
+// Forward declarations and minimal definitions needed instead of globals.hpp
+struct lua_State;
 
 namespace iOS {
     /**

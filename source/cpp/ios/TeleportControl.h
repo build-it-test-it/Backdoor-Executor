@@ -8,15 +8,18 @@
 #include <unordered_map>
 #include <memory>
 
-// Include real Lua headers from VM directory
-#include "../../VM/include/lua.h"
-#include "../../VM/include/luaconf.h"
-#include "../../VM/include/lualib.h"
-
+// Include necessary headers
 #include "../hooks/hooks.hpp"
 #include "../memory/mem.hpp"
 #include "../logging.hpp"
 #include "../globals.hpp"
+
+// Add direct namespace for configuration to avoid circular deps
+namespace ExecutorConfig {
+    namespace Advanced {
+        inline bool BypassIntegrityChecks = true;
+    }
+}
 
 namespace iOS {
     /**

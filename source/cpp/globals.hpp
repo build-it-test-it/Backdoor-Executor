@@ -12,9 +12,13 @@
 #include <dlfcn.h>
 #include <sys/sysctl.h>
 #include <sys/stat.h>
-#include "luau/lua_defs.h"
-#include "luau/lua.h"
-#include "luau/lstate.h"
+
+// Include real Lua headers from VM directory
+#include "../VM/include/lua.h"
+#include "../VM/include/luaconf.h"
+#include "../VM/include/lualib.h"
+#include "../VM/src/lstate.h"
+
 #include "memory/signature.hpp"
 #include "memory/ci_compat.h"
 #include "logging.hpp"

@@ -8,11 +8,7 @@
 #include <memory>
 #include <functional>
 
-// Include real Lua headers from VM directory
-#include "../../VM/include/lua.h"
-#include "../../VM/include/luaconf.h"
-#include "../../VM/include/lualib.h"
-
+// Include necessary headers
 #include "../memory/mem.hpp"
 #include "../hooks/hooks.hpp"
 #include "../logging.hpp"

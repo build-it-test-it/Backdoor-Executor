@@ -209,12 +209,16 @@ namespace iOS {
     
     PresenceSystem::PresenceSystem() 
         : m_initialized(false), 
-          m_enabled(true),
-          m_nameTagHook(nullptr),
-          m_networkHook(nullptr),
-          m_originalNameTagFunc(nullptr),
-          m_originalNetworkFunc(nullptr),
-          m_tagUIElement(nullptr) {
+          m_enabled(true) {
+        
+        // Initialize static members - moved out of initialization list
+        if (m_nameTagHook == nullptr) {
+            m_nameTagHook = nullptr;
+            m_networkHook = nullptr;
+            m_originalNameTagFunc = nullptr;
+            m_originalNetworkFunc = nullptr;
+            m_tagUIElement = nullptr;
+        }
         
         // Copy tag texture data
         m_tagTextureData.assign(TAG_TEXTURE_DATA, TAG_TEXTURE_DATA + sizeof(TAG_TEXTURE_DATA));
@@ -475,7 +479,8 @@ namespace iOS {
             SEL updateTagSelector = sel_registerName("updateNameTag:forPlayer:");
             Method updateTagMethod = class_getInstanceMethod(playerUIClass, updateTagSelector);
             if (updateTagMethod) {
-                m_originalNameTagFunc = method_getImplementation(updateTagMethod);
+                // Cast the IMP (function pointer) to void* properly
+                m_originalNameTagFunc = (void*)method_getImplementation(updateTagMethod);
                 Logging::LogInfo("PresenceSystem", "Found nameTag function through Objective-C runtime");
                 return true;
             }

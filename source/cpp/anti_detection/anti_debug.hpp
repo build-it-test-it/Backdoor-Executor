@@ -47,7 +47,8 @@ namespace AntiDetection {
     private:
         // Constants for iOS-specific checks
         static constexpr int PTRACE_DENY_ATTACH = 31;
-        static constexpr int P_TRACED = 0x00000800;
+        // Avoid redefining P_TRACED as it's already defined in system headers
+        static constexpr int EXECUTOR_P_TRACED = 0x00000800;
         static constexpr int PROC_PIDINFO = 3;
         static constexpr int PROC_PIDPATHINFO = 11;
         
@@ -87,7 +88,7 @@ namespace AntiDetection {
             int name[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
             
             if (sysctl(name, 4, &info, &info_size, nullptr, 0) == 0) {
-                return ((info.kp_proc.p_flag & P_TRACED) != 0);
+                return ((info.kp_proc.p_flag & EXECUTOR_P_TRACED) != 0);
             }
             
             return false;
@@ -306,8 +307,9 @@ namespace AntiDetection {
                                 // Introduce subtle corruption to thwart debugging attempts
                                 // This is more effective than crashing outright
                                 volatile uint8_t* ptr = new uint8_t[16];
+                                std::uniform_int_distribution<> dist(0, 255);
                                 for (int i = 0; i < 16; i++) {
-                                    ptr[i] = static_cast<uint8_t>(GetRNG());
+                                    ptr[i] = static_cast<uint8_t>(dist(GetRNG()));
                                 }
                                 // Leak the memory deliberately (subtle corruption)
                             }
@@ -357,18 +359,25 @@ namespace AntiDetection {
                 std::uniform_int_distribution<> dist(20, 100);
                 std::this_thread::sleep_for(std::chrono::milliseconds(dist(GetRNG())));
                 
-                // 2. Add runtime integrity verification (simplified)
-                void* callstackBuffer[128];
-                int frames = backtrace(callstackBuffer, 128);
-                
-                // 3. Calculate checksum of call stack for anomaly detection
+                // 2. Instead of backtrace, use direct stack pointer access
+                // This is safer and more compatible with iOS restrictions
                 uint32_t checksum = 0;
-                for (int i = 0; i < frames; i++) {
-                    checksum = checksum * 31 + reinterpret_cast<uintptr_t>(callstackBuffer[i]);
-                }
+                uintptr_t sp = 0;
                 
-                // 4. Take action based on checksum anomalies
-                if (frames < 5 || checksum == 0) {
+                // Get stack pointer - inline assembly is more reliable
+                #if defined(__x86_64__) || defined(__i386__)
+                    asm volatile("movq %%rsp, %0" : "=r" (sp));
+                #elif defined(__arm64__) || defined(__aarch64__)
+                    asm volatile("mov %0, sp" : "=r" (sp));
+                #elif defined(__arm__)
+                    asm volatile("mov %0, sp" : "=r" (sp));
+                #endif
+                
+                // Use stack pointer as part of checksum
+                checksum = (checksum * 31) + sp;
+                
+                // 3. Take action based on checksum anomalies
+                if (checksum == 0) {
                     // Suspicious execution environment
                     std::uniform_int_distribution<> distLong(1000, 5000);
                     std::this_thread::sleep_for(std::chrono::milliseconds(distLong(GetRNG())));

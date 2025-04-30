@@ -115,6 +115,8 @@ namespace iOS {
         // Generate presence handshake payload
         std::string GenerateHandshakePayload();
         
+        // Moved to public access
+    public:
         // Process incoming handshake payload
         bool ProcessHandshakePayload(const std::string& payload, const std::string& userId);
         

@@ -95,10 +95,6 @@ namespace iOS {
         
         // Bypass teleport validation restrictions
         bool BypassTeleportValidation();
-        
-        // Modify teleport request fingerprints
-        bool ModifyTeleportFingerprint(void* request);
-        
         // Internal state
         std::atomic<bool> m_initialized;
         ControlMode m_controlMode;
@@ -113,11 +109,16 @@ namespace iOS {
         std::string m_lastDestination;
         std::string m_lastPlaceId;
         
+        // Moved to public for static function access
+    public:
         // Teleport hooks - static to allow initialization in static file
         static void* m_teleportHook;
         static void* m_teleportValidationHook;
         static void* m_originalTeleportFunc;
         static void* m_originalValidationFunc;
+        
+        // Modify teleport request fingerprints
+        bool ModifyTeleportFingerprint(void* request);
         
         // Event callbacks
         std::vector<TeleportCallback> m_callbacks;

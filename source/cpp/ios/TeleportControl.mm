@@ -141,11 +141,15 @@ namespace iOS {
     
     TeleportControl::TeleportControl() 
         : m_initialized(false), 
-          m_controlMode(ControlMode::AllowAll),
-          m_teleportHook(nullptr),
-          m_teleportValidationHook(nullptr),
-          m_originalTeleportFunc(nullptr),
-          m_originalValidationFunc(nullptr) {
+          m_controlMode(ControlMode::AllowAll) {
+        
+        // Initialize static members - moved out of initialization list
+        if (m_teleportHook == nullptr) {
+            m_teleportHook = nullptr;
+            m_teleportValidationHook = nullptr;
+            m_originalTeleportFunc = nullptr;
+            m_originalValidationFunc = nullptr;
+        }
         
         // Setup default custom rules
         m_customRules[TeleportType::ServerTeleport] = true;
@@ -341,14 +345,14 @@ namespace iOS {
                     SEL teleportSelector = sel_registerName("teleport:placeId:instanceId:teleportData:success:");
                     Method teleportMethod = class_getInstanceMethod(teleportServiceClass, teleportSelector);
                     if (teleportMethod) {
-                        m_originalTeleportFunc = method_getImplementation(teleportMethod);
+                        m_originalTeleportFunc = (void*)method_getImplementation(teleportMethod);
                         Logging::LogInfo("TeleportControl", "Found teleport function through Objective-C runtime");
                     }
                     
                     SEL validationSelector = sel_registerName("validateTeleportRequest:requestData:");
                     Method validationMethod = class_getInstanceMethod(teleportServiceClass, validationSelector);
                     if (validationMethod) {
-                        m_originalValidationFunc = method_getImplementation(validationMethod);
+                        m_originalValidationFunc = (void*)method_getImplementation(validationMethod);
                         Logging::LogInfo("TeleportControl", "Found validation function through Objective-C runtime");
                     }
                 }

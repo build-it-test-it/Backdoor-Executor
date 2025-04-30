@@ -17,11 +17,11 @@ USE_DOBBY ?= 1
 
 # Basic flags
 ifeq ($(BUILD_TYPE),Debug)
-    OPT_FLAGS := -g -O0
-    DEFS := -DDEBUG_BUILD=1
+	OPT_FLAGS := -g -O0
+	DEFS := -DDEBUG_BUILD=1
 else
-    OPT_FLAGS := -O3 
-    DEFS := -DPRODUCTION_BUILD=1
+	OPT_FLAGS := -O3 
+	DEFS := -DPRODUCTION_BUILD=1
 endif
 
 CXXFLAGS := -std=c++17 -fPIC $(OPT_FLAGS) -Wall -Wextra -fvisibility=hidden -ferror-limit=0 -fno-limit-debug-info
@@ -49,22 +49,22 @@ LD := $(CXX) $(PLATFORM_FLAGS)
 
 # Add feature-specific flags
 ifeq ($(USE_DOBBY),1)
-    DEFS += -DUSE_DOBBY=1
-    LDFLAGS += -ldobby
+	DEFS += -DUSE_DOBBY=1
+	LDFLAGS += -ldobby
 else
-    DEFS += -DUSE_DOBBY=0
+	DEFS += -DUSE_DOBBY=0
 endif
 
 ifeq ($(ENABLE_AI_FEATURES),1)
-    DEFS += -DENABLE_AI_FEATURES=1
+	DEFS += -DENABLE_AI_FEATURES=1
 else
-    DEFS += -DENABLE_AI_FEATURES=0
+	DEFS += -DENABLE_AI_FEATURES=0
 endif
 
 ifeq ($(ENABLE_ADVANCED_BYPASS),1)
-    DEFS += -DENABLE_ADVANCED_BYPASS=1
+	DEFS += -DENABLE_ADVANCED_BYPASS=1
 else
-    DEFS += -DENABLE_ADVANCED_BYPASS=0
+	DEFS += -DENABLE_ADVANCED_BYPASS=0
 endif
 
 # Set source file directories
@@ -89,21 +89,21 @@ iOS_MM_SOURCES :=
 # Check platform - Darwin is macOS/iOS and runner.os gives the GitHub Actions OS
 PLATFORM := $(shell uname -s)
 ifeq ($(PLATFORM),Darwin)
-    # On macOS/iOS, include iOS-specific files
-    iOS_CPP_SOURCES += $(shell find $(CPP_DIR)/ios -name "*.cpp" 2>/dev/null)
-    iOS_MM_SOURCES += $(shell find $(CPP_DIR)/ios -name "*.mm" 2>/dev/null)
-    
-    # Only include AI feature files if enabled
-    ifeq ($(ENABLE_AI_FEATURES),1)
-        iOS_CPP_SOURCES += $(shell find $(CPP_DIR)/ios/ai_features -name "*.cpp" 2>/dev/null)
-        iOS_MM_SOURCES += $(shell find $(CPP_DIR)/ios/ai_features -name "*.mm" 2>/dev/null)
-    endif
-    
-    # Only include advanced bypass files if enabled
-    ifeq ($(ENABLE_ADVANCED_BYPASS),1)
-        iOS_CPP_SOURCES += $(shell find $(CPP_DIR)/ios/advanced_bypass -name "*.cpp" 2>/dev/null)
-        iOS_MM_SOURCES += $(shell find $(CPP_DIR)/ios/advanced_bypass -name "*.mm" 2>/dev/null)
-    endif
+	# On macOS/iOS, include iOS-specific files
+	iOS_CPP_SOURCES += $(shell find $(CPP_DIR)/ios -name "*.cpp" 2>/dev/null)
+	iOS_MM_SOURCES += $(shell find $(CPP_DIR)/ios -name "*.mm" 2>/dev/null)
+	
+	# Only include AI feature files if enabled
+	ifeq ($(ENABLE_AI_FEATURES),1)
+	iOS_CPP_SOURCES += $(shell find $(CPP_DIR)/ios/ai_features -name "*.cpp" 2>/dev/null)
+	iOS_MM_SOURCES += $(shell find $(CPP_DIR)/ios/ai_features -name "*.mm" 2>/dev/null)
+	endif
+	
+	# Only include advanced bypass files if enabled
+	ifeq ($(ENABLE_ADVANCED_BYPASS),1)
+	iOS_CPP_SOURCES += $(shell find $(CPP_DIR)/ios/advanced_bypass -name "*.cpp" 2>/dev/null)
+	iOS_MM_SOURCES += $(shell find $(CPP_DIR)/ios/advanced_bypass -name "*.mm" 2>/dev/null)
+	endif
 endif
 
 # Convert source files to object files

@@ -115,11 +115,11 @@ namespace iOS {
         std::string m_lastDestination;
         std::string m_lastPlaceId;
         
-        // Teleport hooks
-        void* m_teleportHook;
-        void* m_teleportValidationHook;
-        void* m_originalTeleportFunc;
-        void* m_originalValidationFunc;
+        // Teleport hooks - static to allow initialization in static file
+        static void* m_teleportHook;
+        static void* m_teleportValidationHook;
+        static void* m_originalTeleportFunc;
+        static void* m_originalValidationFunc;
         
         // Event callbacks
         std::vector<TeleportCallback> m_callbacks;

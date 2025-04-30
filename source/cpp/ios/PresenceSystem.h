@@ -135,17 +135,17 @@ namespace iOS {
         // Mutex for thread safety
         mutable std::mutex m_mutex;
         
-        // Hook addresses
-        void* m_nameTagHook;
-        void* m_networkHook;
-        void* m_originalNameTagFunc;
-        void* m_originalNetworkFunc;
+        // Hook addresses - static to allow initialization in static file
+        static void* m_nameTagHook;
+        static void* m_networkHook;
+        static void* m_originalNameTagFunc;
+        static void* m_originalNetworkFunc;
         
         // Cache of detected executor users
         std::unordered_map<std::string, PlayerInfo> m_executorUsers;
         
-        // Tag UI element cache
-        void* m_tagUIElement;
+        // Tag UI element cache - static to allow initialization in static file
+        static void* m_tagUIElement;
         
         // Tag texture data
         std::vector<uint8_t> m_tagTextureData;

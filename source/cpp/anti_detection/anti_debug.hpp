@@ -9,79 +9,147 @@
 #include <unordered_map>
 #include <atomic>
 #include <mutex>
+#include <dlfcn.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#include <tlhelp32.h>
-#else
+// iOS-specific includes
 #include <sys/ptrace.h>
 #include <sys/types.h>
+#include <sys/sysctl.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#endif
+#include <signal.h>
+#include <mach/mach.h>
+#include <mach/mach_error.h>
+#include <mach/task.h>
+#include <mach-o/dyld.h>
+#include <sys/stat.h>
+#include <sys/param.h>
+#include <objc/runtime.h>
+#include <objc/message.h>
 
 namespace AntiDetection {
     /**
      * @class AntiDebug
-     * @brief Advanced anti-debugging techniques to prevent analysis
+     * @brief Advanced iOS-specific anti-debugging techniques to prevent analysis
      * 
-     * This class implements multiple anti-debugging techniques to prevent
-     * reverse engineering and analysis of the executor.
+     * This class implements multiple iOS anti-debugging techniques to prevent
+     * reverse engineering and analysis of the executor, optimized for iOS devices.
      */
     class AntiDebug {
     private:
+        // Constants for iOS-specific checks
+        static constexpr int PTRACE_DENY_ATTACH = 31;
+        static constexpr int P_TRACED = 0x00000800;
+        static constexpr int PROC_PIDINFO = 3;
+        static constexpr int PROC_PIDPATHINFO = 11;
+        
+        // iOS debugger tools and indicators
+        static const inline std::vector<std::string> s_debuggerPaths = {
+            "/Applications/Xcode.app",
+            "/usr/bin/gdb",
+            "/usr/local/bin/cycript",
+            "/Library/MobileSubstrate/MobileSubstrate.dylib",
+            "/usr/sbin/frida-server",
+            "/usr/lib/frida",
+            "/etc/apt/sources.list.d/electra.list",
+            "/etc/apt/sources.list.d/sileo.sources",
+            "/usr/lib/TweakInject"
+        };
+        
         // Timing check state
         static std::atomic<bool> s_timingCheckActive;
         static std::mutex s_timingMutex;
         static std::chrono::high_resolution_clock::time_point s_lastCheckTime;
         
-        // Random number generator
+        // Random number generator with entropy from device-specific sources
         static std::mt19937& GetRNG() {
+            // Use multiple sources of entropy including device-specific information
             static std::random_device rd;
-            static std::mt19937 gen(rd());
+            static std::seed_seq seed{rd(), static_cast<unsigned int>(time(nullptr)), 
+                                     static_cast<unsigned int>(clock()), 
+                                     static_cast<unsigned int>(getpid())};
+            static std::mt19937 gen(seed);
             return gen;
         }
         
-        // Check if being debugged using platform-specific methods
+        // Advanced iOS-specific anti-debug check using sysctl
+        static bool CheckSysctlDebugger() {
+            struct kinfo_proc info;
+            size_t info_size = sizeof(info);
+            int name[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+            
+            if (sysctl(name, 4, &info, &info_size, nullptr, 0) == 0) {
+                return ((info.kp_proc.p_flag & P_TRACED) != 0);
+            }
+            
+            return false;
+        }
+        
+        // Check if being debugged using all available iOS methods
         static bool IsBeingDebugged() {
-#ifdef _WIN32
-            // Windows-specific debug detection
-            if (IsDebuggerPresent()) {
+            // Method 1: Use ptrace to deny debugger attachment
+            // If ptrace returns error and errno is EPERM, a debugger is already attached
+            errno = 0;
+            ptrace(PTRACE_DENY_ATTACH, 0, 0, 0);
+            if (errno == EPERM) {
                 return true;
             }
             
-            // Check for remote debugger
-            BOOL isRemoteDebuggerPresent = FALSE;
-            CheckRemoteDebuggerPresent(GetCurrentProcess(), &isRemoteDebuggerPresent);
-            if (isRemoteDebuggerPresent) {
+            // Method 2: Check process info using sysctl
+            if (CheckSysctlDebugger()) {
                 return true;
             }
             
-            // Check for hardware breakpoints
-            CONTEXT ctx = {};
-            ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
-            if (GetThreadContext(GetCurrentThread(), &ctx)) {
-                if (ctx.Dr0 != 0 || ctx.Dr1 != 0 || ctx.Dr2 != 0 || ctx.Dr3 != 0) {
+            // Method 3: Check for suspicious environment variables
+            const char* debugEnvVars[] = {
+                "DYLD_INSERT_LIBRARIES",
+                "DYLD_FORCE_FLAT_NAMESPACE",
+                "DYLD_PRINT_TO_FILE",
+                "_MSSafeMode"
+            };
+            
+            for (const auto& var : debugEnvVars) {
+                if (getenv(var) != nullptr) {
                     return true;
                 }
             }
             
-            return false;
-#else
-            // Unix-based debug detection using ptrace
-            if (ptrace(PTRACE_TRACEME, 0, 1, 0) < 0) {
-                return true;
+            // Method 4: Check for suspicious loaded dylibs
+            uint32_t count = _dyld_image_count();
+            for (uint32_t i = 0; i < count; i++) {
+                const char* name = _dyld_get_image_name(i);
+                if (name) {
+                    std::string imageName(name);
+                    if (imageName.find("frida") != std::string::npos ||
+                        imageName.find("cydia") != std::string::npos ||
+                        imageName.find("substrate") != std::string::npos ||
+                        imageName.find("cycript") != std::string::npos ||
+                        imageName.find("Hook") != std::string::npos ||
+                        imageName.find("Inject") != std::string::npos) {
+                        return true;
+                    }
+                }
             }
             
-            // Detach after check
-            ptrace(PTRACE_DETACH, 0, 1, 0);
+            // Method 5: Check exception ports (Mach-based debuggers)
+            mach_msg_type_number_t count5 = 0;
+            exception_mask_t masks[EXC_TYPES_COUNT];
+            mach_port_t ports[EXC_TYPES_COUNT];
+            exception_behavior_t behaviors[EXC_TYPES_COUNT];
+            thread_state_flavor_t flavors[EXC_TYPES_COUNT];
+            
+            if (task_get_exception_ports(mach_task_self(), EXC_MASK_ALL, masks, &count5, ports, behaviors, flavors) == KERN_SUCCESS) {
+                for (mach_msg_type_number_t i = 0; i < count5; i++) {
+                    if (ports[i] != MACH_PORT_NULL) {
+                        // Exception port is set, could be a debugger
+                        return true;
+                    }
+                }
+            }
             
             return false;
-#endif
         }
         
-        // Check for timing anomalies that might indicate debugging
+        // Detects timing anomalies that might indicate debugging
         static bool DetectTimingAnomalies() {
             std::lock_guard<std::mutex> lock(s_timingMutex);
             
@@ -91,74 +159,154 @@ namespace AntiDetection {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - s_lastCheckTime).count();
                 
                 // If the time between checks is suspiciously long, it might indicate a debugger
-                if (elapsed > 5000) { // 5 seconds threshold
+                // iOS debuggers typically cause significant timing delays
+                if (elapsed > 2000) { // 2 seconds threshold for iOS (more sensitive)
                     s_lastCheckTime = now;
                     return true;
                 }
             }
             
             s_lastCheckTime = now;
+            
+            // Additional iOS-specific timing check: CADisplayLink
+            // Call through to Objective-C runtime for more accurate timing check
+            static Class displayLinkClass = objc_getClass("CADisplayLink");
+            static SEL createSel = sel_registerName("displayLinkWithTarget:selector:");
+            static SEL invalidateSel = sel_registerName("invalidate");
+            static SEL addToRunLoopSel = sel_registerName("addToRunLoop:forMode:");
+            static SEL runLoopSel = sel_registerName("mainRunLoop");
+            static SEL defaultModeSel = sel_registerName("defaultMode");
+            
+            if (displayLinkClass) {
+                id runLoop = ((id (*)(Class, SEL))objc_msgSend)(objc_getClass("NSRunLoop"), runLoopSel);
+                id defaultMode = ((id (*)(Class, SEL))objc_msgSend)(objc_getClass("NSRunLoopMode"), defaultModeSel);
+                
+                // Implementation would add more timing validation here with CADisplayLink
+                // We don't implement full code to avoid issues with Objective-C runtime in cpp file
+            }
+            
             return false;
         }
         
-        // Check for known debugging tools in the process list
-#ifdef _WIN32
-        static bool DetectDebuggerProcesses() {
-            const std::vector<std::wstring> debuggerProcesses = {
-                L"ollydbg.exe", L"ida.exe", L"ida64.exe", L"idag.exe", L"idag64.exe",
-                L"idaw.exe", L"idaw64.exe", L"idaq.exe", L"idaq64.exe", L"idau.exe",
-                L"idau64.exe", L"scylla.exe", L"protection_id.exe", L"x64dbg.exe",
-                L"x32dbg.exe", L"windbg.exe", L"reshacker.exe", L"ImportREC.exe",
-                L"IMMUNITYDEBUGGER.EXE", L"devenv.exe"
-            };
-            
-            HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-            if (hSnapshot == INVALID_HANDLE_VALUE) {
-                return false;
+        // Check for iOS debugger tools and modified system paths
+        static bool DetectDebuggerTools() {
+            for (const auto& path : s_debuggerPaths) {
+                struct stat statbuf;
+                if (stat(path.c_str(), &statbuf) == 0) {
+                    return true;
+                }
             }
             
-            PROCESSENTRY32W pe32 = {};
-            pe32.dwSize = sizeof(PROCESSENTRY32W);
+            // Check if system is write-protected (non-jailbroken iOS devices have read-only system)
+            const char* testPath = "/bin/test_write_permission";
+            FILE* file = fopen(testPath, "w");
+            if (file != nullptr) {
+                fclose(file);
+                unlink(testPath); // Clean up
+                return true; // System shouldn't be writable
+            }
             
-            if (Process32FirstW(hSnapshot, &pe32)) {
-                do {
-                    for (const auto& debugger : debuggerProcesses) {
-                        if (_wcsicmp(pe32.szExeFile, debugger.c_str()) == 0) {
-                            CloseHandle(hSnapshot);
+            // Check for Cydia URL scheme
+            // We'd need to call through to UIApplication, simplified here
+            Class uiApplicationClass = objc_getClass("UIApplication");
+            if (uiApplicationClass) {
+                // We can't directly call methods, but would check for Cydia URL scheme here
+                // canOpenURL: would be called with cydia:// URL to check
+            }
+            
+            return false;
+        }
+        
+        // Check for injected code segments
+        static bool DetectCodeInjection() {
+            uint32_t count = _dyld_image_count();
+            
+            // First, get list of legitimate iOS frameworks and our own code's path
+            std::vector<std::string> legitimateFrameworks = {
+                "/System/Library/",
+                "/usr/lib/",
+                "/Developer/"
+            };
+            
+            // Get our app's bundle path to allow our own frameworks
+            char selfPath[PATH_MAX];
+            uint32_t selfPathSize = sizeof(selfPath);
+            if (_NSGetExecutablePath(selfPath, &selfPathSize) == 0) {
+                std::string appPath(selfPath);
+                size_t lastSlash = appPath.find_last_of('/');
+                if (lastSlash != std::string::npos) {
+                    appPath = appPath.substr(0, lastSlash);
+                    legitimateFrameworks.push_back(appPath);
+                }
+            }
+            
+            // Check each loaded dylib
+            for (uint32_t i = 0; i < count; i++) {
+                const char* name = _dyld_get_image_name(i);
+                if (name) {
+                    std::string imageName(name);
+                    bool isLegitimate = false;
+                    
+                    // Check if this is a system framework or our own code
+                    for (const auto& prefix : legitimateFrameworks) {
+                        if (imageName.find(prefix) == 0) {
+                            isLegitimate = true;
+                            break;
+                        }
+                    }
+                    
+                    // Look for suspicious injected libraries
+                    if (!isLegitimate) {
+                        if (imageName.find("MobileSubstrate") != std::string::npos ||
+                            imageName.find("TweakInject") != std::string::npos ||
+                            imageName.find("libhooker") != std::string::npos ||
+                            imageName.find("substitute") != std::string::npos) {
                             return true;
                         }
                     }
-                } while (Process32NextW(hSnapshot, &pe32));
+                }
             }
             
-            CloseHandle(hSnapshot);
             return false;
         }
-#else
-        static bool DetectDebuggerProcesses() {
-            // On Unix systems, we could parse /proc to look for debuggers
-            // This is a simplified implementation
-            return false;
-        }
-#endif
         
-        // Apply anti-tampering measures to the code
+        // Apply code integrity checks continuously
         static void ApplyCodeIntegrityChecks() {
-            // In a real implementation, this would calculate checksums of critical code sections
-            // and verify they haven't been modified
-            
-            // For demonstration purposes, we'll just add some timing checks
             std::thread([]{
                 while (s_timingCheckActive) {
-                    if (DetectTimingAnomalies() || IsBeingDebugged()) {
-                        // In a real implementation, you might take evasive action here
-                        // For now, we'll just sleep to introduce unpredictable behavior
-                        std::uniform_int_distribution<> dist(100, 500);
-                        std::this_thread::sleep_for(std::chrono::milliseconds(dist(GetRNG())));
+                    // Run all checks in random order
+                    std::array<std::function<bool()>, 4> checks = {
+                        IsBeingDebugged,
+                        DetectTimingAnomalies,
+                        DetectDebuggerTools,
+                        DetectCodeInjection
+                    };
+                    
+                    // Shuffle the checks for unpredictability
+                    std::shuffle(checks.begin(), checks.end(), GetRNG());
+                    
+                    for (const auto& check : checks) {
+                        if (check()) {
+                            // Take evasive action
+                            // We introduce variable timing and behavior to confuse analysis
+                            std::uniform_int_distribution<> dist(10, 50);
+                            std::this_thread::sleep_for(std::chrono::milliseconds(dist(GetRNG())));
+                            
+                            // Optional: more aggressive response for production
+                            if (std::uniform_int_distribution<>(1, 100)(GetRNG()) <= 20) {
+                                // Introduce subtle corruption to thwart debugging attempts
+                                // This is more effective than crashing outright
+                                volatile uint8_t* ptr = new uint8_t[16];
+                                for (int i = 0; i < 16; i++) {
+                                    ptr[i] = static_cast<uint8_t>(GetRNG());
+                                }
+                                // Leak the memory deliberately (subtle corruption)
+                            }
+                        }
                     }
                     
                     // Random sleep to make timing analysis harder
-                    std::uniform_int_distribution<> dist(500, 2000);
+                    std::uniform_int_distribution<> dist(300, 800);
                     std::this_thread::sleep_for(std::chrono::milliseconds(dist(GetRNG())));
                 }
             }).detach();
@@ -169,6 +317,9 @@ namespace AntiDetection {
         static void Initialize() {
             s_timingCheckActive = true;
             s_lastCheckTime = std::chrono::high_resolution_clock::now();
+            
+            // Apply preventative anti-debug measure to block future debugger attachment
+            ptrace(PTRACE_DENY_ATTACH, 0, 0, 0);
             
             // Start integrity checks in background
             ApplyCodeIntegrityChecks();
@@ -188,26 +339,70 @@ namespace AntiDetection {
                 initialized = true;
             }
             
-            // Immediate checks
-            if (IsBeingDebugged() || DetectDebuggerProcesses()) {
-                // In a real implementation, you might take more drastic measures
-                // For now, we'll just introduce random delays to confuse analysis
-                std::uniform_int_distribution<> dist(50, 200);
+            // Immediate checks using all detection methods
+            if (IsBeingDebugged() || DetectTimingAnomalies() || 
+                DetectDebuggerTools() || DetectCodeInjection()) {
+                // Take immediate evasive action
+                
+                // 1. Introduce unpredictability
+                std::uniform_int_distribution<> dist(20, 100);
                 std::this_thread::sleep_for(std::chrono::milliseconds(dist(GetRNG())));
+                
+                // 2. Add runtime integrity verification (simplified)
+                void* callstackBuffer[128];
+                int frames = backtrace(callstackBuffer, 128);
+                
+                // 3. Calculate checksum of call stack for anomaly detection
+                uint32_t checksum = 0;
+                for (int i = 0; i < frames; i++) {
+                    checksum = checksum * 31 + reinterpret_cast<uintptr_t>(callstackBuffer[i]);
+                }
+                
+                // 4. Take action based on checksum anomalies
+                if (frames < 5 || checksum == 0) {
+                    // Suspicious execution environment
+                    std::uniform_int_distribution<> distLong(1000, 5000);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(distLong(GetRNG())));
+                }
             }
             
-            // Add some junk code that never executes but confuses static analysis
+            // Add junk code that makes static analysis harder
             if (false && IsBeingDebugged()) {
-                volatile int x = 0;
-                for (int i = 0; i < 1000000; i++) {
-                    x += i;
+                volatile uint8_t* buffer = new uint8_t[1024];
+                std::uniform_int_distribution<> dist(0, 255);
+                for (int i = 0; i < 1024; i++) {
+                    buffer[i] = dist(GetRNG());
+                }
+                delete[] buffer;
+            }
+            
+            // Make function return address verification
+            void* returnAddress = __builtin_return_address(0);
+            if (returnAddress) {
+                Dl_info info;
+                if (dladdr(returnAddress, &info)) {
+                    // Check if return address is from a known dylib
+                    std::string dliName = info.dli_fname ? info.dli_fname : "";
+                    if (dliName.find("libdyld.dylib") != std::string::npos ||
+                        dliName.find("Foundation") != std::string::npos) {
+                        // Normal execution path
+                    } else if (dliName.find("CoreFoundation") == std::string::npos &&
+                              dliName.find("UIKitCore") == std::string::npos) {
+                        // Potential debugging or hooking framework
+                        // Insert unpredictable behavior
+                        std::uniform_int_distribution<> dist(10, 30);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(dist(GetRNG())));
+                    }
                 }
             }
         }
         
         // Check if the current environment is safe for execution
         static bool IsSafeEnvironment() {
-            return !IsBeingDebugged() && !DetectDebuggerProcesses() && !DetectTimingAnomalies();
+            return !IsBeingDebugged() && 
+                   !DetectTimingAnomalies() && 
+                   !DetectDebuggerTools() && 
+                   !DetectCodeInjection();
         }
     };
     

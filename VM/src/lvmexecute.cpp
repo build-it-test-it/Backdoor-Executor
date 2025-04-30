@@ -266,6 +266,7 @@ reentry:
             {
                 Instruction insn = *pc++;
                 LUAU_ASSERT(insn == 0);
+                (void)insn; // Prevent unused variable warning
                 VM_NEXT();
             }
 

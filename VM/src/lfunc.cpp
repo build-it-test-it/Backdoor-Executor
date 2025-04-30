@@ -136,6 +136,8 @@ void luaF_close(lua_State* L, StkId level)
         GCObject* o = obj2gco(uv);
         LUAU_ASSERT(!isblack(o) && upisopen(uv));
         LUAU_ASSERT(!isdead(g, o));
+        (void)o; // Prevent unused variable warning
+        (void)g; // Prevent unused variable warning
 
         // unlink value *before* closing it since value storage overlaps
         L->openupval = uv->u.open.threadnext;

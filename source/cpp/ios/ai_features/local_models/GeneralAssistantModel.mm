@@ -1,5 +1,6 @@
 #include "GeneralAssistantModel.h"
-#include "../HybridAISystem.h" // For AIRequest and AIResponse definitions
+#include "../AIRequest.h"
+#include "../AIResponse.h"
 #include <chrono>
 #include <algorithm>
 #include <sstream>
@@ -7,7 +8,7 @@
 #include <iostream>
 #include <random>
 #include <thread>
-#include <json/json.h>
+#include <regex>
 
 namespace iOS {
 namespace AIFeatures {
@@ -461,17 +462,17 @@ uint64_t GeneralAssistantModel::GetMemoryUsage() const {
         usage += profile.second.m_preferences.size() * (sizeof(std::string) + sizeof(float));
     }
     
+    // Model data (approximate)
+    if (m_internalModel) {
+        usage += 4096; // Size allocated for model
+    }
+    
     // Current profile
     usage += sizeof(UserProfile);
     for (const auto& interest : m_currentProfile.m_interests) {
         usage += interest.size();
     }
     usage += m_currentProfile.m_preferences.size() * (sizeof(std::string) + sizeof(float));
-    
-    // Internal model
-    if (m_internalModel) {
-        usage += 4096; // Size allocated for model
-    }
     
     return usage;
 }

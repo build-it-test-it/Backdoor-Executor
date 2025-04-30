@@ -1,8 +1,18 @@
 #pragma once
 
+// Standard C headers for compatibility
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <time.h>
+
+// Standard C++ headers
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <unordered_set>
@@ -15,6 +25,7 @@
 #include <ctime>
 #include <chrono>
 #include <mutex>
+#include <memory>
 
 // iOS-specific includes
 #include <unistd.h>
@@ -22,6 +33,7 @@
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <sys/types.h>
+#include <sys/mount.h> // For statfs
 #include <dlfcn.h>
 #include <mach/mach.h>
 #include <mach/mach_host.h>

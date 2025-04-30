@@ -1,7 +1,13 @@
 #pragma once
 
 #include <cstddef> // For size_t
+#include <cstdint> // For uint8_t, uint32_t, uintptr_t in C++
 #include <sys/mman.h> // For mprotect on iOS
+
+// Include C standard headers for compatibility with C code
+#include <stdint.h> // For uint8_t, uint32_t, uintptr_t in C
+#include <stddef.h> // For size_t in C
+#include <stdbool.h> // For bool in C
 
 /**
  * iOS Memory Compatibility Header
@@ -48,7 +54,15 @@
 // Memory protection utilities - always enabled with full functionality
 #ifdef PLATFORM_IOS
     // Memory protection using mach vm_protect for iOS
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    
     inline bool MEMORY_PROTECT(void* addr, size_t size, int prot) {
+        if (!addr || size == 0) {
+            return false;
+        }
+        
         // Need to align to page boundaries for iOS
         uintptr_t pageStart = (uintptr_t)addr & ~(MEMORY_PAGE_SIZE - 1);
         size_t pageAlignedSize = ((uintptr_t)addr + size + MEMORY_PAGE_SIZE - 1) & ~(MEMORY_PAGE_SIZE - 1);
@@ -60,6 +74,10 @@
     
     // Memory unprotection to make memory writable on iOS
     inline bool MEMORY_UNPROTECT(void* addr, size_t size) {
+        if (!addr || size == 0) {
+            return false;
+        }
+        
         // Make memory RWX on iOS
         return MEMORY_PROTECT(addr, size, MEM_PROT_RWX);
     }
@@ -68,7 +86,7 @@
     inline uint32_t MEMORY_CHECKSUM(const void* data, size_t size) {
         if (!data || size == 0) return 0;
         
-        const uint8_t* bytes = static_cast<const uint8_t*>(data);
+        const uint8_t* bytes = (const uint8_t*)data; // C-style cast for C compatibility
         uint32_t checksum = 0;
         
         for (size_t i = 0; i < size; i++) {
@@ -77,4 +95,36 @@
         
         return checksum;
     }
+    
+    #ifdef __cplusplus
+    }
+    #endif
+#else
+    // Provide stub implementations for non-iOS platforms for compatibility
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    
+    inline bool MEMORY_PROTECT(void* addr, size_t size, int prot) {
+        (void)addr; // Unused parameter
+        (void)size; // Unused parameter
+        (void)prot; // Unused parameter
+        return true;
+    }
+    
+    inline bool MEMORY_UNPROTECT(void* addr, size_t size) {
+        (void)addr; // Unused parameter
+        (void)size; // Unused parameter
+        return true;
+    }
+    
+    inline uint32_t MEMORY_CHECKSUM(const void* data, size_t size) {
+        (void)data; // Unused parameter
+        (void)size; // Unused parameter
+        return 0;
+    }
+    
+    #ifdef __cplusplus
+    }
+    #endif
 #endif

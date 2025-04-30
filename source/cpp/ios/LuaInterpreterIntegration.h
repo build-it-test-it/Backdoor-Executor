@@ -1,15 +1,17 @@
 #pragma once
 
+// Standard C++ includes
 #include <string>
 #include <vector>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <atomic>
+#include <unordered_map>
 
-#include "../luau/lua.h"
-#include "../luau/lstate.h"
-#include "../luau/lualib.h"
+// Forward declare lua_State to avoid dependency issues
+struct lua_State;
+
 #include "../logging.hpp"
 
 namespace iOS {

@@ -29,11 +29,11 @@ CFLAGS := -fPIC $(OPT_FLAGS) -Wall -Wextra -fvisibility=hidden -ferror-limit=0 -
 OBJCXXFLAGS := -std=c++17 -fPIC $(OPT_FLAGS) -Wall -Wextra -fvisibility=hidden -ferror-limit=0 -fno-limit-debug-info
 LDFLAGS := -shared
 
-# Include paths - add VM includes for Lua headers
-INCLUDES := -I. -I/usr/local/include -I$(SDK)/usr/include -IVM/include -IVM/src
+# Include paths - add VM includes for Lua headers and source directory
+INCLUDES := -I. -I/usr/local/include -I$(SDK)/usr/include -IVM/include -IVM/src -I$(SRC_DIR)
 
-# iOS SDK flags
-PLATFORM_FLAGS := -isysroot $(SDK) -arch $(ARCHS) -mios-version-min=$(MIN_IOS_VERSION)
+# iOS SDK flags for iOS 15+ compatibility
+PLATFORM_FLAGS := -isysroot $(SDK) -arch $(ARCHS) -mios-version-min=$(MIN_IOS_VERSION) -DIOS_VERSION=$(MIN_IOS_VERSION) -DLUAU_PLATFORM_IOS=1 -DLUAU_TARGET_IOS=1
 
 # Define output directories
 BUILD_DIR := build
@@ -72,9 +72,8 @@ SRC_DIR := source
 CPP_DIR := $(SRC_DIR)/cpp
 VM_SRC_DIR := VM/src
 
-# Temporarily disable VM sources for now - focus on core functionality first
-# VM_SOURCES := $(shell find $(VM_SRC_DIR) -name "*.cpp" 2>/dev/null)
-VM_SOURCES :=
+# Re-enable VM sources - fix the issues correctly as requested
+VM_SOURCES := $(shell find $(VM_SRC_DIR) -name "*.cpp" 2>/dev/null)
 
 CPP_SOURCES := $(shell find $(CPP_DIR) -maxdepth 1 -name "*.cpp" 2>/dev/null)
 CPP_SOURCES += $(shell find $(CPP_DIR)/memory -name "*.cpp" 2>/dev/null)
